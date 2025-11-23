@@ -3,32 +3,37 @@
     <!-- 存储设置 -->
     <div class="w-full">
       <div class="flex flex-row items-center justify-between mb-3">
-        <h1 class="text-gray-600 font-bold text-lg">存储设置</h1>
+        <h1 class="text-[var(--text-color-600)] font-bold text-lg">存储设置</h1>
         <div class="flex flex-row items-center justify-end gap-2 w-14">
           <button v-if="storageEditMode" @click="handleUpdateS3Setting" title="编辑">
-            <Saveupdate class="w-5 h-5 text-gray-400 hover:w-6 hover:h-6" />
+            <Saveupdate class="w-5 h-5 text-[var(--text-color-400)] hover:w-6 hover:h-6" />
           </button>
           <button @click="storageEditMode = !storageEditMode" title="编辑">
-            <Edit v-if="!storageEditMode" class="w-5 h-5 text-gray-400 hover:w-6 hover:h-6" />
-            <Close v-else class="w-5 h-5 text-gray-400 hover:w-6 hover:h-6" />
+            <Edit
+              v-if="!storageEditMode"
+              class="w-5 h-5 text-[var(--text-color-400)] hover:w-6 hover:h-6"
+            />
+            <Close v-else class="w-5 h-5 text-[var(--text-color-400)] hover:w-6 hover:h-6" />
           </button>
         </div>
       </div>
 
       <!-- 开启S3 -->
-      <div class="flex flex-row items-center justify-start text-stone-500 h-10">
+      <div class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] h-10">
         <h2 class="font-semibold w-30 shrink-0">启用S3存储:</h2>
         <BaseSwitch v-model="S3Setting.enable" :disabled="!storageEditMode" />
       </div>
 
       <!-- 使用 SSL -->
-      <div class="flex flex-row items-center justify-start text-stone-500 h-10">
+      <div class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] h-10">
         <h2 class="font-semibold w-30 shrink-0">启用SSL:</h2>
         <BaseSwitch v-model="S3Setting.use_ssl" :disabled="!storageEditMode" />
       </div>
 
       <!-- S3 Service Provider -->
-      <div class="flex flex-row items-center justify-start text-stone-500 gap-2 h-10">
+      <div
+        class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] gap-2 h-10"
+      >
         <h2 class="font-semibold w-30 shrink-0">S3 服务:</h2>
         <BaseSelect
           v-model="S3Setting.provider"
@@ -39,7 +44,9 @@
       </div>
 
       <!-- S3 Endpoint -->
-      <div class="flex flex-row items-center justify-start text-stone-500 gap-2 h-10">
+      <div
+        class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] gap-2 h-10"
+      >
         <h2 class="font-semibold w-30 shrink-0">S3 Endpoint:</h2>
         <span
           v-if="!storageEditMode"
@@ -59,7 +66,9 @@
       </div>
 
       <!-- S3 Access Key -->
-      <div class="flex flex-row items-center justify-start text-stone-500 gap-2 h-10">
+      <div
+        class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] gap-2 h-10"
+      >
         <h2 class="font-semibold w-30 shrink-0">Access Key:</h2>
         <span
           v-if="!storageEditMode"
@@ -79,7 +88,9 @@
       </div>
 
       <!-- S3 Secret Key -->
-      <div class="flex flex-row items-center justify-start text-stone-500 gap-2 h-10">
+      <div
+        class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] gap-2 h-10"
+      >
         <h2 class="font-semibold w-30 shrink-0">Secret Key:</h2>
         <span
           v-if="!storageEditMode"
@@ -99,7 +110,9 @@
       </div>
 
       <!-- S3 Bucket -->
-      <div class="flex flex-row items-center justify-start text-stone-500 gap-2 h-10">
+      <div
+        class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] gap-2 h-10"
+      >
         <h2 class="font-semibold w-30 shrink-0">S3 Bucket:</h2>
         <span
           v-if="!storageEditMode"
@@ -119,7 +132,9 @@
       </div>
 
       <!-- Path Prefix -->
-      <div class="flex flex-row items-center justify-start text-stone-500 gap-2 h-10">
+      <div
+        class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] gap-2 h-10"
+      >
         <h2 class="font-semibold w-30 shrink-0">Path Prefix:</h2>
         <span
           v-if="!storageEditMode"
@@ -141,7 +156,7 @@
       <!-- S3 Region -->
       <div
         v-if="S3Setting.provider !== S3Provider.MINIO"
-        class="flex flex-row items-center justify-start text-stone-500 gap-2 h-10"
+        class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] gap-2 h-10"
       >
         <h2 class="font-semibold w-30 shrink-0">S3 Region:</h2>
         <span
@@ -162,7 +177,9 @@
       </div>
 
       <!-- CDN 加速域名（可选） -->
-      <div class="flex flex-row items-center justify-start text-stone-500 gap-2 h-10">
+      <div
+        class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] gap-2 h-10"
+      >
         <h2 class="font-semibold w-30 shrink-0">CDN 域名:</h2>
         <span
           v-if="!storageEditMode"

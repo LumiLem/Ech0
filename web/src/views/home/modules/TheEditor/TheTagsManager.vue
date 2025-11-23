@@ -1,6 +1,6 @@
 <template>
   <div class="py-4">
-    <h2 class="text-gray-500 font-bold mb-3">标签管理</h2>
+    <h2 class="text-[var(--text-color-500)] font-bold mb-3">标签管理</h2>
     <div class="flex flex-wrap gap-2">
       <div
         v-for="tag in tagList"
@@ -10,7 +10,7 @@
       >
         <div
           @click="handleDeleteTag(tag.id)"
-          class="hover:cursor-pointer text-gray-400 flex items-center justify-start gap-2"
+          class="hover:cursor-pointer text-[var(--text-color-400)] flex items-center justify-start gap-2"
         >
           <div>#</div>
           {{ tag.name }}

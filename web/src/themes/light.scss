@@ -4,29 +4,70 @@
   --selection-text-color: #fffcf0;
   --selection-bg-color: #393022;
 
+  // 主体
   --bg-color: #f4f1ec;
+  --bg-color-50: oklch(98.5% 0.001 106.423);
+  --bg-color-100: oklch(97% 0.001 106.424);
+  --bg-color-300: oklch(86.9% 0.005 56.366);
   --text-color: #1a1a1a;
+  --text-color-200: oklch(92.8% 0.006 264.531);
+  --text-color-next-200: oklch(92.3% 0.003 48.717);
+  --text-color-300: oklch(87.2% 0.01 258.338);
+  --text-color-next-300: oklch(86.9% 0.005 56.366);
+  --text-color-400: oklch(70.7% 0.022 261.325);
+  --text-color-next-400: oklch(70.9% 0.01 56.259);
+  --text-color-500: oklch(55.1% 0.027 264.364);
+  --text-color-next-500: oklch(55.3% 0.013 58.071);
+  --text-color-600: oklch(44.6% 0.03 256.802);
+  --text-color-next-600: oklch(44.4% 0.011 73.639);
+  --text-color-700: oklch(37.3% 0.034 259.733);
+  --text-color-next-700: oklch(37.4% 0.01 67.558);
+  --text-color-800: oklch(27.8% 0.033 256.848);
+  --text-color-900: oklch(21% 0.034 264.665);
+  --border-color-300: oklch(86.9% 0.005 56.366);
+  --border-color-400: oklch(70.9% 0.01 56.259);
+  --divide-color-100: oklch(87.2% 0.01 258.338);
+  --divide-color-200: oklch(92.8% 0.006 264.531);
 
   --ring-color: oklch(92.8% 0.006 264.531);
+  --ring-color-100: oklch(90.221% 0.00533 248.325);
+  --ring-color-300: oklch(87.2% 0.01 258.338);
+  --dash-line-color: oklch(87.2% 0.01 258.338);
 
+  // 通用卡片
   --card-color: #ffffff;
   --card-text-color: oklch(70.7% 0.022 261.325);
 
+  --back-to-top-bg-color: oklch(92.8% 0.006 264.531);
+  --player-button-bg-color: oklch(93.6% 0.032 17.717);
+  --player-button-hover-bg-color: oklch(88.5% 0.062 18.334);
+
   // 编辑器
+  --theboard-border-color: #5d7183;
   --editor-bg-color: #ffffff;
   --editor-text-color: oklch(0.98 0 0);
   --editor-title-color: oklch(44.6% 0.043 257.281);
   --tag-editor-border-color: oklch(87.2% 0.01 258.338);
+  --image-uploader-bg-color: #f4f1ec;
+  --image-uploader-bar-bg-color: #ffffff;
 
+  // 小组件
   --widget-bg-color: #ffffff;
   --widget-title-color: oklch(44.6% 0.03 256.802);
   --widget-text-color: oklch(55.3% 0.013 58.071);
+
+  // Connect
+  --connect-border-color: oklch(92.8% 0.006 264.531);
+  --connect-dot-border-color: #ffffff;
 
   // 时间轴
   --timeline-line-color: #0000000d;
   --timeline-dot-color: oklch(64.6% 0.222 41.116);
   --timeline-datetime-color: oklch(70.5% 0.213 47.604);
   --timeline-tag-color: oklch(87.2% 0.01 258.338);
+  --timeline-load-more-bg-color: #ffffff;
+  --timeline-load-more-text-color: oklch(44.6% 0.03 256.802);
+  --timeline-load-more-active-bg-color: oklch(96.7% 0.003 264.542);
 
   // Echo
   --echo-card-btn-bg-color: #ffffff;
@@ -44,8 +85,24 @@
   // 通用组件
   --btn-bg-color: oklch(98.5% 0.002 247.839);
   --btn-ring-color: oklch(87.2% 0.01 258.338);
+
   --input-bg-color: #ffffff;
   --input-border-color: oklch(86.9% 0.005 56.366);
   --textarea-bg-color: #ffffff;
   --placeholder-color: oklch(44.6% 0.03 256.802);
+
+  --combobox-bg-color: #ffffff;
+
+  --dialog-bg-color: #ffffff;
+  --dialog-title-color: oklch(44.6% 0.03 256.802);
+  --dialog-text-color: oklch(70.7% 0.022 261.325);
+  --dialog-cancel-btn-bg-color: #ffffff;
+  --dialog-confirm-btn-bg-color: oklch(75% 0.183 55.934);
+
+  --select-bg-color: #ffffff;
+  --select-disabled-bg-color: oklch(96.7% 0.003 264.542);
+  --select-border-color: oklch(87.2% 0.01 258.338);
+  --select-label-text-color: oklch(37.3% 0.034 259.733);
+  --select-label-hover-bg-color: oklch(98% 0.016 73.684);
+  --select-label-clicked-bg-color: oklch(98.5% 0.002 247.839);
 }

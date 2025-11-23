@@ -2,7 +2,7 @@
   <!-- Uppy Dashboard 容器 -->
   <div
     id="uppy-dashboard"
-    class="rounded-md overflow-hidden shadow-inner ring-inset ring-1 ring-gray-200"
+    class="rounded-md overflow-hidden shadow-inner ring-inset ring-1 ring-[var(--ring-color)]"
   ></div>
 </template>
 
@@ -280,11 +280,10 @@ onBeforeUnmount(() => {
 }
 
 :deep(.uppy-Dashboard-innerWrap) {
-  background-color: #f4f1ec;
+  background-color: var(--image-uploader-bg-color);
 }
 
 :deep(.uppy-Dashboard-AddFiles) {
-  /* background-color: #fff; */
   /* 内阴影 */
   box-shadow:
     inset 0px 0px 2px rgba(80, 80, 80, 0.12),
@@ -298,9 +297,18 @@ onBeforeUnmount(() => {
 :deep(.uppy-Dashboard-browse) {
   color: #e5a437;
 }
+:deep(.uppy-StatusBar) {
+  color: var(--text-color);
+  background-color: var(--image-uploader-bar-bg-color);
+}
 
 :deep(.uppy-DashboardContent-bar) {
-  background-color: #fff;
+  color: var(--text-color);
+  background-color: var(--image-uploader-bar-bg-color);
+}
+
+:deep(.uppy-StatusBar-statusPrimary) {
+  color: var(--text-color);
 }
 
 :deep(.uppy-DashboardContent-back) {

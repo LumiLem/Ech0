@@ -10,7 +10,7 @@
       <div class="flex items-center gap-4 my-1">
         <button
           @click="togglePlay"
-          class="w-8 h-8 flex items-center justify-center rounded-full bg-red-100 shadow-sm hover:bg-red-200 text-white transition"
+          class="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--player-button-bg-color)]! shadow-sm hover:bg-[var(--player-button-hover-bg-color)] text-white transition"
         >
           <span v-if="!isPlaying">
             <Play class="w-5 h-5" :color="'#ee5b5bd9'" />
@@ -21,8 +21,8 @@
         </button>
 
         <!-- 提示 -->
-        <div v-if="isPlaying" class="text-stone-500">播放中...</div>
-        <div v-else class="text-stone-500">暂停中...</div>
+        <div v-if="isPlaying" class="text-[var(--text-color-next-500)]">播放中...</div>
+        <div v-else class="text-[var(--text-color-next-500)]">暂停中...</div>
       </div>
 
       <audio

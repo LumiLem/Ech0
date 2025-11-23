@@ -1,8 +1,8 @@
 <template>
-  <div class="p-3 my-3 border border-dashed border-gray-300 rounded-lg">
+  <div class="p-3 my-3 border border-dashed border-[var(--dash-line-color)] rounded-lg">
     <!-- 扩展附加内容 -->
     <div class="mb-1">
-      <h2 class="text-gray-400 font-bold mb-1">扩展附加内容</h2>
+      <h2 class="text-[var(--text-color-400)] font-bold mb-1">扩展附加内容</h2>
       <div class="flex flex-row items-center gap-2">
         <!-- 添加音乐 -->
         <BaseButton
@@ -37,7 +37,7 @@
 
     <!-- 模式切换 -->
     <div class="mb-1">
-      <h2 class="text-gray-400 font-bold mb-1">模式切换</h2>
+      <h2 class="text-[var(--text-color-400)] font-bold mb-1">模式切换</h2>
       <div class="flex flex-row items-center gap-2">
         <!-- 打开Todo模式 -->
         <BaseButton :icon="Todo" @click="handleTodo" class="w-7 h-7 rounded-md" />

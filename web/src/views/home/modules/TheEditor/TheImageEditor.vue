@@ -1,9 +1,9 @@
 <template>
   <div>
-    <h2 class="text-gray-500 font-bold my-2">插入图片/视频（支持直链、本地、S3存储）</h2>
+    <h2 class="text-[var(--text-color-500)] font-bold my-2">插入图片/视频（支持直链、本地、S3存储）</h2>
     <div v-if="!MediaUploading" class="flex items-center justify-between mb-3">
       <div class="flex items-center gap-2">
-        <span class="text-gray-500">选择添加方式：</span>
+        <span class="text-[var(--text-color-500)]">选择添加方式：</span>
         <!-- 直链 -->
         <BaseButton
           :icon="Url"
@@ -40,7 +40,7 @@
 
     <!-- 布局方式选择 -->
     <div class="mb-3 flex items-center gap-2">
-      <span class="text-gray-500">布局方式：</span>
+      <span class="text-[var(--text-color-500)]">布局方式：</span>
       <BaseSelect
         v-model="echoToAdd.layout"
         :options="layoutOptions"
@@ -50,7 +50,7 @@
     </div>
 
     <!-- 当前上传方式与状态 -->
-    <div class="text-gray-300 text-sm mb-1">
+    <div class="text-[var(--text-color-300)] text-sm mb-1">
       当前上传方式为
       <span class="font-bold">
         {{

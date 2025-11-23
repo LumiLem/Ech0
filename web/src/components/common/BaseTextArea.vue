@@ -1,7 +1,11 @@
 <template>
   <div class="base-textarea w-full">
     <!-- Label -->
-    <label v-if="label" :for="id" class="block text-sm font-medium text-gray-700 mb-1">
+    <label
+      v-if="label"
+      :for="id"
+      class="block text-sm font-medium text-[var(--text-color-700)] mb-1"
+    >
       {{ label }}
     </label>
 
@@ -15,9 +19,9 @@
         :readonly="readonly"
         :rows="rows"
         :class="[
-          'block w-full px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-orange-300 focus:border-orange-300 transition duration-150 ease-in-out sm:text-sm',
+          'block w-full px-3 py-2 rounded-lg border border-[var(--input-border-color)] focus:outline-none focus:ring-1 focus:ring-orange-300 focus:border-orange-300 transition duration-150 ease-in-out sm:text-sm',
           disabled
-            ? 'bg-gray-100 cursor-not-allowed opacity-70'
+            ? 'bg-[var(--bg-color-100)] cursor-not-allowed opacity-70'
             : 'bg-[var(--textarea-bg-color)] hover:border-orange-400',
           customClass,
         ]"

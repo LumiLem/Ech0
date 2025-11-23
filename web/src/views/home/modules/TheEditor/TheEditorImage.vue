@@ -10,7 +10,7 @@
   >
     <button
       @click="handleRemoveImage"
-      class="absolute -top-3 -right-4 bg-red-100 hover:bg-red-300 text-gray-600 rounded-lg w-7 h-7 flex items-center justify-center shadow"
+      class="absolute -top-3 -right-4 bg-red-100 hover:bg-red-300 text-[var(--text-color-600)] rounded-lg w-7 h-7 flex items-center justify-center shadow"
       title="移除媒体"
     >
       <Close class="w-4 h-4" />
@@ -56,7 +56,7 @@
     <button @click="imageIndex = Math.max(imageIndex - 1, 0)">
       <Prev class="w-7 h-7" />
     </button>
-    <span class="text-gray-500 text-sm mx-2">
+    <span class="text-[var(--text-color-500)] text-sm mx-2">
       {{ imageIndex + 1 }} / {{ imagesToAdd.length }}
     </span>
     <button @click="imageIndex = Math.min(imageIndex + 1, imagesToAdd.length - 1)">

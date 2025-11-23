@@ -1,9 +1,9 @@
 <template>
   <div
-    class="border border-stone-300 p-4 mx-auto flex flex-col max-w-screen-lg rounded-md mt-2 sm:mt-4 mb-12"
+    class="border border-[var(--border-color-300)] p-4 mx-auto flex flex-col max-w-screen-lg rounded-md mt-2 sm:mt-4 mb-12"
   >
     <h1
-      class="text-4xl md:text-6xl italic font-bold font-serif text-center text-stone-300 mb-8 md:mb-12"
+      class="text-4xl md:text-6xl italic font-bold font-serif text-center text-[var(--text-color-next-300)] mb-8 md:mb-12"
     >
       Ech0 Panel
     </h1>
@@ -61,7 +61,7 @@
           />
         </BaseButton>
 
-        <div class="h-px bg-stone-300 mx-2" />
+        <div class="h-px bg-[var(--bg-color-300)] mx-2" />
 
         <!-- 仪表盘 -->
         <BaseButton
@@ -133,7 +133,7 @@
           外部集成
         </BaseButton>
 
-        <div class="h-px bg-stone-300 mx-2" />
+        <div class="h-px bg-[var(--bg-color-300)] mx-2" />
 
         <!-- 退出登录 -->
         <BaseButton
@@ -155,7 +155,7 @@
           登录
         </BaseButton>
 
-        <div class="text-stone-300 font-serif my-2 ml-3">
+        <div class="text-[var(--text-color-next-300)] font-serif my-2 ml-3">
           Version: {{ settingStore.hello?.version }}
         </div>
       </div>
@@ -202,20 +202,20 @@ const selectedRoute = ref(route.path)
 // 统一的按钮样式计算函数
 const getButtonClasses = (routeName: string, isBackButton = false) => {
   const baseClasses = isBackButton
-    ? 'text-stone-600 rounded-md transition-all duration-300 border-none !shadow-none !ring-0 hover:opacity-75 p-2 group bg-transparent'
+    ? 'text-[var(--text-color-next-600)] rounded-md transition-all duration-300 border-none !shadow-none !ring-0 hover:opacity-75 p-2 group bg-transparent'
     : 'flex items-center gap-2 pl-3 py-1 rounded-md transition-all duration-300 border-none !shadow-none !ring-0 justify-start bg-transparent'
 
   const activeClasses =
     currentRoute.value === routeName
       ? 'text-stone-800 bg-orange-200'
-      : 'text-stone-600 hover:opacity-75'
+      : 'text-[var(--text-color-next-600)] hover:opacity-75'
 
   return `${baseClasses} ${activeClasses}`
 }
 
 // 底部按钮样式
 const getBottomButtonClasses = () => {
-  return 'flex items-center gap-2 pl-3 py-1 rounded-md transition-all duration-300 border-none !shadow-none !ring-0 text-gray-600 hover:opacity-75 justify-start bg-transparent'
+  return 'flex items-center gap-2 pl-3 py-1 rounded-md transition-all duration-300 border-none !shadow-none !ring-0 text-[var(--text-color-600)] hover:opacity-75 justify-start bg-transparent'
 }
 
 // 路由选项

@@ -1,6 +1,8 @@
 <template>
   <div class="px-4 pb-4 py-2 mx-auto flex flex-col w-sm md:w-sm mt-4 mb-12">
-    <h1 class="text-4xl md:text-6xl italic font-bold font-serif text-center text-stone-300 mb-8">
+    <h1
+      class="text-4xl md:text-6xl italic font-bold font-serif text-center text-[var(--text-color-next-300)] mb-8"
+    >
       Ech0 Widget
     </h1>
 
@@ -32,13 +34,13 @@ const currentRoute = computed(() => route.name as string)
 // 统一的按钮样式计算函数
 const getButtonClasses = (routeName: string, isBackButton = false) => {
   const baseClasses = isBackButton
-    ? 'text-stone-600 rounded-md transition-all duration-300 border-none !shadow-none !ring-0 hover:opacity-75 p-2 group bg-transparent'
+    ? 'text-[var(--text-color-next-600)] rounded-md transition-all duration-300 border-none !shadow-none !ring-0 hover:opacity-75 p-2 group bg-transparent'
     : 'flex items-center gap-2 pl-3 py-1 rounded-md transition-all duration-300 border-none !shadow-none !ring-0 justify-start bg-transparent'
 
   const activeClasses =
     currentRoute.value === routeName
       ? 'text-stone-800 bg-orange-200'
-      : 'text-stone-600 hover:opacity-75'
+      : 'text-[var(--text-color-next-600)] hover:opacity-75'
 
   return `${baseClasses} ${activeClasses}`
 }

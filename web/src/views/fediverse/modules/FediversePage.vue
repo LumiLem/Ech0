@@ -1,11 +1,17 @@
 <template>
   <div class="max-w-sm px-3 pb-4 py-2 mt-4 sm:mt-6 mb-10 mx-auto flex justify-center items-center">
     <div class="w-full sm:max-w-lg">
-      <h1 class="text-5xl text-center font-bold text-gray-200 mt-2 mb-4">Ech0 Fediverse</h1>
+      <h1 class="text-5xl text-center font-bold text-[var(--text-color-200)] mt-2 mb-4">
+        Ech0 Fediverse
+      </h1>
 
       <div class="flex items-center justify-between">
         <!-- 返回上一页 -->
-        <BaseButton @click="goBack" class="w-10 h-10 text-gray-600 rounded-md" title="返回首页">
+        <BaseButton
+          @click="goBack"
+          class="w-10 h-10 text-[var(--text-color-600)] rounded-md"
+          title="返回首页"
+        >
           <Arrow class="w-7 h-7 rotate-180 mx-auto" />
         </BaseButton>
 
@@ -23,7 +29,7 @@
           />
           <!-- NotificationBox -->
           <!-- <BaseButton
-            class="h-full w-full text-gray-600 rounded-md flex items-center justify-center"
+            class="h-full w-full text-[var(--text-color-600)] rounded-md flex items-center justify-center"
             title="消息通知"
             :icon="InBox"
             @click="theToast.info('消息通知功能开发中，敬请期待！')"
@@ -33,13 +39,15 @@
 
       <!-- 在搜索时板块显示搜索结果 -->
       <div v-if="shouldShowResults" class="mt-6 space-y-4">
-        <p v-if="searchLoading" class="text-sm text-gray-400">正在召唤联邦宇宙的朋友们…</p>
+        <p v-if="searchLoading" class="text-sm text-[var(--text-color-400)]">
+          正在召唤联邦宇宙的朋友们…
+        </p>
         <TheActorCard v-else-if="searchResult" :actor="searchResult" />
       </div>
       <!-- 未搜索时显示已关注的 Actor 的动态 -->
       <div
         v-else
-        class="mt-6 rounded-lg border border-dashed border-gray-700/60 px-4 py-8 text-center text-gray-500"
+        class="mt-6 rounded-lg border border-dashed border-gray-700/60 px-4 py-8 text-center text-[var(--text-color-500)]"
       >
         <!-- 未登录时显示登录提示 -->
         <div v-if="!isLogin">
@@ -50,7 +58,7 @@
           <TheTimeline :loading="timelineLoading" :error="timelineError" :items="timelineItems" />
           <div
             v-if="timelineItems.length"
-            class="mt-4 flex flex-col items-center gap-2 text-sm text-gray-400"
+            class="mt-4 flex flex-col items-center gap-2 text-sm text-[var(--text-color-400)]"
           >
             <span v-if="timelineLoadingMore">正在加载更多…</span>
             <span v-else-if="!timelineHasMore && !timelineLoading">已经到底啦～</span>

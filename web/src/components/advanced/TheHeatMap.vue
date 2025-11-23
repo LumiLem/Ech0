@@ -6,7 +6,7 @@
           <div
             v-for="row in 3"
             :key="row"
-            class="relative w-5 h-5 rounded-[6px] transition-colors duration-300 ease ring-1 ring-[var(--heatmap-ring-color)] hover:ring-gray-300 hover:shadow-sm"
+            class="relative w-5 h-5 rounded-[6px] transition-colors duration-300 ease ring-1 ring-[var(--heatmap-ring-color)] hover:ring-[var(--ring-color-300)] hover:shadow-sm"
             :style="{ backgroundColor: getColor(getCell(row - 1, col - 1)?.count ?? 0) }"
             @mouseenter="showTooltip(row - 1, col - 1, $event)"
             @mouseleave="hideTooltip"

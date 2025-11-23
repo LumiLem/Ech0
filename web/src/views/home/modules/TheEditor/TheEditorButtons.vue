@@ -33,7 +33,7 @@
         <div
           class="flex items-center justify-between rounded-sm border border-[var(--tag-editor-border-color)] border-dashed px-1"
         >
-          <span class="text-gray-300">#</span>
+          <span class="text-[var(--text-color-300)]">#</span>
           <BaseCombobox
             :key="tagOptions.length"
             v-model="tagToAdd"
@@ -41,7 +41,7 @@
             :options="tagOptions"
             placeholder="标签"
             class="rounded-sm border-none w-auto"
-            input-class="w-16 h-7 text-gray-500"
+            input-class="w-16 h-7 text-[var(--text-color-500)]"
           />
         </div>
       </div>

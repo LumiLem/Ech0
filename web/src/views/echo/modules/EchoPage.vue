@@ -5,7 +5,7 @@
         <!-- 返回上一页 -->
         <BaseButton
           @click="goBack"
-          class="text-gray-600 rounded-md shadow-none! border-none! ring-0! bg-transparent! group"
+          class="text-[var(--text-color-600)] rounded-md shadow-none! border-none! ring-0! bg-transparent! group"
           title="返回首页"
         >
           <Arrow
@@ -18,7 +18,7 @@
         <TheEchoDetail :echo="echo" @update-like-count="handleUpdateLikeCount" />
         <TheComment class="my-2" />
       </div>
-      <div v-else class="w-full sm:mt-1 text-gray-300">
+      <div v-else class="w-full sm:mt-1 text-[var(--text-color-300)]">
         <p class="text-center">正在加载 Echo 详情...</p>
       </div>
     </div>

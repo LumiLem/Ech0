@@ -4,26 +4,33 @@
       <!-- OAuth2 设置 -->
       <div class="w-full">
         <div class="flex flex-row items-center justify-between mb-3">
-          <h1 class="text-gray-600 font-bold text-lg">OAuth2设置</h1>
+          <h1 class="text-[var(--text-color-600)] font-bold text-lg">OAuth2设置</h1>
           <div class="flex flex-row items-center justify-end gap-2 w-14">
             <button v-if="oauth2EditMode" @click="handleUpdateOAuth2Setting" title="编辑">
-              <Saveupdate class="w-5 h-5 text-gray-400 hover:w-6 hover:h-6" />
+              <Saveupdate class="w-5 h-5 text-[var(--text-color-400)] hover:w-6 hover:h-6" />
             </button>
             <button @click="oauth2EditMode = !oauth2EditMode" title="编辑">
-              <Edit v-if="!oauth2EditMode" class="w-5 h-5 text-gray-400 hover:w-6 hover:h-6" />
-              <Close v-else class="w-5 h-5 text-gray-400 hover:w-6 hover:h-6" />
+              <Edit
+                v-if="!oauth2EditMode"
+                class="w-5 h-5 text-[var(--text-color-400)] hover:w-6 hover:h-6"
+              />
+              <Close v-else class="w-5 h-5 text-[var(--text-color-400)] hover:w-6 hover:h-6" />
             </button>
           </div>
         </div>
 
         <!-- 开启OAuth2 -->
-        <div class="flex flex-row items-center justify-start text-stone-500 h-10">
+        <div
+          class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] h-10"
+        >
           <h2 class="font-semibold w-30 shrink-0">启用OAuth2:</h2>
           <BaseSwitch v-model="OAuth2Setting.enable" :disabled="!oauth2EditMode" />
         </div>
 
         <!-- OAuth2 Provider -->
-        <div class="flex flex-row items-center justify-start text-stone-500 gap-2 h-10">
+        <div
+          class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] gap-2 h-10"
+        >
           <h2 class="font-semibold w-30 shrink-0">OAuth2 模板:</h2>
           <BaseSelect
             v-model="OAuth2Setting.provider"
@@ -34,7 +41,9 @@
         </div>
 
         <!-- Client ID -->
-        <div class="flex flex-row items-center justify-start text-stone-500 gap-2 h-10">
+        <div
+          class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] gap-2 h-10"
+        >
           <h2 class="font-semibold w-30 shrink-0">Client ID:</h2>
           <span
             v-if="!oauth2EditMode"
@@ -54,7 +63,9 @@
         </div>
 
         <!-- Client Secret -->
-        <div class="flex flex-row items-center justify-start text-stone-500 gap-2 h-10">
+        <div
+          class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] gap-2 h-10"
+        >
           <h2 class="font-semibold w-30 shrink-0">Client Secret:</h2>
           <span
             v-if="!oauth2EditMode"
@@ -74,7 +85,9 @@
         </div>
 
         <!-- Callback URL -->
-        <div class="flex flex-row items-center justify-start text-stone-500 gap-2 h-10">
+        <div
+          class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] gap-2 h-10"
+        >
           <h2 class="font-semibold w-30 shrink-0">Callback URL:</h2>
           <span
             v-if="!oauth2EditMode"
@@ -94,7 +107,9 @@
         </div>
 
         <!-- Auth URL -->
-        <div class="flex flex-row items-center justify-start text-stone-500 gap-2 h-10">
+        <div
+          class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] gap-2 h-10"
+        >
           <h2 class="font-semibold w-30 shrink-0">Auth URL:</h2>
           <span
             v-if="!oauth2EditMode"
@@ -114,7 +129,9 @@
         </div>
 
         <!-- Token URL -->
-        <div class="flex flex-row items-center justify-start text-stone-500 gap-2 h-10">
+        <div
+          class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] gap-2 h-10"
+        >
           <h2 class="font-semibold w-30 shrink-0">Token URL:</h2>
           <span
             v-if="!oauth2EditMode"
@@ -134,7 +151,9 @@
         </div>
 
         <!-- User Info URL -->
-        <div class="flex flex-row items-center justify-start text-stone-500 gap-2 h-10">
+        <div
+          class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] gap-2 h-10"
+        >
           <h2 class="font-semibold w-30 shrink-0">UserInfo URL:</h2>
           <span
             v-if="!oauth2EditMode"
@@ -154,7 +173,9 @@
         </div>
 
         <!-- Scopes -->
-        <div class="flex flex-row items-center justify-start text-stone-500 gap-2 h-10">
+        <div
+          class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] gap-2 h-10"
+        >
           <h2 class="font-semibold w-30 shrink-0">Scopes:</h2>
           <span
             v-if="!oauth2EditMode"
@@ -178,20 +199,20 @@
 
     <div
       v-if="OAuth2Setting.enable && OAuth2Setting.provider"
-      class="rounded-md border border-dashed border-gray-400 p-4 mb-3"
+      class="rounded-md border border-dashed border-[var(--border-color-400)] p-4 mb-3"
     >
       <!-- OAuth2 账号绑定 -->
       <div class="w-full">
         <div class="mb-3">
-          <h1 class="text-gray-600 font-bold text-lg">账号绑定</h1>
-          <p class="text-stone-400 text-sm">注意：需先配置OAuth2信息</p>
+          <h1 class="text-[var(--text-color-600)] font-bold text-lg">账号绑定</h1>
+          <p class="text-[var(--text-color-next-400)] text-sm">注意：需先配置OAuth2信息</p>
           <div
             v-if="
               oauthInfo && oauthInfo.oauth_id.length && oauthInfo.provider && oauthInfo.user_id != 0
             "
-            class="mt-2 border border-dashed border-stone-400 rounded-md p-3 flex items-center justify-center"
+            class="mt-2 border border-dashed border-[var(--border-color-400)] rounded-md p-3 flex items-center justify-center"
           >
-            <p class="text-stone-500 font-bold flex items-center">
+            <p class="text-[var(--text-color-next-500)] font-bold flex items-center">
               <component
                 :is="
                   oauthInfo.provider === OAuth2Provider.GITHUB
@@ -216,11 +237,7 @@
               账号已绑定
             </p>
           </div>
-          <BaseButton
-            v-else
-            class="rounded-md mt-2 bg-stone-50! bg-op-80"
-            @click="handleBindOAuth2()"
-          >
+          <BaseButton v-else class="rounded-md mt-2" @click="handleBindOAuth2()">
             <div class="flex items-center justify-between">
               <component
                 :is="

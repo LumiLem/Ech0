@@ -1,6 +1,6 @@
 <template>
   <div
-    class="max-w-sm flex justify-center items-center bg-white rounded-lg shadow-sm ring-1 ring-inset ring-gray-100 p-2 gap-2"
+    class="max-w-sm flex justify-center items-center bg-[var(--card-color)] rounded-lg shadow-sm ring-1 ring-inset ring-[var(--ring-color-100)] p-2 gap-2"
   >
     <!-- 使用移动端外链播放器（解决跳转） -->
     <iframe

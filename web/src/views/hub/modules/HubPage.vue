@@ -1,8 +1,10 @@
 <template>
   <div class="w-full px-2 pb-4 py-2 mt-4 sm:mt-6 mb-10 mx-auto flex justify-center items-center">
     <!-- Ech0s Hub -->
-    <div class="mx-auto px-2 text-stone-200 w-full">
-      <h1 class="text-4xl md:text-6xl italic font-bold font-serif text-center text-stone-300">
+    <div class="mx-auto px-2 text-[var(--text-color-next-200)] w-full">
+      <h1
+        class="text-4xl md:text-6xl italic font-bold font-serif text-center text-[var(--text-color-next-300)]"
+      >
         Ech0 Hub
       </h1>
 
@@ -22,14 +24,14 @@
       </div>
 
       <div v-if="isLoading || isPreparing" class="my-6">
-        <p class="text-gray-500 text-center">加载中...</p>
+        <p class="text-[var(--text-color-500)] text-center">加载中...</p>
       </div>
       <div v-else-if="echoList.length === 0 && !isPreparing && !isLoading" class="my-6">
-        <p class="text-gray-500 text-center">暂无数据，快去添加Connect吧🙃</p>
+        <p class="text-[var(--text-color-500)] text-center">暂无数据，快去添加Connect吧🙃</p>
       </div>
 
       <div v-if="echoList.length > 0 && !hasMore" class="my-6">
-        <p class="text-gray-500 text-center">没有更多数据了🙃</p>
+        <p class="text-[var(--text-color-500)] text-center">没有更多数据了🙃</p>
       </div>
     </div>
 
@@ -61,13 +63,13 @@ const currentRoute = computed(() => route.name as string)
 // 统一的按钮样式计算函数
 const getButtonClasses = (routeName: string, isBackButton = false) => {
   const baseClasses = isBackButton
-    ? 'text-stone-600 rounded-md transition-all duration-300 border-none !shadow-none !ring-0 hover:opacity-75 p-2 group bg-transparent'
+    ? 'text-[var(--text-color-next-600)] rounded-md transition-all duration-300 border-none !shadow-none !ring-0 hover:opacity-75 p-2 group bg-transparent'
     : 'flex items-center gap-2 pl-3 py-1 rounded-md transition-all duration-300 border-none !shadow-none !ring-0 justify-start bg-transparent'
 
   const activeClasses =
     currentRoute.value === routeName
       ? 'text-stone-800 bg-orange-200'
-      : 'text-stone-600 hover:opacity-75'
+      : 'text-[var(--text-color-next-600)] hover:opacity-75'
 
   return `${baseClasses} ${activeClasses}`
 }

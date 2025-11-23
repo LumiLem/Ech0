@@ -3,11 +3,14 @@
     <!-- Webhook 设置 -->
     <div class="w-full">
       <div class="flex flex-row items-center justify-between mb-4">
-        <h1 class="text-gray-600 font-bold text-lg">访问令牌</h1>
+        <h1 class="text-[var(--text-color-600)] font-bold text-lg">访问令牌</h1>
         <div class="flex flex-row items-center justify-end gap-2 w-14">
           <button @click="accessTokenEdit = !accessTokenEdit" title="编辑">
-            <Edit v-if="!accessTokenEdit" class="w-5 h-5 text-gray-400 hover:w-6 hover:h-6" />
-            <Close v-else class="w-5 h-5 text-gray-400 hover:w-6 hover:h-6" />
+            <Edit
+              v-if="!accessTokenEdit"
+              class="w-5 h-5 text-[var(--text-color-400)] hover:w-6 hover:h-6"
+            />
+            <Close v-else class="w-5 h-5 text-[var(--text-color-400)] hover:w-6 hover:h-6" />
           </button>
         </div>
       </div>
@@ -15,45 +18,64 @@
 
     <div v-if="!accessTokenEdit">
       <div v-if="AccessTokens.length === 0" class="flex flex-col items-center justify-center mt-2">
-        <span class="text-stone-400">暂无 Access Token...</span>
+        <span class="text-[var(--text-color-next-400)]">暂无 Access Token...</span>
       </div>
-      <div v-else class="mt-2 overflow-x-auto border border-stone-300 rounded-lg">
-        <table class="min-w-full divide-y divide-gray-200">
+      <div v-else class="mt-2 overflow-x-auto border border-[var(--border-color-300)] rounded-lg">
+        <table class="min-w-full divide-y divide-[var(--divide-color-200)]">
           <thead>
-            <tr class="bg-stone-50 opacity-70">
-              <th class="px-3 min-w-24 py-2 text-left text-sm font-semibold text-stone-600">
+            <tr class="bg-[var(--bg-color-50)] opacity-70">
+              <th
+                class="px-3 min-w-24 py-2 text-left text-sm font-semibold text-[var(--text-color-next-600)]"
+              >
                 Token
               </th>
-              <th class="px-3 min-w-18 py-2 text-left text-sm font-semibold text-stone-600">
+              <th
+                class="px-3 min-w-18 py-2 text-left text-sm font-semibold text-[var(--text-color-next-600)]"
+              >
                 名称
               </th>
-              <th class="px-3 py-2 text-left text-sm font-semibold text-stone-600">创建时间</th>
-              <th class="px-3 py-2 text-left text-sm font-semibold text-stone-600">过期时间</th>
-              <th class="px-3 min-w-18 py-2 text-right text-sm font-semibold text-stone-600">
+              <th
+                class="px-3 py-2 text-left text-sm font-semibold text-[var(--text-color-next-600)]"
+              >
+                创建时间
+              </th>
+              <th
+                class="px-3 py-2 text-left text-sm font-semibold text-[var(--text-color-next-600)]"
+              >
+                过期时间
+              </th>
+              <th
+                class="px-3 min-w-18 py-2 text-right text-sm font-semibold text-[var(--text-color-next-600)]"
+              >
                 操作
               </th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-100 text-nowrap">
+          <tbody class="divide-y divide-[var(--divide-color-100)] text-nowrap">
             <tr v-for="t in AccessTokens" :key="t.id">
-              <td class="px-3 py-2 flex items-center gap-x-1 font-mono text-sm text-stone-700">
+              <td
+                class="px-3 py-2 flex items-center gap-x-1 font-mono text-sm text-[var(--text-color-next-700)]"
+              >
                 {{ formatToken(t.token) }}
-                <button class="p-1 hover:bg-gray-100 rounded" @click="handleCopyToken(t.token)">
-                  <Clipboard class="w-5 h-5 text-gray-500" />
+                <button
+                  class="p-1 hover:bg-[var(--bg-color-100)] rounded"
+                  @click="handleCopyToken(t.token)"
+                >
+                  <Clipboard class="w-5 h-5 text-[var(--text-color-500)]" />
                 </button>
               </td>
-              <td class="px-3 py-2 text-sm text-stone-700">
+              <td class="px-3 py-2 text-sm text-[var(--text-color-next-700)]">
                 <span :title="t.name" class="truncate block max-w-xs">{{ t.name }}</span>
               </td>
-              <td class="px-3 py-2 text-sm text-stone-500">
+              <td class="px-3 py-2 text-sm text-[var(--text-color-next-500)]">
                 {{ new Date(t.created_at).toLocaleString() }}
               </td>
-              <td class="px-3 py-2 text-sm text-stone-500">
+              <td class="px-3 py-2 text-sm text-[var(--text-color-next-500)]">
                 {{ t.expiry ? new Date(t.expiry).toLocaleString() : '永不过期' }}
               </td>
               <td class="px-3 py-2 text-right">
                 <button
-                  class="p-1 hover:bg-gray-100 rounded"
+                  class="p-1 hover:bg-[var(--bg-color-100)] rounded"
                   @click="handleDeleteAccessToken(t)"
                   title="删除 Token"
                 >
@@ -65,7 +87,7 @@
         </table>
       </div>
     </div>
-    <div v-else class="text-stone-500">
+    <div v-else class="text-[var(--text-color-next-500)]">
       <!-- 添加 AccessToken -->
 
       <div class="flex flex-col gap-2 mb-2">
@@ -78,7 +100,7 @@
         <BaseSelect
           v-model="accessTokenToAdd.expiry"
           :options="ExpirationOptions"
-          class="w-34 h-8 bg-stone-100! bg-op-80 mt-2 mb-4"
+          class="w-34 h-8 bg-[var(--bg-color-100)]! bg-op-80 mt-2 mb-4"
         />
       </div>
 
@@ -86,7 +108,7 @@
         <BaseButton
           :disabled="isSubmitting"
           @click="handleCancelAddAccessToken"
-          class="w-1/4 h-8 rounded-md flex justify-center mr-2 bg-stone-100! bg-op-80"
+          class="w-1/4 h-8 rounded-md flex justify-center mr-2 bg-[var(--bg-color-100)]! bg-op-80"
           title="取消添加"
         >
           <span>取消</span>
@@ -95,10 +117,10 @@
         <BaseButton
           :loading="isSubmitting"
           @click="handleAddAccessToken"
-          class="w-1/4 h-8 rounded-md flex justify-center bg-stone-100! bg-op-80"
+          class="w-1/4 h-8 rounded-md flex justify-center bg-[var(--bg-color-100)]! bg-op-80"
           title="添加 Access Token"
         >
-          <span class="text-gray-600">添加</span>
+          <span class="text-[var(--text-color-600)]">添加</span>
         </BaseButton>
       </div>
     </div>

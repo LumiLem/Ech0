@@ -8,12 +8,14 @@
         <Connect class="mr-2" />我的连接:
       </h2>
       <div v-if="!loading">
-        <div v-if="!connectsInfo.length" class="text-stone-400 text-sm mb-2">当前暂无连接</div>
+        <div v-if="!connectsInfo.length" class="text-[var(--text-color-next-400)] text-sm mb-2">
+          当前暂无连接
+        </div>
         <div v-else class="flex flex-wrap gap-3">
           <div
             v-for="(connect, index) in connectsInfo"
             :key="index"
-            class="relative flex flex-col items-center justify-center w-8 h-8 min-w-[2rem] min-h-[2rem] flex-none border-2 border-gray-200 shadow-sm rounded-md hover:shadow-md transition duration-200 ease-in-out group"
+            class="relative flex flex-col items-center justify-center w-8 h-8 min-w-[2rem] min-h-[2rem] flex-none border-2 border-[var(--connect-border-color)] shadow-sm rounded-md hover:shadow-md transition duration-200 ease-in-out group"
           >
             <a :href="connect.server_url" target="_blank" class="block w-full h-full">
               <img
@@ -24,7 +26,7 @@
               />
               <!-- 热力圆点 -->
               <span
-                class="absolute top-0 right-0 w-2.5 h-2.5 border-2 border-white rounded-full"
+                class="absolute top-0 right-0 w-2.5 h-2.5 border-2 border-[var(--connect-dot-border-color)] rounded-full"
                 :style="{
                   transform: 'translate(35%, -35%)',
                   backgroundColor: getColor(connect.today_echos || 0),
@@ -44,7 +46,7 @@
         </div>
       </div>
       <div v-else>
-        <div class="text-stone-500 text-sm mb-2">加载中...</div>
+        <div class="text-[var(--text-color-next-500)] text-sm mb-2">加载中...</div>
       </div>
     </div>
   </div>
@@ -61,11 +63,11 @@ const { getConnectInfo } = connectStore
 const { loading, connectsInfo } = storeToRefs(connectStore)
 
 const getColor = (count: number): string => {
-  if (count >= 4) return '#196127'
-  if (count >= 3) return '#239a3b'
-  if (count >= 2) return '#7bc96f'
-  if (count >= 1) return '#c6e48b'
-  return '#b7bbb7' // 默认颜色
+  if (count >= 4) return 'var(--heatmap-bg-color-4)'
+  if (count >= 3) return 'var(--heatmap-bg-color-3)'
+  if (count >= 2) return 'var(--heatmap-bg-color-2)'
+  if (count >= 1) return 'var(--heatmap-bg-color-1)'
+  return 'var(--heatmap-bg-color-0)'
 }
 
 const handleImageError = (event: Event) => {

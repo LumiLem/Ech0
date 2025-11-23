@@ -12,22 +12,27 @@
     </div>
     <!-- 加载更多 -->
     <div v-if="echoStore.hasMore && !echoStore.isLoading" class="mb-4 mt-1 -ml-2">
-      <BaseButton @click="handleLoadMore" class="rounded-full bg-white !active:bg-gray-100">
-        <span class="text-gray-600 text-md text-center px-2 py-1">继续装填</span>
+      <BaseButton
+        @click="handleLoadMore"
+        class="rounded-full bg-[var(--timeline-load-more-bg-color)] !active:bg-[var(--timeline-load-more-active-bg-color)]"
+      >
+        <span class="text-[var(--timeline-load-more-text-color)] text-md text-center px-2 py-1"
+          >继续装填</span
+        >
       </BaseButton>
     </div>
     <!-- 没有更多 -->
     <div v-if="!echoStore.hasMore && !echoStore.isLoading" class="mx-auto my-5 text-center">
-      <span class="text-xl text-gray-400">没有啦！🎉</span>
+      <span class="text-xl text-[var(--text-color-400)]">没有啦！🎉</span>
     </div>
     <!-- 加载中 -->
     <div v-if="echoStore.isLoading" class="mx-auto my-5 text-center">
-      <span class="text-xl text-gray-400">加载中...</span>
+      <span class="text-xl text-[var(--text-color-400)]">加载中...</span>
     </div>
     <!-- 备案号 -->
     <div class="text-center">
       <a href="https://beian.miit.gov.cn/" target="_blank">
-        <span class="text-gray-400 text-sm">
+        <span class="text-[var(--text-color-400)] text-sm">
           {{ SystemSetting.ICP_number }}
         </span>
       </a>

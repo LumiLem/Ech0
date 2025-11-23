@@ -18,7 +18,7 @@
         <div
           v-if="isFilteringMode && filteredTag"
           @click="handleCancelFilter"
-          class="w-34 text-nowrap flex items-center justify-between px-1 py-0.5 text-gray-300 border border-dashed border-gray-400 rounded-md hover:cursor-pointer hover:line-through hover:text-gray-500"
+          class="w-34 text-nowrap flex items-center justify-between px-1 py-0.5 text-[var(--text-color-300)] border border-dashed border-[var(--border-color-400)] rounded-md hover:cursor-pointer hover:line-through hover:text-[var(--text-color-500)]"
         >
           <p class="text-nowrap truncate">{{ filteredTag.name }}</p>
           <Close class="inline w-4 h-4 ml-1" />
@@ -31,28 +31,28 @@
         <div>
           <a href="/rss" title="RSS">
             <!-- icon -->
-            <Rss class="w-8 h-8 text-gray-400" />
+            <Rss class="w-8 h-8 text-[var(--text-color-400)]" />
           </a>
         </div>
         <!-- Ech0 Hub -->
         <div>
           <RouterLink to="/hub" title="Ech0 Hub">
             <!-- icon -->
-            <HubIcon class="w-8 h-8 text-gray-400" />
+            <HubIcon class="w-8 h-8 text-[var(--text-color-400)]" />
           </RouterLink>
         </div>
         <!-- Ech0 Widget -->
         <div class="block xl:hidden">
           <RouterLink to="/Widget" title="Ech0 Widget">
             <!-- icon -->
-            <Widget class="w-8 h-8 text-gray-400" />
+            <Widget class="w-8 h-8 text-[var(--text-color-400)]" />
           </RouterLink>
         </div>
         <!-- PanelPage -->
         <div>
           <RouterLink to="/panel" title="面板">
             <!-- icon -->
-            <Panel class="w-8 h-8 text-gray-400" />
+            <Panel class="w-8 h-8 text-[var(--text-color-400)]" />
           </RouterLink>
         </div>
       </div>

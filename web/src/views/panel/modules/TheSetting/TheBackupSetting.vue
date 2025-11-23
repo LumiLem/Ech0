@@ -3,37 +3,37 @@
     <!-- 数据管理 -->
     <div>
       <div class="flex items-center justify-start mb-3">
-        <h1 class="text-gray-600 font-bold text-lg">数据管理</h1>
+        <h1 class="text-[var(--text-color-600)] font-bold text-lg">数据管理</h1>
       </div>
 
       <div class="flex flex-col gap-4 font-semibold">
         <!-- 备份数据 -->
         <div class="flex flex-start items-center gap-2">
-          <p class="text-stone-500">创建快照:</p>
+          <p class="text-[var(--text-color-next-500)]">创建快照:</p>
           <BaseButton
             :icon="CreateBackup"
             @click="handleBackup"
-            class="rounded-lg bg-gray-100! text-gray-600! hover:bg-gray-200!"
+            class="rounded-lg text-[var(--text-color-600)]!"
             title="创建快照"
           />
         </div>
         <!-- 导出快照 -->
         <div class="flex flex-start items-center gap-2">
-          <p class="text-stone-500">导出快照:</p>
+          <p class="text-[var(--text-color-next-500)]">导出快照:</p>
           <BaseButton
             :icon="ExportBackup"
             @click="handleBackupExport"
-            class="rounded-lg bg-gray-100! text-gray-600! hover:bg-gray-200!"
+            class="rounded-lg text-[var(--text-color-600)]!"
             title="导出快照"
           />
         </div>
         <!-- 恢复数据 -->
         <div class="flex flex-start items-center gap-2">
-          <p class="text-stone-500">恢复快照:</p>
+          <p class="text-[var(--text-color-next-500)]">恢复快照:</p>
           <BaseButton
             :icon="RestoreBackup"
             @click="handleBackupRestore"
-            class="rounded-lg bg-gray-100! text-gray-600! hover:bg-gray-200!"
+            class="rounded-lg text-[var(--text-color-600)]!"
             title="恢复快照"
           />
         </div>

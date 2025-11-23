@@ -7,7 +7,7 @@
         <StatusInfo class="mr-2" />系统状态:
       </h2>
 
-      <div v-if="!isLoading" class="text-stone-500 text-sm">
+      <div v-if="!isLoading" class="text-[var(--text-color-next-500)] text-sm">
         <!-- 系统管理员 -->
         <!-- <div>
           <h1>
@@ -34,7 +34,7 @@
         </div>
       </div>
       <div v-else>
-        <div class="text-stone-500 text-sm">加载中...</div>
+        <div class="text-[var(--text-color-next-500)] text-sm">加载中...</div>
       </div>
     </div>
   </div>

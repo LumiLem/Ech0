@@ -6,7 +6,7 @@
         <img
           :src="siteLogo"
           alt="站点Logo"
-          class="w-6 sm:w-7 h-6 sm:h-7 rounded-lg ring-1 ring-gray-200 shadow-sm object-cover"
+          class="w-6 sm:w-7 h-6 sm:h-7 rounded-lg ring-1 ring-[var(--ring-color)] shadow-sm object-cover"
           @error="handleImageError"
         />
       </div>
@@ -37,6 +37,14 @@
       >
         <Hello @click="handleHello" class="w-6 h-6" />
       </div>
+      <!-- Github -->
+      <!--
+      <div>
+        <a href="https://github.com/lin-snow/Ech0" target="_blank" title="Github">
+          <Github class="w-6 sm:w-7 h-6 sm:h-7 text-[var(--text-color-400)]" />
+        </a>
+      </div>
+      -->
     </div>
   </div>
 </template>

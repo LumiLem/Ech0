@@ -126,14 +126,14 @@
 
       <div
         v-if="mediaItems.length > 1"
-        class="carousel-nav mt-3 flex items-center justify-center gap-3 text-gray-500"
+        class="carousel-nav mt-3 flex items-center justify-center gap-3 text-[var(--text-color-500)]"
       >
         <button
           class="nav-btn flex items-center justify-center w-8 h-8 rounded-full transition disabled:opacity-40 disabled:cursor-not-allowed"
           @click="prevCarousel"
           :disabled="carouselIndex === 0"
         >
-          <Prev class="w-5 h-5 text-gray-600" />
+          <Prev class="w-5 h-5 text-[var(--text-color-600)]" />
         </button>
         <span class="text-sm"> {{ carouselIndex + 1 }} / {{ mediaItems.length }} </span>
         <button
@@ -141,7 +141,7 @@
           @click="nextCarousel"
           :disabled="carouselIndex === mediaItems.length - 1"
         >
-          <Next class="w-5 h-5 text-gray-600" />
+          <Next class="w-5 h-5 text-[var(--text-color-600)]" />
         </button>
       </div>
     </div>

@@ -17,7 +17,7 @@
         <div
           v-if="!showMenu"
           @click="handleFilterByTag"
-          class="text-sm text-[var(--timeline-tag-color)] w-24 px-1 truncate text-nowrap hover:cursor-pointer hover:text-gray-400 hover:underline hover:decoration-offset-3 hover:decoration-1"
+          class="text-sm text-[var(--timeline-tag-color)] w-24 px-1 truncate text-nowrap hover:cursor-pointer hover:text-[var(--text-color-400)] hover:underline hover:decoration-offset-3 hover:decoration-1"
         >
           <span>{{ props.echo.tags ? `#${props.echo.tags[0]?.name}` : '' }}</span>
         </div>
@@ -90,7 +90,7 @@
               </button>
 
               <!-- 点赞数量   -->
-              <span class="text-sm text-gray-400">
+              <span class="text-sm text-[var(--text-color-400)]">
                 <!-- 如果点赞数不超过99，则显示数字，否则显示99+ -->
                 {{ props.echo.fav_count > 99 ? '99+' : props.echo.fav_count }}
               </span>

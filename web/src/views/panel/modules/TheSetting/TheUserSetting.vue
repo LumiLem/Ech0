@@ -3,14 +3,17 @@
     <!-- 用户设置 -->
     <div class="w-full">
       <div class="flex flex-row items-center justify-between mb-3">
-        <h1 class="text-gray-600 font-bold text-lg">用户中心</h1>
+        <h1 class="text-[var(--text-color-600)] font-bold text-lg">用户中心</h1>
         <div class="flex flex-row items-center justify-end gap-2 w-14">
           <button v-if="editMode" @click="handleUpdateUser" title="编辑">
-            <Saveupdate class="w-5 h-5 text-gray-400 hover:w-6 hover:h-6" />
+            <Saveupdate class="w-5 h-5 text-[var(--text-color-400)] hover:w-6 hover:h-6" />
           </button>
           <button @click="editMode = !editMode" title="编辑">
-            <Edit v-if="!editMode" class="w-5 h-5 text-gray-400 hover:w-6 hover:h-6" />
-            <Close v-else class="w-5 h-5 text-gray-400 hover:w-6 hover:h-6" />
+            <Edit
+              v-if="!editMode"
+              class="w-5 h-5 text-[var(--text-color-400)] hover:w-6 hover:h-6"
+            />
+            <Close v-else class="w-5 h-5 text-[var(--text-color-400)] hover:w-6 hover:h-6" />
           </button>
         </div>
       </div>
@@ -49,7 +52,9 @@
       </div>
 
       <!-- 用户名 -->
-      <div class="flex flex-row items-center justify-start text-stone-500 gap-2 h-10">
+      <div
+        class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] gap-2 h-10"
+      >
         <h2 class="font-semibold w-30">用户名:</h2>
         <span v-if="!editMode">{{ user?.username }}</span>
         <BaseInput
@@ -62,7 +67,9 @@
       </div>
 
       <!-- 密码 -->
-      <div class="flex flex-row items-center justify-start text-stone-500 gap-2 h-10">
+      <div
+        class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] gap-2 h-10"
+      >
         <h2 class="font-semibold w-30">密码:</h2>
         <span v-if="!editMode">******</span>
         <BaseInput

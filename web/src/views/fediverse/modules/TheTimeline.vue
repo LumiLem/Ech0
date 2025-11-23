@@ -1,6 +1,6 @@
 <template>
   <div class="text-left">
-    <p v-if="loading" class="text-sm text-gray-400">正在同步时间线…</p>
+    <p v-if="loading" class="text-sm text-[var(--text-color-400)]">正在同步时间线…</p>
     <p v-else-if="error" class="text-sm text-red-400">时间线获取失败</p>
     <div v-else-if="resolvedItems.length" class="space-y-6">
       <article
@@ -62,7 +62,9 @@
         </footer>
       </article>
     </div>
-    <p v-else class="text-sm text-gray-500">关注一些联邦好友，时间线才会热闹起来～</p>
+    <p v-else class="text-sm text-[var(--text-color-500)]">
+      关注一些联邦好友，时间线才会热闹起来～
+    </p>
   </div>
 </template>
 

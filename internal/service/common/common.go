@@ -18,6 +18,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/feeds"
+	"golang.org/x/net/html"
 
 	"github.com/lin-snow/ech0/internal/config"
 	"github.com/lin-snow/ech0/internal/event"
@@ -454,6 +455,13 @@ func (commonService *CommonService) GenerateRSS(ctx *gin.Context) (string, error
 			}
 		}
 
+		// 添加标签到正文后
+		if len(msg.Tags) > 0 {
+			for _, tag := range msg.Tags {
+				renderedContent = fmt.Appendf(renderedContent, "<br /><span class=\"tag\">#%s</span>", tag.Name)
+			}
+		}
+
 		item := &feeds.Item{
 			Title:       title,
 			Link:        &feeds.Link{Href: fmt.Sprintf("%s://%s/echo/%d", schema, host, msg.ID)},
@@ -855,4 +863,45 @@ func buildObjectKey(userID uint, fileName, prefix string) (string, error) {
 
 	objectKey := fmt.Sprintf("%s/%d_%d_%s%s", prefix, userID, timestamp, randomStr, ext)
 	return strings.TrimPrefix(objectKey, "/"), nil
+}
+
+// GetWebsiteTitle 获取网站标题
+func (commonService *CommonService) GetWebsiteTitle(websiteURL string) (string, error) {
+	websiteURL = httpUtil.TrimURL(websiteURL)
+
+	body, err := httpUtil.SendRequest(websiteURL, "GET", httpUtil.Header{}, 10*time.Second)
+	if err != nil {
+		return "", err
+	}
+
+	// 解析 HTML 并提取标题
+	doc, err := html.Parse(strings.NewReader(string(body)))
+	if err != nil {
+		return "", fmt.Errorf("解析 HTML 失败: %w", err)
+	}
+
+	title := extractTitle(doc)
+	if title == "" {
+		return "", errors.New("未找到网站标题")
+	}
+
+	return title, nil
+}
+
+// extractTitle 从 HTML 节点中提取 title 标签的内容
+func extractTitle(n *html.Node) string {
+	if n.Type == html.ElementNode && n.Data == "title" {
+		if n.FirstChild != nil {
+			return strings.TrimSpace(n.FirstChild.Data)
+		}
+		return ""
+	}
+
+	for c := n.FirstChild; c != nil; c = c.NextSibling {
+		if title := extractTitle(c); title != "" {
+			return title
+		}
+	}
+
+	return ""
 }

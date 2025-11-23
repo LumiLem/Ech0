@@ -3,14 +3,17 @@
     <!-- 系统设置 -->
     <div class="w-full">
       <div class="flex flex-row items-center justify-between mb-3">
-        <h1 class="text-gray-600 font-bold text-lg">系统设置</h1>
+        <h1 class="text-[var(--text-color-600)] font-bold text-lg">系统设置</h1>
         <div class="flex flex-row items-center justify-end gap-2 w-14">
           <button v-if="editMode" @click="handleUpdateSystemSetting" title="编辑">
-            <Saveupdate class="w-5 h-5 text-gray-400 hover:w-6 hover:h-6" />
+            <Saveupdate class="w-5 h-5 text-[var(--text-color-400)] hover:w-6 hover:h-6" />
           </button>
           <button @click="editMode = !editMode" title="编辑">
-            <Edit v-if="!editMode" class="w-5 h-5 text-gray-400 hover:w-6 hover:h-6" />
-            <Close v-else class="w-5 h-5 text-gray-400 hover:w-6 hover:h-6" />
+            <Edit
+              v-if="!editMode"
+              class="w-5 h-5 text-[var(--text-color-400)] hover:w-6 hover:h-6"
+            />
+            <Close v-else class="w-5 h-5 text-[var(--text-color-400)] hover:w-6 hover:h-6" />
           </button>
         </div>
       </div>
@@ -48,7 +51,9 @@
       </div>
 
       <!-- 站点标题 -->
-      <div class="flex flex-row items-center justify-start text-stone-500 gap-2 h-10">
+      <div
+        class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] gap-2 h-10"
+      >
         <h2 class="font-semibold w-26 shrink-0">站点标题:</h2>
         <span v-if="!editMode">{{
           SystemSetting?.site_title.length === 0 ? '暂无' : SystemSetting.site_title
@@ -62,7 +67,9 @@
         />
       </div>
       <!-- 服务名称 -->
-      <div class="flex flex-row items-center justify-start text-stone-500 gap-2 h-10">
+      <div
+        class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] gap-2 h-10"
+      >
         <h2 class="font-semibold w-26 shrink-0">服务名称:</h2>
         <span v-if="!editMode">{{
           SystemSetting?.server_name.length === 0 ? '暂无' : SystemSetting.server_name
@@ -76,7 +83,9 @@
         />
       </div>
       <!-- 服务地址 -->
-      <div class="flex flex-row items-center justify-start text-stone-500 gap-2 h-10">
+      <div
+        class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] gap-2 h-10"
+      >
         <h2 class="font-semibold w-26 shrink-0">服务地址:</h2>
         <span v-if="!editMode">{{
           SystemSetting?.server_name.length === 0 ? '暂无' : SystemSetting.server_url
@@ -90,7 +99,9 @@
         />
       </div>
       <!-- ICP备案号 -->
-      <div class="flex flex-row items-center justify-start text-stone-500 gap-2 h-10">
+      <div
+        class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] gap-2 h-10"
+      >
         <h2 class="font-semibold w-26 shrink-0">ICP备案:</h2>
         <span
           v-if="!editMode"
@@ -109,7 +120,9 @@
         />
       </div>
       <!-- Meting API -->
-      <div class="flex flex-row items-center justify-start text-stone-500 gap-2 h-10">
+      <div
+        class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] gap-2 h-10"
+      >
         <h2 class="font-semibold w-26 shrink-0">MetingAPI:</h2>
         <span
           v-if="!editMode"
@@ -128,7 +141,9 @@
         />
       </div>
       <!-- 自定义 CSS -->
-      <div class="flex flex-row items-center justify-start text-stone-500 gap-2 h-10">
+      <div
+        class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] gap-2 h-10"
+      >
         <h2 class="font-semibold w-26 shrink-0">自定义 CSS:</h2>
         <span
           v-if="!editMode"
@@ -146,7 +161,9 @@
         />
       </div>
       <!-- 自定义 Script -->
-      <div class="flex flex-row items-center justify-start text-stone-500 gap-2 h-10">
+      <div
+        class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] gap-2 h-10"
+      >
         <h2 class="font-semibold w-26 shrink-0">自定义 JS:</h2>
         <span
           v-if="!editMode"
@@ -164,7 +181,7 @@
         />
       </div>
       <!-- 允许注册 -->
-      <div class="flex flex-row items-center justify-start text-stone-500 h-10">
+      <div class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] h-10">
         <h2 class="font-semibold w-26 shrink-0">允许注册:</h2>
         <BaseSwitch v-model="SystemSetting.allow_register" :disabled="!editMode" />
       </div>

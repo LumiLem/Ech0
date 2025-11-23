@@ -1,6 +1,6 @@
 <template>
   <article
-    class="relative flex flex-col gap-3 rounded-md bg-white px-5 py-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md"
+    class="relative flex flex-col gap-3 rounded-md bg-[var(--card-color)] px-5 py-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md"
   >
     <header class="flex items-center gap-3">
       <div
@@ -19,7 +19,9 @@
         <p class="truncate text-lg font-semibold text-stone-800">
           {{ displayName }}
         </p>
-        <p v-if="username" class="truncate text-sm text-stone-500">@{{ username }}</p>
+        <p v-if="username" class="truncate text-sm text-[var(--text-color-next-500)]">
+          @{{ username }}
+        </p>
       </div>
 
       <!-- 关注按钮 （等待接收、已关注、关注） -->
@@ -34,11 +36,14 @@
       </BaseButton>
     </header>
 
-    <section v-if="sanitizedSummary" class="prose prose-amber max-w-none text-sm text-stone-600">
+    <section
+      v-if="sanitizedSummary"
+      class="prose prose-amber max-w-none text-sm text-[var(--text-color-next-600)]"
+    >
       <div v-html="sanitizedSummary" />
     </section>
 
-    <footer class="flex flex-wrap items-center gap-0.5 text-xs text-stone-500">
+    <footer class="flex flex-wrap items-center gap-0.5 text-xs text-[var(--text-color-next-500)]">
       <span v-if="actor.type">类型: {{ actor.type }}</span>
       <span v-if="actor.inbox"
         >收件箱: <span class="text-amber-600">{{ actor.inbox }}</span></span

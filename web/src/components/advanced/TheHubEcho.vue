@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full max-w-sm bg-white h-auto p-5 shadow rounded-lg mx-auto">
+  <div class="w-full max-w-sm bg-[var(--card-color)] h-auto p-5 shadow rounded-lg mx-auto">
     <!-- 顶部用户头像和信息 -->
     <div class="flex flex-row items-center gap-2 mt-2 mb-4">
       <div>
@@ -12,7 +12,9 @@
       </div>
       <div class="flex flex-col">
         <div class="flex items-center gap-1">
-          <h2 class="text-gray-700 font-bold overflow-hidden whitespace-nowrap text-center">
+          <h2
+            class="text-[var(--text-color-700)] font-bold overflow-hidden whitespace-nowrap text-center"
+          >
             {{ displayUsername }}
           </h2>
 
@@ -113,7 +115,7 @@
           {{ formatDate(props.echo.created_at) }}
         </div>
         <!-- 标签 -->
-        <div class="text-sm text-gray-300 w-18 truncate text-nowrap">
+        <div class="text-sm text-[var(--text-color-300)] w-18 truncate text-nowrap">
           <span>{{ props.echo.tags ? `#${props.echo.tags[0]?.name}` : '' }}</span>
         </div>
       </div>
@@ -136,7 +138,7 @@
             </button>
 
             <!-- 点赞数量   -->
-            <span class="text-sm text-gray-400">
+            <span class="text-sm text-[var(--text-color-400)]">
               <!-- 如果点赞数不超过99，则显示数字，否则显示99+ -->
               {{ props.echo.fav_count > 99 ? '99+' : props.echo.fav_count }}
             </span>

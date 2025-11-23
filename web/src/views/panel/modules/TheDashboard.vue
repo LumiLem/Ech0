@@ -4,7 +4,7 @@
     <div v-if="!connected" class="flex items-center justify-center h-96">
       <div class="flex flex-col items-center gap-4">
         <div class="loader"></div>
-        <p class="text-stone-500">正在建立连接...</p>
+        <p class="text-[var(--text-color-next-500)]">正在建立连接...</p>
       </div>
     </div>
 
@@ -30,7 +30,7 @@
 
         <!-- System -->
         <MetricCard title="状态信息" class="md:w-1/2 mb-2 md:mb-0">
-          <div class="text-md text-stone-500 font-bold h-60 p-2">
+          <div class="text-md text-[var(--text-color-next-500)] font-bold h-60 p-2">
             <p>
               登录用户：<span class="text-sm font-normal">{{ userStore.user?.username }}</span>
             </p>

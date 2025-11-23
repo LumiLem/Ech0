@@ -1,8 +1,8 @@
 <template>
   <div>
-    <h2 class="text-gray-500 font-bold mb-1">欢迎使用音乐播放模式</h2>
+    <h2 class="text-[var(--text-color-500)] font-bold mb-1">欢迎使用音乐播放模式</h2>
     <div class="mb-1 flex items-center gap-2">
-      <p class="text-gray-500">上传音乐：</p>
+      <p class="text-[var(--text-color-500)]">上传音乐：</p>
       <input
         id="file-input"
         class="hidden"
@@ -19,7 +19,7 @@
       />
     </div>
     <div class="flex items-center gap-2">
-      <p class="text-gray-500">删除音乐：</p>
+      <p class="text-[var(--text-color-500)]">删除音乐：</p>
       <BaseButton
         :icon="Delete"
         @click="handleDeleteMusic"
