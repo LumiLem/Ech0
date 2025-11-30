@@ -65,4 +65,10 @@ type SettingServiceInterface interface {
 
 	// UpdateBackupScheduleSetting 更新备份计划
 	UpdateBackupScheduleSetting(userid uint, newSetting *model.BackupScheduleDto) error
+
+	// GetAgentSettings 获取 Agent 设置
+	GetAgentSettings(setting *model.AgentSetting) error
+
+	// UpdateAgentSettings 更新 Agent 设置
+	UpdateAgentSettings(userid uint, newSetting *model.AgentSettingDto) error
 }

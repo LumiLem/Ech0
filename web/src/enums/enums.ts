@@ -79,3 +79,14 @@ export enum AccessTokenExpiration {
   ONE_MONTH_EXPIRY = '1_month', // 1个月
   NEVER_EXPIRY = 'never', // 永不过期
 }
+
+// Agent LLM Provider
+export enum AgentProvider {
+  OPENAI = 'openai',
+  DEEPSEEK = 'deepseek',
+  ANTHROPIC = 'anthropic',
+  GEMINI = 'gemini',
+  QWEN = 'qwen',
+  OLLAMA = 'ollama',
+  CUSTOM = 'custom',
+}

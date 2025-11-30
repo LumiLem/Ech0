@@ -14,4 +14,7 @@ type KeyValueRepositoryInterface interface {
 
 	// UpdateKeyValue 更新键值对
 	UpdateKeyValue(ctx context.Context, key string, value interface{}) error
+
+	// AddOrUpdateKeyValue 添加或更新键值对
+	AddOrUpdateKeyValue(ctx context.Context, key string, value interface{}) error
 }

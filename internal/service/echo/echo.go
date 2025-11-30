@@ -7,12 +7,14 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/lin-snow/ech0/internal/agent"
 	"github.com/lin-snow/ech0/internal/event"
 	authModel "github.com/lin-snow/ech0/internal/model/auth"
 	commonModel "github.com/lin-snow/ech0/internal/model/common"
 	model "github.com/lin-snow/ech0/internal/model/echo"
 	commonRepository "github.com/lin-snow/ech0/internal/repository/common"
 	repository "github.com/lin-snow/ech0/internal/repository/echo"
+	keyvalueRepository "github.com/lin-snow/ech0/internal/repository/keyvalue"
 	commonService "github.com/lin-snow/ech0/internal/service/common"
 	fediverseService "github.com/lin-snow/ech0/internal/service/fediverse"
 	"github.com/lin-snow/ech0/internal/transaction"
@@ -26,6 +28,7 @@ type EchoService struct {
 	echoRepository   repository.EchoRepositoryInterface
 	commonRepository commonRepository.CommonRepositoryInterface
 	fediverseService fediverseService.FediverseServiceInterface
+	kvRepository     keyvalueRepository.KeyValueRepositoryInterface
 	eventBus         event.IEventBus
 }
 
@@ -35,6 +38,7 @@ func NewEchoService(
 	echoRepository repository.EchoRepositoryInterface,
 	commonRepository commonRepository.CommonRepositoryInterface,
 	fediverseService fediverseService.FediverseServiceInterface,
+	kvRepository keyvalueRepository.KeyValueRepositoryInterface,
 	eventBusProvider func() event.IEventBus,
 ) EchoServiceInterface {
 	return &EchoService{
@@ -43,6 +47,7 @@ func NewEchoService(
 		echoRepository:   echoRepository,
 		commonRepository: commonRepository,
 		fediverseService: fediverseService,
+		kvRepository:     kvRepository,
 		eventBus:         eventBusProvider(),
 	}
 }
@@ -119,6 +124,7 @@ func (echoService *EchoService) PostEcho(userid uint, newEcho *model.Echo) error
 			}
 		}
 
+		// 创建Echo
 		return echoService.echoRepository.CreateEcho(ctx, newEcho)
 	}); err != nil {
 		return err
@@ -145,6 +151,9 @@ func (echoService *EchoService) PostEcho(userid uint, newEcho *model.Echo) error
 			logUtil.GetLogger().Error(pubErr.Error())
 		}
 	}
+
+	// 删除 AGENT_GEN_RECENT 缓存
+	echoService.kvRepository.DeleteKeyValue(context.Background(), string(agent.GEN_RECENT))
 
 	return nil
 }
@@ -227,6 +236,7 @@ func (echoService *EchoService) DeleteEchoById(userid, id uint) error {
 			}
 		}
 
+		// 删除Echo
 		return echoService.echoRepository.DeleteEchoById(ctx, id)
 	}); err != nil {
 		return err
@@ -246,6 +256,9 @@ func (echoService *EchoService) DeleteEchoById(userid, id uint) error {
 		// 推送失败不影响删除
 		logUtil.GetLogger().Error(pubErr.Error())
 	}
+
+	// 删除 AGENT_GEN_RECENT 缓存
+	echoService.kvRepository.DeleteKeyValue(context.Background(), string(agent.GEN_RECENT))
 
 	return nil
 }
@@ -369,6 +382,9 @@ func (echoService *EchoService) UpdateEcho(userid uint, echo *model.Echo) error 
 		// 推送失败不影响更新
 		logUtil.GetLogger().Error(pubErr.Error())
 	}
+
+	// 删除 AGENT_GEN_RECENT 缓存
+	echoService.kvRepository.DeleteKeyValue(context.Background(), string(agent.GEN_RECENT))
 
 	return nil
 }

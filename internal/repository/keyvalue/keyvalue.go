@@ -96,3 +96,34 @@ func (keyvalueRepository *KeyValueRepository) UpdateKeyValue(ctx context.Context
 
 	return nil
 }
+
+// AddOrUpdateKeyValue 添加或更新键值对
+func (keyvalueRepository *KeyValueRepository) AddOrUpdateKeyValue(
+	ctx context.Context,
+	key string,
+	value interface{},
+) error {
+	// 先尝试更新
+	result := keyvalueRepository.getDB(ctx).
+		Model(&model.KeyValue{}).
+		Where("key = ?", key).
+		Update("value", value.(string))
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		// 如果没有行被更新，说明该键不存在，执行添加操作
+		if err := keyvalueRepository.getDB(ctx).Create(&model.KeyValue{
+			Key:   key,
+			Value: value.(string),
+		}).Error; err != nil {
+			return err
+		}
+	}
+
+	// 更新缓存
+	keyvalueRepository.cache.Delete(key) // 删除该键的缓存
+	keyvalueRepository.cache.Set(key, value, 1)
+
+	return nil
+}

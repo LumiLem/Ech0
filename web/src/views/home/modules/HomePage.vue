@@ -22,15 +22,8 @@
       <div class="mb-2">
         <TheAudioCard />
       </div>
-      <TheConnects />
-    </div>
-
-    <div
-      v-show="showBackTop"
-      :style="backTopStyle"
-      class="hidden xl:block fixed bottom-6 z-50 transition-all duration-500 animate-fade-in"
-    >
-      <TheBackTop class="w-8 h-8 p-1" />
+      <TheConnects class="mb-2" />
+      <TheRecentCard />
     </div>
   </div>
 </template>
@@ -44,9 +37,9 @@ import TheFilteredEchos from './TheFilteredEchos.vue'
 import TheTodos from './TheTodos.vue'
 import TheConnects from '@/views/connect/modules/TheConnects.vue'
 import TheTodoCard from '@/components/advanced/TheTodoCard.vue'
+import TheRecentCard from '@/components/advanced/TheRecentCard.vue'
 import TheStatusCard from '@/components/advanced/TheStatusCard.vue'
 import TheHeatMap from '@/components/advanced/TheHeatMap.vue'
-import TheBackTop from '@/components/advanced/TheBackTop.vue'
 import { onMounted, ref, onBeforeUnmount } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { useTodoStore } from '@/stores/todo'
@@ -66,12 +59,7 @@ const { isFilteringMode } = storeToRefs(echoStore)
 
 const mainColumn = ref<HTMLElement | null>(null)
 const backTopStyle = ref({ right: '100px' }) // 默认 fallback
-const showBackTop = ref(true) // 自定义条件
 
-// 监听窗口滚动事件，判断是否显示回到顶部按钮
-const updateShowBackTop = () => {
-  showBackTop.value = window.scrollY > 300
-}
 const updatePosition = () => {
   if (mainColumn.value) {
     const rect = mainColumn.value.getBoundingClientRect()
@@ -84,14 +72,11 @@ const updatePosition = () => {
 
 onMounted(async () => {
   // 监听窗口大小变化
-  updateShowBackTop()
   updatePosition()
-  window.addEventListener('scroll', updateShowBackTop)
   window.addEventListener('resize', updatePosition)
 })
 
 onBeforeUnmount(() => {
-  window.removeEventListener('scroll', updateShowBackTop)
   window.removeEventListener('resize', updatePosition)
 })
 </script>

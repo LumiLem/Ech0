@@ -178,3 +178,20 @@ export function fetchUpdateBackupScheduleSetting(
     data: backupSchedule,
   })
 }
+
+// 获取LLM Agent设置
+export function fetchGetAgentSettings() {
+  return request<App.Api.Setting.AgentSetting>({
+    url: '/agent/settings',
+    method: 'GET',
+  })
+}
+
+// 更新LLM Agent设置
+export function fetchUpdateAgentSettings(agentSetting: App.Api.Setting.AgentSettingDto) {
+  return request({
+    url: '/agent/settings',
+    method: 'PUT',
+    data: agentSetting,
+  })
+}

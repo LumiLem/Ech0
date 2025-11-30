@@ -1,30 +1,34 @@
-import { defineStore } from "pinia";
-import { ref } from "vue";
-import { localStg } from "@/utils/storage";
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
+import { localStg } from '@/utils/storage'
 
-type ThemeType = 'light' | 'dark';
+type ThemeType = 'light' | 'dark'
 
 export const useThemeStore = defineStore('themeStore', () => {
-  const savedTheme = localStg.getItem('theme');
-  const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const savedTheme = localStg.getItem('theme')
+  const systemPrefersDark =
+    window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
   const theme = ref<ThemeType>(
-    savedTheme === 'light' || savedTheme === 'dark' ? savedTheme : (systemPrefersDark ? 'dark' : 'light')
-  );
+    savedTheme === 'light' || savedTheme === 'dark'
+      ? savedTheme
+      : systemPrefersDark
+        ? 'dark'
+        : 'light',
+  )
 
   const toggleTheme = () => {
-    theme.value = theme.value === 'light' ? 'dark' : 'light';
-    applyTheme(theme.value);
+    theme.value = theme.value === 'light' ? 'dark' : 'light'
+    applyTheme(theme.value)
   }
 
   const applyTheme = (t: ThemeType) => {
-    document.documentElement.classList.remove('light', 'dark');
-    document.documentElement.classList.add(t);
-    localStg.setItem('theme', t);
+    document.documentElement.classList.remove('light', 'dark')
+    document.documentElement.classList.add(t)
+    localStg.setItem('theme', t)
   }
 
-
   const init = () => {
-    applyTheme(theme.value);
+    applyTheme(theme.value)
   }
 
   return {
@@ -33,4 +37,4 @@ export const useThemeStore = defineStore('themeStore', () => {
     applyTheme,
     init,
   }
-});
+})

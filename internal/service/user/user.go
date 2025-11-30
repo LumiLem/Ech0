@@ -1001,7 +1001,6 @@ func (userService *UserService) createOAuthUser(
 
 		return nil
 	})
-
 	if err != nil {
 		fmt.Printf("[ERROR] [OAuth:%s] 创建用户并绑定失败: %v\n", provider, err)
 		return model.User{}

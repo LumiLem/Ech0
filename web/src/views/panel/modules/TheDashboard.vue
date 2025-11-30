@@ -168,8 +168,15 @@ const networkOption = ref({})
 
 // 实时更新函数
 function updateCharts() {
+  const mainColor =
+    getComputedStyle(document.documentElement).getPropertyValue('--dashboard-main-color').trim() ||
+    '#f5d2ae'
+  const nextColor =
+    getComputedStyle(document.documentElement).getPropertyValue('--dashboard-next-color').trim() ||
+    '#fae2bf'
+
   cpuOption.value = {
-    color: ['#f5d2ae'],
+    color: [mainColor],
     tooltip: {
       trigger: 'axis',
       formatter: '{a}: {c} MHz',
@@ -205,17 +212,17 @@ function updateCharts() {
         areaStyle: {},
         lineStyle: {
           width: 2,
-          color: '#f5d2ae',
+          color: mainColor,
         },
         itemStyle: {
-          color: '#f5d2ae',
+          color: mainColor,
         },
       },
     ],
   }
 
   memoryOption.value = {
-    color: ['#f5d2ae', '#fae2bf'],
+    color: [mainColor, nextColor],
     tooltip: { trigger: 'item' },
     legend: { bottom: '0%' },
     series: [
@@ -251,7 +258,7 @@ function updateCharts() {
 
   diskOption.value = {
     tooltip: { trigger: 'item' },
-    color: ['#f5d2ae'],
+    color: [mainColor],
     grid: { left: '10%', right: '10%', bottom: '10%', top: '15%' },
     xAxis: { type: 'category', data: ['磁盘使用率'] },
     yAxis: { type: 'value', max: 100 },
@@ -269,7 +276,7 @@ function updateCharts() {
   }
 
   networkOption.value = {
-    color: ['#f5d2ae'],
+    color: [mainColor],
     tooltip: { trigger: 'axis' },
     legend: { data: ['上传(B/s)', '下载(B/s)'] },
     xAxis: { type: 'category', data: [metrics.value.System.Time] },
@@ -295,7 +302,7 @@ function updateCharts() {
 .loader {
   width: 48px;
   height: 48px;
-  border: 4px solid #f5d2ae;
+  border: 4px solid var(--dashboard-main-color);
   border-bottom-color: transparent;
   border-radius: 50%;
   display: inline-block;

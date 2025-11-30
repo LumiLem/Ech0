@@ -2,6 +2,7 @@ package di
 
 import (
 	"github.com/lin-snow/ech0/internal/cache"
+	agentHandler "github.com/lin-snow/ech0/internal/handler/agent"
 	backupHandler "github.com/lin-snow/ech0/internal/handler/backup"
 	commonHandler "github.com/lin-snow/ech0/internal/handler/common"
 	connectHandler "github.com/lin-snow/ech0/internal/handler/connect"
@@ -27,6 +28,7 @@ type Handlers struct {
 	BackupHandler    *backupHandler.BackupHandler
 	FediverseHandler *fediverseHandler.FediverseHandler
 	DashboardHandler *dashboardHandler.DashboardHandler
+	AgentHandler     *agentHandler.AgentHandler
 }
 
 // NewHandlers 创建Handlers实例
@@ -41,6 +43,7 @@ func NewHandlers(
 	backupHandler *backupHandler.BackupHandler,
 	fediverseHandler *fediverseHandler.FediverseHandler,
 	dashboardHandler *dashboardHandler.DashboardHandler,
+	agentHandler *agentHandler.AgentHandler,
 ) *Handlers {
 	return &Handlers{
 		WebHandler:       webHandler,
@@ -53,6 +56,7 @@ func NewHandlers(
 		BackupHandler:    backupHandler,
 		FediverseHandler: fediverseHandler,
 		DashboardHandler: dashboardHandler,
+		AgentHandler:     agentHandler,
 	}
 }
 

@@ -710,3 +710,68 @@ func (settingHandler *SettingHandler) UpdateBackupScheduleSetting() gin.HandlerF
 		}
 	})
 }
+
+// GetAgentSettings 获取 Agent 设置
+//
+// @Summary 获取 Agent 设置
+// @Description 获取系统的 Agent 相关设置
+// @Tags 系统设置
+// @Accept json
+// @Produce json
+// @Success 200 {object} res.Response{data=model.AgentSetting} "获取 Agent 设置成功"
+// @Failure 200 {object} res.Response "获取 Agent 设置失败"
+// @Router /agent/settings [get]
+func (settingHandler *SettingHandler) GetAgentSettings() gin.HandlerFunc {
+	return res.Execute(func(ctx *gin.Context) res.Response {
+		var settings model.AgentSetting
+		if err := settingHandler.settingService.GetAgentSettings(&settings); err != nil {
+			return res.Response{
+				Msg: "",
+				Err: err,
+			}
+		}
+
+		return res.Response{
+			Data: settings,
+			Msg:  commonModel.GET_SETTINGS_SUCCESS,
+		}
+	})
+}
+
+// UpdateAgentSettings 更新 Agent 设置
+//
+// @Summary 更新 Agent 设置
+// @Description 更新系统的 Agent 相关设置
+// @Tags 系统设置
+// @Accept json
+// @Produce json
+// @Param settings body model.AgentSettingDto true "新的 Agent 设置"
+// @Success 200 {object} res.Response "更新 Agent 设置成功"
+// @Failure 200 {object} res.Response "更新 Agent 设置失败"
+// @Router /agent/settings [put]
+func (settingHandler *SettingHandler) UpdateAgentSettings() gin.HandlerFunc {
+	return res.Execute(func(ctx *gin.Context) res.Response {
+		// 获取当前用户 ID
+		userid := ctx.MustGet("userid").(uint)
+
+		// 解析请求体中的参数
+		var newSettings model.AgentSettingDto
+		if err := ctx.ShouldBindJSON(&newSettings); err != nil {
+			return res.Response{
+				Msg: commonModel.INVALID_REQUEST_BODY,
+				Err: err,
+			}
+		}
+
+		if err := settingHandler.settingService.UpdateAgentSettings(userid, &newSettings); err != nil {
+			return res.Response{
+				Msg: "",
+				Err: err,
+			}
+		}
+
+		return res.Response{
+			Msg: commonModel.UPDATE_SETTINGS_SUCCESS,
+		}
+	})
+}

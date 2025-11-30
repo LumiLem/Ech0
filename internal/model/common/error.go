@@ -104,3 +104,12 @@ const (
 	FEDIVERSE_INVALID_INPUT = "无效的联邦参数"
 	FOLLOW_RELATION_MISSING = "未找到关注关系"
 )
+
+// Agent 错误相关常量
+const (
+	AGENT_NOT_ENABLED        = "Agent 功能未启用"
+	AGENT_PROVIDER_NOT_FOUND = "未找到对应的 Agent 提供商"
+	AGENT_API_KEY_MISSING    = "Agent API Key 不能为空"
+	AGENT_MODEL_MISSING      = "Agent 模型名称不能为空"
+	AGENT_SETTING_NOT_FOUND  = "未找到 Agent 设置"
+)

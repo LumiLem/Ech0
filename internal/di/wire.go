@@ -10,6 +10,7 @@ import (
 	"github.com/lin-snow/ech0/internal/cache"
 	"github.com/lin-snow/ech0/internal/event"
 	fediverse "github.com/lin-snow/ech0/internal/fediverse"
+	agentHandler "github.com/lin-snow/ech0/internal/handler/agent"
 	backupHandler "github.com/lin-snow/ech0/internal/handler/backup"
 	commonHandler "github.com/lin-snow/ech0/internal/handler/common"
 	connectHandler "github.com/lin-snow/ech0/internal/handler/connect"
@@ -32,6 +33,7 @@ import (
 	todoRepository "github.com/lin-snow/ech0/internal/repository/todo"
 	userRepository "github.com/lin-snow/ech0/internal/repository/user"
 	webhookRepository "github.com/lin-snow/ech0/internal/repository/webhook"
+	agentService "github.com/lin-snow/ech0/internal/service/agent"
 	backupService "github.com/lin-snow/ech0/internal/service/backup"
 	commonService "github.com/lin-snow/ech0/internal/service/common"
 	connectService "github.com/lin-snow/ech0/internal/service/connect"
@@ -67,6 +69,7 @@ func BuildHandlers(
 		MetricSet,
 		MonitorSet,
 		DashboardSet,
+		AgentSet,
 		BackupSet,
 		FediverseCoreSet,
 		FediverseSet,
@@ -190,6 +193,12 @@ var BackupSet = wire.NewSet(
 var DashboardSet = wire.NewSet(
 	dashboardService.NewDashboardService,
 	dashboardHandler.NewDashboardHandler,
+)
+
+// AgentSet 包含了构建 AgentHandler 所需的所有 Provider
+var AgentSet = wire.NewSet(
+	agentService.NewAgentService,
+	agentHandler.NewAgentHandler,
 )
 
 // WebhookSet 包含了构建 WebhookDispatcher 所需的所有 Provider

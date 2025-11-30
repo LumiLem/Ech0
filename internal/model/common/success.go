@@ -106,3 +106,8 @@ const (
 	FEDIVERSE_GET_FOLLOW_STATUS_SUCCESS = "获取关注状态成功"
 	FEDIVERSE_GET_TIMELINE_SUCCESS      = "获取时间线成功"
 )
+
+// Agent 成功相关常量
+const (
+	AGENT_GET_RECENT_SUCCESS = "获取近期活动总结成功"
+)

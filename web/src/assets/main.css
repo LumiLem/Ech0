@@ -6,7 +6,7 @@ body {
   scrollbar-base-color: transparent;
   scrollbar-color: transparent transparent;
 
-  background: linear-gradient(135deg, #292a3a, #536976);
+  background: linear-gradient(135deg, #292a3a, #f3b267);
 }
 
 /* App 加载启动动画 */
@@ -16,7 +16,7 @@ body {
   align-items: center;
   justify-content: center;
   height: 100vh;
-  color: #f43900;
+  color: #ffffff;
   font-family: sans-serif;
   transition:
     opacity 0.4s ease,
@@ -45,7 +45,7 @@ body {
   inset: 0;
   border-radius: 50%;
   border: 4px solid transparent;
-  border-top-color: #f43900;
+  border-top-color: #ffaa90;
   animation: spin 1s linear infinite;
   transform-origin: center;
   will-change: transform;

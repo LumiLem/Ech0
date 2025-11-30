@@ -66,6 +66,9 @@ func SetupRouter(r *gin.Engine, h *di.Handlers) {
 
 	// Setup Dashboard Routes
 	setupDashboardRoutes(appRouterGroup, h)
+
+	// Setup Agent Routes
+	setupAgentRoutes(appRouterGroup, h)
 }
 
 // setupRouterGroup 初始化路由组

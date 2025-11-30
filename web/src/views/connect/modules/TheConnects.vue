@@ -67,7 +67,7 @@ const getColor = (count: number): string => {
   if (count >= 3) return 'var(--heatmap-bg-color-3)'
   if (count >= 2) return 'var(--heatmap-bg-color-2)'
   if (count >= 1) return 'var(--heatmap-bg-color-1)'
-  return 'var(--heatmap-bg-color-0)'
+  return '#c4c3c1'
 }
 
 const handleImageError = (event: Event) => {

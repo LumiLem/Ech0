@@ -38,7 +38,7 @@
   --card-color: #ffffff;
   --card-text-color: oklch(70.7% 0.022 261.325);
 
-  --back-to-top-bg-color: oklch(92.8% 0.006 264.531);
+  --back-to-top-bg-color: oklch(1 0 0);
   --player-button-bg-color: oklch(93.6% 0.032 17.717);
   --player-button-hover-bg-color: oklch(88.5% 0.062 18.334);
 
@@ -73,6 +73,8 @@
   --echo-card-btn-bg-color: #ffffff;
   --echo-detail-bg-color: #ffffff;
   --echo-text-color: oklch(0.9 0.01 136.32);
+  --echo-detail-username-color: #5b7083;
+  --echo-detail-datetime-color: oklch(55.4% 0.046 257.417);
 
   // Heatmap
   --heatmap-ring-color: oklch(96.7% 0.003 264.542);
@@ -81,6 +83,14 @@
   --heatmap-bg-color-2: #7bc96f;
   --heatmap-bg-color-3: #239a3b;
   --heatmap-bg-color-4: #196127;
+
+  // Dashboard
+  --dashboard-main-color: #f5d2ae;
+  --dashboard-next-color: #fae2bf;
+
+  // Panel
+  --active-panel-tab-bg-color: oklch(90.1% 0.076 70.697);
+  --active-panel-tab-text-color: oklch(26.8% 0.007 34.298);
 
   // 通用组件
   --btn-bg-color: oklch(98.5% 0.002 247.839);

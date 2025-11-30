@@ -13,30 +13,30 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
-    "@fancyapps/ui": "^6.0.34",
+    "@fancyapps/ui": "^6.1.6",
     "@headlessui/vue": "^1.7.23",
-    "@uppy/aws-s3": "^5.0.1",
-    "@uppy/core": "^5.1.0",
-    "@uppy/dashboard": "^5.0.2",
+    "@uppy/aws-s3": "^5.0.2",
+    "@uppy/core": "^5.1.1",
+    "@uppy/dashboard": "^5.0.4",
     "@uppy/locales": "^5.0.1",
-    "@uppy/status-bar": "^5.0.1",
-    "@uppy/xhr-upload": "^5.0.1",
+    "@uppy/status-bar": "^5.0.2",
+    "@uppy/xhr-upload": "^5.0.2",
     "@vueuse/core": "^13.9.0",
     "aplayer": "^1.10.1",
     "chalk": "^5.6.2",
     "cropperjs": "^2.0.1",
     "echarts": "^6.0.0",
     "highlight.js": "^11.11.1",
-    "katex": "^0.16.23",
-    "md-editor-v3": "^6.1.1",
+    "katex": "^0.16.25",
+    "md-editor-v3": "^6.2.0",
     "mermaid": "^11.12.0",
-    "ofetch": "^1.4.1",
-    "pinia": "^3.0.3",
+    "ofetch": "^1.5.1",
+    "pinia": "^3.0.4",
     "screenfull": "^6.0.2",
     "vditor": "^3.11.2",
-    "vue": "^3.5.22",
+    "vue": "^3.5.25",
     "vue-echarts": "^8.0.1",
-    "vue-router": "^4.5.1",
+    "vue-router": "^4.6.3",
     "vue-sonner": "^2.0.9"
   },
   "devDependencies": {
@@ -59,7 +59,7 @@
     "vite": "^7.1.9",
     "vite-plugin-compression": "^0.5.1",
     "vite-plugin-vue-devtools": "^8.0.3",
-    "vue-tsc": "^3.1.1"
+    "vue-tsc": "^3.1.5"
   },
-  "packageManager": "pnpm@10.21.0+sha512.da3337267e400fdd3d479a6c68079ac6db01d8ca4f67572083e722775a796788a7a9956613749e000fac20d424b594f7a791a5f4e2e13581c5ef947f26968a40"
+  "packageManager": "pnpm@10.24.0+sha512.01ff8ae71b4419903b65c60fb2dc9d34cf8bb6e06d03bde112ef38f7a34d6904c424ba66bea5cdcf12890230bf39f9580473140ed9c946fef328b6e5238a345a"
 }

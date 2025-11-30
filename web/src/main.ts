@@ -83,3 +83,9 @@ app.use(router)
 app.component('BaseDialog', BaseDialog)
 
 app.mount('#app')
+
+// 移除启动加载动画
+const appLoader = document.getElementById('app-loader')
+if (appLoader) {
+  appLoader.remove()
+}

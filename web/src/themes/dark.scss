@@ -73,6 +73,8 @@
   --echo-card-btn-bg-color: #262626;
   --echo-detail-bg-color: #262626;
   --echo-text-color: oklch(0.9 0.01 136.32);
+  --echo-detail-username-color: oklch(0.98 0.02 81.44 / 0.71);
+  --echo-detail-datetime-color: oklch(0.63 0 0);
 
   // Heatmap
   --heatmap-ring-color: oklch(0.35 0 0);
@@ -81,6 +83,14 @@
   --heatmap-bg-color-2: #7bc96f;
   --heatmap-bg-color-3: #239a3b;
   --heatmap-bg-color-4: #196127;
+
+  // Dashboard
+  --dashboard-main-color: #995822c5;
+  --dashboard-next-color: #80421991;
+
+  // Panel
+  --active-panel-tab-bg-color: oklch(0.18 0.02 70.61);
+  --active-panel-tab-text-color: oklch(0.85 0.03 70.53);
 
   // 通用组件
   --btn-bg-color: oklch(0.25 0 0);
@@ -97,7 +107,7 @@
   --dialog-title-color: oklch(0.98 0.02 81.44 / 0.71);
   --dialog-text-color: oklch(0.98 0 0);
   --dialog-cancel-btn-bg-color: #262626;
-  --dialog-confirm-btn-bg-color: oklch(0.25 0 0);
+  --dialog-confirm-btn-bg-color: oklch(0.47 0.03 131.74);
   --dialog-btn-text-color: #ffffff;
 
   --select-bg-color: #262626;

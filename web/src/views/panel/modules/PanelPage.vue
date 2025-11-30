@@ -207,7 +207,7 @@ const getButtonClasses = (routeName: string, isBackButton = false) => {
 
   const activeClasses =
     currentRoute.value === routeName
-      ? 'text-stone-800 bg-orange-200'
+      ? 'text-[var(--active-panel-tab-text-color)]! bg-[var(--active-panel-tab-bg-color)]!'
       : 'text-[var(--text-color-next-600)] hover:opacity-75'
 
   return `${baseClasses} ${activeClasses}`

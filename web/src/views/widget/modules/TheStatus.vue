@@ -24,6 +24,11 @@
     <div class="justify-center my-1">
       <TheAudioCard />
     </div>
+
+    <!-- 近况总结 -->
+    <div class="justify-center my-2">
+      <TheRecentCard />
+    </div>
   </div>
 </template>
 
@@ -33,6 +38,7 @@ import TheConnects from '@/views/connect/modules/TheConnects.vue'
 import TheStatusCard from '@/components/advanced/TheStatusCard.vue'
 import TheTodoCard from '@/components/advanced/TheTodoCard.vue'
 import TheAudioCard from '@/components/advanced/TheAudioCard.vue'
+import TheRecentCard from '@/components/advanced/TheRecentCard.vue'
 
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/user'

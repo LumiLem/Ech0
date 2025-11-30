@@ -11,6 +11,7 @@ import (
 	"github.com/lin-snow/ech0/internal/cache"
 	"github.com/lin-snow/ech0/internal/event"
 	"github.com/lin-snow/ech0/internal/fediverse"
+	handler11 "github.com/lin-snow/ech0/internal/handler/agent"
 	handler8 "github.com/lin-snow/ech0/internal/handler/backup"
 	handler4 "github.com/lin-snow/ech0/internal/handler/common"
 	handler7 "github.com/lin-snow/ech0/internal/handler/connect"
@@ -33,6 +34,7 @@ import (
 	repository7 "github.com/lin-snow/ech0/internal/repository/todo"
 	"github.com/lin-snow/ech0/internal/repository/user"
 	repository5 "github.com/lin-snow/ech0/internal/repository/webhook"
+	service10 "github.com/lin-snow/ech0/internal/service/agent"
 	service8 "github.com/lin-snow/ech0/internal/service/backup"
 	"github.com/lin-snow/ech0/internal/service/common"
 	service7 "github.com/lin-snow/ech0/internal/service/connect"
@@ -67,7 +69,7 @@ func BuildHandlers(dbProvider func() *gorm.DB, cacheFactory *cache.CacheFactory,
 	fediverseRepositoryInterface := repository6.NewFediverseRepository(dbProvider)
 	fediverseCore := fediverse.NewFediverseCore(fediverseRepositoryInterface, keyValueRepositoryInterface, userRepositoryInterface, echoRepositoryInterface)
 	fediverseServiceInterface := service4.NewFediverseService(fediverseCore, transactionManager, fediverseRepositoryInterface, userRepositoryInterface, echoRepositoryInterface)
-	echoServiceInterface := service5.NewEchoService(transactionManager, commonServiceInterface, echoRepositoryInterface, commonRepositoryInterface, fediverseServiceInterface, ebProvider)
+	echoServiceInterface := service5.NewEchoService(transactionManager, commonServiceInterface, echoRepositoryInterface, commonRepositoryInterface, fediverseServiceInterface, keyValueRepositoryInterface, ebProvider)
 	echoHandler := handler3.NewEchoHandler(echoServiceInterface)
 	commonHandler := handler4.NewCommonHandler(commonServiceInterface)
 	settingHandler := handler5.NewSettingHandler(settingServiceInterface)
@@ -84,7 +86,9 @@ func BuildHandlers(dbProvider func() *gorm.DB, cacheFactory *cache.CacheFactory,
 	monitorMonitor := monitor.NewMonitor(metricCollector)
 	dashboardServiceInterface := service9.NewDashboardService(monitorMonitor, commonServiceInterface)
 	dashboardHandler := handler10.NewDashboardHandler(dashboardServiceInterface)
-	handlers := NewHandlers(webHandler, userHandler, echoHandler, commonHandler, settingHandler, todoHandler, connectHandler, backupHandler, fediverseHandler, dashboardHandler)
+	agentServiceInterface := service10.NewAgentService(settingServiceInterface, echoServiceInterface, todoServiceInterface, keyValueRepositoryInterface)
+	agentHandler := handler11.NewAgentHandler(agentServiceInterface)
+	handlers := NewHandlers(webHandler, userHandler, echoHandler, commonHandler, settingHandler, todoHandler, connectHandler, backupHandler, fediverseHandler, dashboardHandler, agentHandler)
 	return handlers, nil
 }
 
@@ -163,6 +167,9 @@ var BackupSet = wire.NewSet(handler8.NewBackupHandler, service8.NewBackupService
 
 // DashboardSet 包含了构建 DashboardHandler 所需的所有 Provider
 var DashboardSet = wire.NewSet(service9.NewDashboardService, handler10.NewDashboardHandler)
+
+// AgentSet 包含了构建 AgentHandler 所需的所有 Provider
+var AgentSet = wire.NewSet(service10.NewAgentService, handler11.NewAgentHandler)
 
 // WebhookSet 包含了构建 WebhookDispatcher 所需的所有 Provider
 var WebhookSet = wire.NewSet(repository5.NewWebhookRepository)

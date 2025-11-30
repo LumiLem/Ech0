@@ -808,3 +808,80 @@ func (settingService *SettingService) UpdateBackupScheduleSetting(
 		return nil
 	})
 }
+
+// GetAgentSettings 获取 Agent 设置
+func (settingService *SettingService) GetAgentSettings(setting *model.AgentSetting) error {
+	return settingService.txManager.Run(func(ctx context.Context) error {
+		agentSetting, err := settingService.keyvalueRepository.GetKeyValue(commonModel.AgentSettingKey)
+		if err != nil {
+			// 数据库中不存在数据，返回默认值
+			setting.Enable = false
+			setting.Provider = string(commonModel.OpenAI)
+			setting.Model = ""
+			setting.ApiKey = ""
+			setting.Prompt = ""
+			setting.BaseURL = ""
+
+			// 序列化为 JSON
+			settingToJSON, err := jsonUtil.JSONMarshal(setting)
+			if err != nil {
+				return err
+			}
+			if err := settingService.keyvalueRepository.AddKeyValue(ctx, commonModel.AgentSettingKey, string(settingToJSON)); err != nil {
+				return err
+			}
+			return nil
+		}
+
+		if err := jsonUtil.JSONUnmarshal([]byte(agentSetting.(string)), setting); err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
+// UpdateAgentSettings 更新 Agent 设置
+func (settingService *SettingService) UpdateAgentSettings(userid uint, newSetting *model.AgentSettingDto) error {
+	// 检查用户权限
+	user, err := settingService.commonService.CommonGetUserByUserId(userid)
+	if err != nil {
+		return err
+	}
+	if !user.IsAdmin {
+		return errors.New(commonModel.NO_PERMISSION_DENIED)
+	}
+
+	if newSetting.Provider != string(commonModel.OpenAI) &&
+		newSetting.Provider != string(commonModel.DeepSeek) &&
+		newSetting.Provider != string(commonModel.Anthropic) &&
+		newSetting.Provider != string(commonModel.Gemini) &&
+		newSetting.Provider != string(commonModel.Qwen) &&
+		newSetting.Provider != string(commonModel.Ollama) {
+		newSetting.Provider = string(commonModel.OpenAI)
+	}
+
+	setting := &model.AgentSetting{
+		Enable:   newSetting.Enable,
+		Provider: newSetting.Provider,
+		Model:    newSetting.Model,
+		ApiKey:   newSetting.ApiKey,
+		Prompt:   newSetting.Prompt,
+		BaseURL:  httpUtil.TrimURL(newSetting.BaseURL),
+	}
+
+	return settingService.txManager.Run(func(ctx context.Context) error {
+		// 序列化为 JSON
+		settingToJSON, err := jsonUtil.JSONMarshal(setting)
+		if err != nil {
+			return err
+		}
+		settingToJSONString := string(settingToJSON)
+
+		if err := settingService.keyvalueRepository.UpdateKeyValue(ctx, commonModel.AgentSettingKey, settingToJSONString); err != nil {
+			return err
+		}
+
+		return nil
+	})
+}

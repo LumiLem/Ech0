@@ -34,4 +34,7 @@ func setupSettingRoutes(appRouterGroup *AppRouterGroup, h *di.Handlers) {
 
 	appRouterGroup.AuthRouterGroup.GET("/backup/schedule", h.SettingHandler.GetBackupScheduleSetting())
 	appRouterGroup.AuthRouterGroup.POST("/backup/schedule", h.SettingHandler.UpdateBackupScheduleSetting())
+
+	appRouterGroup.AuthRouterGroup.GET("/agent/settings", h.SettingHandler.GetAgentSettings())
+	appRouterGroup.AuthRouterGroup.PUT("/agent/settings", h.SettingHandler.UpdateAgentSettings())
 }

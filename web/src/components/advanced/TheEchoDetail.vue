@@ -106,7 +106,7 @@
     <div class="flex justify-between items-center">
       <!-- 日期时间 -->
       <div class="flex justify-start items-center h-auto">
-        <div class="flex justify-start text-sm text-slate-500 mr-1">
+        <div class="flex justify-start text-sm text-[var(--echo-detail-datetime-color)] mr-1">
           {{ formatDate(props.echo.created_at) }}
         </div>
         <!-- 标签 -->

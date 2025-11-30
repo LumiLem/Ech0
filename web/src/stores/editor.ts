@@ -100,7 +100,7 @@ export const useEditorStore = defineStore('editorStore', () => {
   // 清空并重置编辑器
   const clearEditor = () => {
     const rememberedImageSource = ref<ImageSource>(
-      localStg.getItem<ImageSource>('image_source') ?? ImageSource.LOCAL
+      localStg.getItem<ImageSource>('image_source') ?? ImageSource.LOCAL,
     )
 
     echoToAdd.value = {
