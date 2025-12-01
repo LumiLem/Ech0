@@ -1096,6 +1096,17 @@ func (userService *UserService) handleOAuthLogin(
 		fmt.Printf("[INFO] [OAuth:%s] 未找到已绑定用户 (provider=%s, externalID=%s, error=%v)，准备创建新用户\n",
 			provider, provider, externalID, err)
 
+		// 检查是否允许注册
+		var setting settingModel.SystemSetting
+		if err := userService.settingService.GetSetting(&setting); err != nil {
+			fmt.Printf("[ERROR] [OAuth:%s] 获取系统设置失败: %v\n", provider, err)
+			return buildErrorRedirect(oauthState.Redirect, "系统错误")
+		}
+		if !setting.AllowRegister {
+			fmt.Printf("[WARN] [OAuth:%s] 注册未开放，拒绝创建新用户\n", provider)
+			return buildErrorRedirect(oauthState.Redirect, commonModel.USER_REGISTER_NOT_ALLOW)
+		}
+
 		// 用户不存在，创建新用户
 		user = userService.createOAuthUser(provider, externalID, userInfo)
 		if user.ID == 0 {
