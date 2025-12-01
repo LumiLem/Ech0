@@ -11,7 +11,7 @@
         <!-- 模式切换 -->
         <div class="flex justify-between items-center">
           <h2 class="text-lg font-bold text-[var(--text-color-next-400)] mb-3">登录</h2>
-          <div class="mb-3">
+          <div v-if="allowRegister" class="mb-3">
             <button
               @click="AuthMode = 'register'"
               class="text-[var(--text-color-next-500)] hover:text-[var(--text-color-next-700)] transition duration-200"
@@ -96,6 +96,7 @@ import { useRouter } from 'vue-router'
 import BaseInput from '@/components/common/BaseInput.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
 import { useUserStore } from '@/stores/user'
+import { useSettingStore } from '@/stores/setting'
 import Arrow from '@/components/icons/arrow.vue'
 import Home from '@/components/icons/home.vue'
 import Github from '@/components/icons/github.vue'
@@ -109,6 +110,8 @@ const AuthMode = ref<'login' | 'register'>('login') // login / register
 const username = ref<string>('')
 const password = ref<string>('')
 const userStore = useUserStore()
+const settingStore = useSettingStore()
+const allowRegister = ref<boolean>(true) // 是否允许注册
 
 const oauth2Status = ref<App.Api.Setting.OAuth2Status | null>(null)
 const baseURL =
@@ -163,6 +166,13 @@ onMounted(async () => {
     await userStore.loginWithToken(token)
     return
   }
+  
+  // 获取系统设置，检查是否允许注册
+  await settingStore.getSystemSetting()
+  
+  // 系统未初始化时强制允许注册，否则根据系统设置决定
+  allowRegister.value = !settingStore.isSystemReady || settingStore.SystemSetting.allow_register
+  
   getOAuth2Status()
 })
 </script>
