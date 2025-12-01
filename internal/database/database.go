@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"gorm.io/driver/sqlite"
-	// "github.com/glebarez/sqlite" // 使用 glebarez/sqlite 作为 SQLite 驱动
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 
 	"github.com/lin-snow/ech0/internal/config"
 	commonModel "github.com/lin-snow/ech0/internal/model/common"
@@ -79,11 +79,14 @@ func InitDatabase() {
 	}
 
 	if dbType == "sqlite" {
-		// 添加 PRAGMA 参数，例如 WAL 模式和外键支持
-		// pragma := config.Config.Database.Pragma // 从配置读取
-		// dsn := dbPath + "?" + pragma
 		var err error
-		SQLiteDB, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
+		ll := logger.LogLevel(logger.Error)
+		if config.Config.Database.LogMode == "release" {
+			ll = logger.LogLevel(logger.Silent)
+		}
+		SQLiteDB, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{
+			Logger: logger.Default.LogMode(ll),
+		})
 		if err != nil {
 			util.HandlePanicError(&commonModel.ServerError{
 				Msg: commonModel.INIT_DATABASE_PANIC,
@@ -151,7 +154,14 @@ func HotChangeDatabase(newDBPath string) error {
 	}
 
 	// 打开新连接
-	newDB, err := gorm.Open(sqlite.Open(newDBPath), &gorm.Config{})
+	ll := logger.LogLevel(logger.Error)
+	if config.Config.Database.LogMode == "release" {
+		ll = logger.LogLevel(logger.Silent)
+	}
+
+	newDB, err := gorm.Open(sqlite.Open(newDBPath), &gorm.Config{
+		Logger: logger.Default.LogMode(ll),
+	})
 	if err != nil {
 		return err
 	}

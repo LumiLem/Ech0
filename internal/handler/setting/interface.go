@@ -62,4 +62,13 @@ type SettingHandlerInterface interface {
 
 	// UpdateBackupScheduleSetting 更新备份计划
 	UpdateBackupScheduleSetting() gin.HandlerFunc
+
+	// GetAgentSettings 获取 Agent 设置
+	GetAgentSettings() gin.HandlerFunc
+
+	// UpdateAgentSettings 更新 Agent 设置
+	UpdateAgentSettings() gin.HandlerFunc
+
+	// GetAgentInfo 获取 Agent 信息
+	GetAgentInfo() gin.HandlerFunc
 }

@@ -42,8 +42,9 @@ type AppConfig struct {
 		Mode string `yaml:"mode"` // 运行模式，可能的值为 "debug" 或 "release"
 	} `yaml:"server"`
 	Database struct {
-		Type string `yaml:"type"` // 数据库类型
-		Path string `yaml:"path"` // 数据库文件路径
+		Type    string `yaml:"type"`    // 数据库类型
+		Path    string `yaml:"path"`    // 数据库文件路径
+		LogMode string `yaml:"logmode"` // 数据库日志模式
 	} `yaml:"database"`
 	Auth struct {
 		Jwt struct {

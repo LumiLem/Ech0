@@ -21,7 +21,7 @@ func NewAgentHandler(agentService service.AgentServiceInterface) *AgentHandler {
 func (agentHandler *AgentHandler) GetRecent() gin.HandlerFunc {
 	return res.Execute(func(ctx *gin.Context) res.Response {
 		// 调用服务层获取作者近况信息
-		result, err := agentHandler.agentService.GetRecent(ctx)
+		gen, err := agentHandler.agentService.GetRecent(ctx)
 		if err != nil {
 			return res.Response{
 				Msg: "",
@@ -30,7 +30,7 @@ func (agentHandler *AgentHandler) GetRecent() gin.HandlerFunc {
 		}
 
 		return res.Response{
-			Data: result,
+			Data: gen,
 			Msg:  commonModel.AGENT_GET_RECENT_SUCCESS,
 		}
 	})

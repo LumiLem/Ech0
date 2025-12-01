@@ -1,5 +1,5 @@
 <template>
-  <div v-if="recent" class="px-9 md:px-11">
+  <div v-if="AgentSetting.enable" class="px-9 md:px-11">
     <div
       class="widget rounded-md shadow-sm hover:shadow-md ring-1 ring-[var(--ring-color)] ring-inset p-4"
     >
@@ -7,8 +7,8 @@
         <RecentIcon class="mr-2" /> 近况总结(AI)：
       </h2>
 
-      <div v-if="!loading" class="text-[var(--text-color-next-500)] text-sm">
-        {{ recent || '作者最近很神秘～' }}
+      <div v-if="!loading" class="text-[var(--text-color-next-500)] text-sm p-1">
+        <TheMdPreview :content="recent" />
       </div>
       <div v-else>
         <div class="text-[var(--text-color-next-500)] text-sm">生成中...</div>
@@ -20,8 +20,14 @@
 import { fetchGetRecent } from '@/service/api'
 import { onMounted, ref } from 'vue'
 import RecentIcon from '../icons/recent.vue'
+import TheMdPreview from './TheMdPreview.vue'
+import { useSettingStore } from '@/stores/setting'
+import { storeToRefs } from 'pinia'
 
-const recent = ref<string>('')
+const settingStore = useSettingStore()
+const { AgentSetting } = storeToRefs(settingStore)
+
+const recent = ref<string>('作者最近很神秘～')
 const loading = ref<boolean>(true)
 
 onMounted(() => {
@@ -36,4 +42,15 @@ onMounted(() => {
     })
 })
 </script>
-<style scoped></style>
+<style scoped>
+.md-editor-dark,
+.md-editor-modal-container[data-theme='dark'] {
+  --md-bk-color: #212121 !important;
+}
+
+:deep(#preview-only-preview) p {
+  color: var(--text-color-next-500) !important;
+  font-size: var(--text-sm-fontSize) !important;
+  line-height: var(--un-leading, var(--text-sm-lineHeight)) !important;
+}
+</style>

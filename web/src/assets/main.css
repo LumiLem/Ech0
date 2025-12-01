@@ -2,11 +2,9 @@
 html,
 body {
   scrollbar-width: thin;
-  scrollbar-arrow-color: transparent;
-  scrollbar-base-color: transparent;
   scrollbar-color: transparent transparent;
-
-  background: linear-gradient(135deg, #292a3a, #f3b267);
+  color: #eabc88cf;
+  background: linear-gradient(135deg, #292a3ac9, #e5a863cf);
 }
 
 /* App 加载启动动画 */
@@ -16,7 +14,8 @@ body {
   align-items: center;
   justify-content: center;
   height: 100vh;
-  color: #ffffff;
+  width: 100vw;
+  color: #efe6d6;
   font-family: sans-serif;
   transition:
     opacity 0.4s ease,

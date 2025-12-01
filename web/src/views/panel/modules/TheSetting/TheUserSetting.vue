@@ -24,9 +24,7 @@
           :src="
             !user?.avatar || user?.avatar.length === 0
               ? '/favicon.svg'
-              : user.avatar.startsWith('http')
-                ? user.avatar
-                : `${API_URL}${user.avatar}`
+              : `${API_URL}${user?.avatar}`
           "
           alt="头像"
           class="w-12 h-12 rounded-full ml-2 mr-9 ring-1 ring-gray-200 shadow-sm"

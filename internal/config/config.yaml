@@ -6,6 +6,7 @@ server:
 database:
   type: "sqlite"
   path: "data/ech0.db"
+  logmode: "release" # "release" or "debug"
 
 auth:
   jwt:

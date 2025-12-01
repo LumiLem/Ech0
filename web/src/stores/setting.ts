@@ -11,6 +11,7 @@ import {
   fetchGetFediverseSettings,
   fetchGetBackupScheduleSetting,
   fetchGetAgentSettings,
+  fetchGetAgentInfo,
   fetchHelloEch0,
 } from '@/service/api'
 import { localStg } from '@/utils/storage'
@@ -204,6 +205,15 @@ export const useSettingStore = defineStore('settingStore', () => {
     }
   }
 
+  const getAgentInfo = async () => {
+    const res = await fetchGetAgentInfo()
+    if (res.code === 1) {
+      AgentSetting.value.enable = res.data.enable
+      AgentSetting.value.model = res.data.model
+      AgentSetting.value.provider = res.data.provider
+    }
+  }
+
   const init = () => {
     if (!isSystemReady.value) {
       getSystemReady()
@@ -211,6 +221,7 @@ export const useSettingStore = defineStore('settingStore', () => {
     getSystemSetting()
     getCommentSetting()
     getS3Setting()
+    getAgentInfo()
     getHelloEch0()
   }
 
@@ -240,6 +251,7 @@ export const useSettingStore = defineStore('settingStore', () => {
     getHelloEch0,
     getBackupSchedule,
     getAgentSetting,
+    getAgentInfo,
     init,
   }
 })

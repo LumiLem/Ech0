@@ -711,6 +711,37 @@ func (settingHandler *SettingHandler) UpdateBackupScheduleSetting() gin.HandlerF
 	})
 }
 
+// GetAgentInfo 获取 Agent 信息
+//
+// @Summary 获取 Agent 信息
+// @Description 获取系统的 Agent 信息
+// @Tags 系统设置
+// @Accept json
+// @Produce json
+// @Success 200 {object} res.Response{data=model.AgentInfoDto} "获取 Agent 信息成功"
+// @Failure 200 {object} res.Response "获取 Agent 信息失败"
+// @Router /agent/info [get]
+func (settingHandler *SettingHandler) GetAgentInfo() gin.HandlerFunc {
+	return res.Execute(func(ctx *gin.Context) res.Response {
+		var settings model.AgentSetting
+		if err := settingHandler.settingService.GetAgentInfo(&settings); err != nil {
+			return res.Response{
+				Msg: "",
+				Err: err,
+			}
+		}
+
+		settings.ApiKey = ""  // 不返回 API Key 信息
+		settings.Prompt = ""  // 不返回 Prompt 信息
+		settings.BaseURL = "" // 不返回 BaseURL 信息
+
+		return res.Response{
+			Data: settings,
+			Msg:  commonModel.GET_SETTINGS_SUCCESS,
+		}
+	})
+}
+
 // GetAgentSettings 获取 Agent 设置
 //
 // @Summary 获取 Agent 设置
@@ -723,8 +754,11 @@ func (settingHandler *SettingHandler) UpdateBackupScheduleSetting() gin.HandlerF
 // @Router /agent/settings [get]
 func (settingHandler *SettingHandler) GetAgentSettings() gin.HandlerFunc {
 	return res.Execute(func(ctx *gin.Context) res.Response {
+		// 获取当前用户 ID
+		userid := ctx.MustGet("userid").(uint)
+
 		var settings model.AgentSetting
-		if err := settingHandler.settingService.GetAgentSettings(&settings); err != nil {
+		if err := settingHandler.settingService.GetAgentSettings(userid, &settings); err != nil {
 			return res.Response{
 				Msg: "",
 				Err: err,

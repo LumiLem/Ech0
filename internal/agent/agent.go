@@ -45,12 +45,10 @@ func Generate(ctx context.Context, setting model.AgentSetting, in []*schema.Mess
 	prompt := setting.Prompt
 	if prompt != "" {
 		// 在对话开头添加系统提示
-		in = append([]*schema.Message{
-			{
-				Role:    schema.User,
-				Content: prompt,
-			},
-		}, in...)
+		in = append(in, &schema.Message{
+			Role:    schema.User,
+			Content: prompt,
+		})
 	}
 
 	var resp *schema.Message

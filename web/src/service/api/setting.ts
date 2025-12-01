@@ -179,6 +179,14 @@ export function fetchUpdateBackupScheduleSetting(
   })
 }
 
+// 获取LLM Agent信息(无需鉴权)
+export function fetchGetAgentInfo() {
+  return request<App.Api.Setting.AgentSetting>({
+    url: '/agent/info',
+    method: 'GET',
+  })
+}
+
 // 获取LLM Agent设置
 export function fetchGetAgentSettings() {
   return request<App.Api.Setting.AgentSetting>({
