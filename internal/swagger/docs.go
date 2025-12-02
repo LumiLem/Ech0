@@ -2051,10 +2051,10 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
-                "images": {
+                "media": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/model.Image"
+                        "$ref": "#/definitions/model.Media"
                     }
                 },
                 "layout": {
@@ -2119,7 +2119,7 @@ const docTemplate = `{
                 }
             }
         },
-        "model.Image": {
+        "model.Media": {
             "type": "object",
             "properties": {
                 "height": {
@@ -2129,12 +2129,16 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
-                "image_source": {
-                    "description": "图片来源: local/url/s3",
+                "media_source": {
+                    "description": "媒体来源: local/url/s3",
                     "type": "string"
                 },
-                "image_url": {
-                    "description": "图片URL",
+                "media_type": {
+                    "description": "媒体类型: image/video",
+                    "type": "string"
+                },
+                "media_url": {
+                    "description": "媒体URL",
                     "type": "string"
                 },
                 "message_id": {

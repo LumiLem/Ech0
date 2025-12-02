@@ -615,19 +615,23 @@ func (commonService *CommonService) GetS3PresignURL(
 		contentType = "application/octet-stream"
 	}
 
-	// 检查Content-Type是否为Image开头
-	switch contentType[:5] {
-	case "image":
+	// 检查Content-Type是否为允许的类型
+	if strings.HasPrefix(contentType, "image/") {
 		// 检查文件类型是否合法
 		if !storageUtil.IsAllowedType(contentType, config.Config.Upload.AllowedTypes) {
 			return result, errors.New(commonModel.FILE_TYPE_NOT_ALLOWED)
 		}
-	case "audio":
+	} else if strings.HasPrefix(contentType, "audio/") {
 		// 检查文件类型是否合法
 		if !storageUtil.IsAllowedType(contentType, config.Config.Upload.AllowedTypes) {
 			return result, errors.New(commonModel.FILE_TYPE_NOT_ALLOWED)
 		}
-	default:
+	} else if strings.HasPrefix(contentType, "video/") {
+		// 检查文件类型是否合法
+		if !storageUtil.IsAllowedType(contentType, config.Config.Upload.AllowedTypes) {
+			return result, errors.New(commonModel.FILE_TYPE_NOT_ALLOWED)
+		}
+	} else {
 		return result, errors.New(commonModel.FILE_TYPE_NOT_ALLOWED)
 	}
 
