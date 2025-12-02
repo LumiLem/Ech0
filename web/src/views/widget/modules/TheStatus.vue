@@ -26,7 +26,7 @@
     </div>
 
     <!-- 近况总结 -->
-    <div class="justify-center my-2">
+    <div class="justify-center my-2" v-if="AgentSetting.enable">
       <TheRecentCard />
     </div>
   </div>
@@ -43,12 +43,15 @@ import TheRecentCard from '@/components/advanced/TheRecentCard.vue'
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/user'
 import { useTodoStore } from '@/stores/todo'
+import { useSettingStore } from '@/stores/setting'
 import { onMounted } from 'vue'
 const todoStore = useTodoStore()
 const userStore = useUserStore()
+const settingStore = useSettingStore()
 const { isLogin } = storeToRefs(userStore)
 const { getTodos } = useTodoStore()
 const { todos } = storeToRefs(todoStore)
+const { AgentSetting } = storeToRefs(settingStore)
 
 onMounted(() => {
   if (isLogin.value) {

@@ -103,19 +103,16 @@ func (agentService *AgentService) buildRecentSummary(ctx context.Context) (strin
 		)
 
 		memos = append(memos, &schema.Message{
-			Role:    schema.System,
+			Role:    schema.Tool,
 			Content: content,
 		})
 	}
 
 	in := []*schema.Message{
 		{
-			Role:    schema.System,
-			Content: "你是一个热心的个人助理，帮助用户回顾最近的活动。",
-		},
-		{
 			Role: schema.System,
-			Content: `你只能输出纯文本。
+			Content: `
+				你只能输出纯文本。
 				不能输出代码块、格式化标记、Markdown 符号（如井号、星号、反引号、方括号、尖括号）。
 				不能输出任何结构化格式（如列表、表格）。
 				回复中只能出现正常文字、标点符号和 Emoji 和 换行。
@@ -123,7 +120,7 @@ func (agentService *AgentService) buildRecentSummary(ctx context.Context) (strin
 		},
 		{
 			Role:    schema.User,
-			Content: "请根据提供的近期互动内容（内容可能包括日常生活、句子诗词摘抄、吐槽等等），总结该用户最近的活动和状态，突出作者状态即可，不需要详细描述内容，最好不要超过 50 个字，如果没有任何内容，请回复作者最近很神秘~",
+			Content: "请根据提供的近期互动内容（内容可能包括日常生活、句子诗词摘抄、吐槽等等），总结该用户最近的活动和状态，突出作者状态即可，不需要详细描述内容，如果没有任何内容，请回复作者最近很神秘~",
 		},
 	}
 

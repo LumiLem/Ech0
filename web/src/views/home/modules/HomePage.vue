@@ -23,7 +23,7 @@
         <TheAudioCard />
       </div>
       <TheConnects class="mb-2" />
-      <TheRecentCard />
+      <TheRecentCard v-if="AgentSetting.enable" />
     </div>
   </div>
 </template>
@@ -45,6 +45,7 @@ import { useUserStore } from '@/stores/user'
 import { useTodoStore } from '@/stores/todo'
 import { useEchoStore } from '@/stores/echo'
 import { useEditorStore } from '@/stores/editor'
+import { useSettingStore } from '@/stores/setting'
 import { storeToRefs } from 'pinia'
 import TheAudioCard from '@/components/advanced/TheAudioCard.vue'
 
@@ -52,10 +53,12 @@ const todoStore = useTodoStore()
 const userStore = useUserStore()
 const echoStore = useEchoStore()
 const editorStore = useEditorStore()
+const settingStore = useSettingStore()
 const { getTodos } = todoStore
 const { todoMode, todos } = storeToRefs(todoStore)
 const { isLogin } = storeToRefs(userStore)
 const { isFilteringMode } = storeToRefs(echoStore)
+const { AgentSetting } = storeToRefs(settingStore)
 
 const mainColumn = ref<HTMLElement | null>(null)
 const backTopStyle = ref({ right: '100px' }) // 默认 fallback
