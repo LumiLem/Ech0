@@ -29,8 +29,8 @@ FROM alpine:latest
 
 WORKDIR /app
 
-# 安装 ca-certificates（便于 HTTPS 请求）
-RUN apk --no-cache add ca-certificates tzdata && \
+# 安装 ca-certificates 和 mailcap（MIME 类型数据库）
+RUN apk --no-cache add ca-certificates tzdata mailcap && \
     cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
     echo "Asia/Shanghai" > /etc/timezone
 
