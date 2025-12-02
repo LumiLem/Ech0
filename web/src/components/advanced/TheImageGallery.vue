@@ -32,8 +32,10 @@
           @click="openFancybox(idx)"
         >
           <video
-            :src="getMediaUrlCompat(item)"
+            :src="getMediaUrlCompat(item) + '#t=0.1'"
             preload="metadata"
+            muted
+            playsinline
             class="echoimg video-thumb block max-w-full h-auto"
           ></video>
           <div class="play-overlay">
@@ -72,8 +74,10 @@
             @click="openFancybox(idx)"
           >
             <video
-              :src="getMediaUrlCompat(item)"
+              :src="getMediaUrlCompat(item) + '#t=0.1'"
               preload="metadata"
+              muted
+              playsinline
               class="echoimg video-thumb w-full h-full object-cover"
             ></video>
             <div class="play-overlay">
@@ -113,8 +117,10 @@
             @click="openFancybox(carouselIndex)"
           >
             <video
-              :src="getMediaUrlCompat(mediaItems[carouselIndex]!)"
+              :src="getMediaUrlCompat(mediaItems[carouselIndex]!) + '#t=0.1'"
               preload="metadata"
+              muted
+              playsinline
               class="echoimg video-thumb w-full h-auto"
             ></video>
             <div class="play-overlay">
@@ -172,8 +178,10 @@
               @click="openFancybox(idx)"
             >
               <video
-                :src="getMediaUrlCompat(item)"
+                :src="getMediaUrlCompat(item) + '#t=0.1'"
                 preload="metadata"
+                muted
+                playsinline
                 class="echoimg video-thumb h-full w-auto object-contain"
               ></video>
               <div class="play-overlay">
