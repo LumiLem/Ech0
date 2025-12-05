@@ -87,6 +87,7 @@ declare namespace App {
         object_key?: string // 对象存储的Key (如果是本地存储则为空)
         width?: number // 图片宽度
         height?: number // 图片高度
+        live_video_id?: number // 实况照片关联的视频Media ID
       }
 
       type Tag = {
@@ -97,12 +98,15 @@ declare namespace App {
       }
 
       type MediaToAdd = {
+        id?: number // 媒体ID（编辑已有Echo时存在）
         media_url: string
         media_type: 'image' | 'video'
         media_source: string
         object_key?: string // 对象存储的Key (如果是本地存储则为空)
         width?: number // 图片宽度
         height?: number // 图片高度
+        live_video_id?: number // 实况照片关联的视频Media ID（后端返回）
+        live_pair_id?: string // 实况照片配对ID（前端生成的UUID，用于请求）
       }
 
       // Backward compatibility aliases

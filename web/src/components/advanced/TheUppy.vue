@@ -15,6 +15,7 @@ import { storeToRefs } from 'pinia'
 import { ImageSource } from '@/enums/enums'
 import { fetchGetPresignedUrl } from '@/service/api'
 import { useEditorStore } from '@/stores/editor'
+import { detectLivePhotoPairs, detectLivePhotoPairsFromMedia, applyLivePhotoPairIds, getBaseName } from '@/utils/livephoto'
 /* --------------- 与Uppy相关 ---------------- */
 import Uppy from '@uppy/core'
 import Dashboard from '@uppy/dashboard'
@@ -35,6 +36,10 @@ const memorySource = ref<string>(props.TheImageSource) // 用于记住上传方�
 const isUploading = ref<boolean>(false) // 是否正在上传
 const files = ref<App.Api.Ech0.MediaToAdd[]>([]) // 已上传的文件列表
 const tempFiles = ref<Map<string, { url: string; objectKey: string }>>(new Map()) // 用于S3临时存储文件回显地址的 Map(key: fileName, value: {url, objectKey})
+// 用于保存原始文件名到 live_pair_id 的映射（在上传前检测，上传后应用）
+const originalFilenameToPairId = ref<Map<string, string>>(new Map())
+// 用于保存上传文件的原始文件名（key: uppy file id, value: original filename）
+const uppyFileIdToOriginalName = ref<Map<string, string>>(new Map())
 
 const userStore = useUserStore()
 const editorStore = useEditorStore()
@@ -141,14 +146,39 @@ const initUppy = () => {
   // 监听粘贴事件
   document.addEventListener('paste', handlePaste)
 
-  // 添加文件时
-  uppy.on('files-added', () => {
+  // 添加文件时，检测实况照片对并生成 pairId
+  uppy.on('files-added', (addedFiles) => {
     if (!isLogin.value) {
       theToast.error('请先登录再上传图片 😢')
       return
     }
     isUploading.value = true
     editorStore.MediaUploading = true
+    
+    // 保存原始文件名映射
+    for (const file of addedFiles) {
+      uppyFileIdToOriginalName.value.set(file.id, file.name)
+    }
+    
+    // 获取所有当前文件（包括之前添加的）
+    const allFiles = uppy?.getFiles() || []
+    const fileObjects: File[] = allFiles.map(f => new File([f.data as Blob], f.name, { type: f.type }))
+    
+    // 检测实况照片对
+    const pairs = detectLivePhotoPairs(fileObjects)
+    
+    // 为每个文件生成 pairId 映射（基于原始文件名）
+    originalFilenameToPairId.value.clear()
+    for (const pair of pairs) {
+      const imgFile = allFiles[pair.imageIndex]
+      const vidFile = allFiles[pair.videoIndex]
+      if (imgFile && vidFile) {
+        // 使用原始文件名作为 key
+        originalFilenameToPairId.value.set(imgFile.name, pair.pairId)
+        originalFilenameToPairId.value.set(vidFile.name, pair.pairId)
+        console.log('预检测实况照片对:', imgFile.name, vidFile.name, 'pairId:', pair.pairId)
+      }
+    }
   })
   // 上传开始前，检查是否登录
   uppy.on('upload', () => {
@@ -207,6 +237,10 @@ const initUppy = () => {
 
     // 判断文件类型
     const mediaType = file?.type?.startsWith('video/') ? 'video' : 'image'
+    
+    // 获取原始文件名（用于查找 pairId）
+    const originalName = file?.name || ''
+    const pairId = originalFilenameToPairId.value.get(originalName) || ''
 
     // 分两种情况: Local 或者 S3
     if (memorySource.value === ImageSource.LOCAL) {
@@ -216,8 +250,12 @@ const initUppy = () => {
         media_type: mediaType,
         media_source: ImageSource.LOCAL,
         object_key: '',
+        live_pair_id: pairId, // 应用预检测的 pairId
       }
       files.value.push(item)
+      if (pairId) {
+        console.log('上传成功，应用 pairId:', originalName, '->', fileUrl, 'pairId:', pairId)
+      }
     } else if (memorySource.value === ImageSource.S3) {
       const uploadedFile = tempFiles.value.get(file?.name || '') || ''
       if (uploadedFile) {
@@ -226,8 +264,12 @@ const initUppy = () => {
           media_type: mediaType,
           media_source: ImageSource.S3,
           object_key: uploadedFile.objectKey,
+          live_pair_id: pairId, // 应用预检测的 pairId
         }
         files.value.push(item)
+        if (pairId) {
+          console.log('上传成功，应用 pairId:', originalName, '->', uploadedFile.url, 'pairId:', pairId)
+        }
       }
     }
   })
@@ -235,10 +277,37 @@ const initUppy = () => {
   uppy.on('complete', () => {
     isUploading.value = false
     editorStore.MediaUploading = false
+    
+    // 打印实况照片对信息（用于调试）
+    const pairGroups = new Map<string, number[]>()
+    files.value.forEach((item, index) => {
+      if (item.live_pair_id) {
+        const group = pairGroups.get(item.live_pair_id) || []
+        group.push(index)
+        pairGroups.set(item.live_pair_id, group)
+      }
+    })
+    
+    // 打印检测到的实况照片对
+    for (const [pairId, indexes] of pairGroups) {
+      const items = indexes.map(idx => files.value[idx])
+      const imageItem = items.find(item => item?.media_type === 'image')
+      const videoItem = items.find(item => item?.media_type === 'video')
+      if (imageItem && videoItem) {
+        console.log('检测到实况照片对:', {
+          pairId,
+          image: imageItem.media_url,
+          video: videoItem.media_url
+        })
+      }
+    }
+    
     const MediaToAddResult = [...files.value]
     editorStore.handleUppyUploaded(MediaToAddResult)
     files.value = []
     tempFiles.value.clear()
+    originalFilenameToPairId.value.clear()
+    uppyFileIdToOriginalName.value.clear()
   })
 }
 

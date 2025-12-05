@@ -211,12 +211,36 @@ func (echoRepository *EchoRepository) UpdateEcho(ctx context.Context, echo *mode
 	echoRepository.cache.Delete(GetTodayEchosCacheKey(true))  // 删除今天的 Echo 缓存（管理员视图）
 	echoRepository.cache.Delete(GetTodayEchosCacheKey(false)) // 删除今天的 Echo 缓存（非管理员视图）
 
-	// 1. 先删除该 Echo 关联的所有旧媒体
-	if err := echoRepository.getDB(ctx).Where("message_id = ?", echo.ID).Delete(&model.Media{}).Error; err != nil {
+	// 1. 获取现有媒体列表
+	var existingMedia []model.Media
+	if err := echoRepository.getDB(ctx).Where("message_id = ?", echo.ID).Find(&existingMedia).Error; err != nil {
 		return err
 	}
 
-	// 2. 更新 Echo 内容（包括关联的新图片）
+	// 2. 构建现有媒体的 URL -> Media 映射（用于判断哪些需要保留）
+	existingMediaMap := make(map[string]*model.Media)
+	for i := range existingMedia {
+		existingMediaMap[existingMedia[i].MediaURL] = &existingMedia[i]
+	}
+
+	// 3. 构建新媒体的 URL 集合
+	newMediaURLs := make(map[string]bool)
+	for _, m := range echo.Media {
+		if m.MediaURL != "" {
+			newMediaURLs[m.MediaURL] = true
+		}
+	}
+
+	// 4. 删除不再需要的媒体（在新列表中不存在的）
+	for url, media := range existingMediaMap {
+		if !newMediaURLs[url] {
+			if err := echoRepository.getDB(ctx).Delete(media).Error; err != nil {
+				return err
+			}
+		}
+	}
+
+	// 5. 更新 Echo 内容
 	if err := echoRepository.getDB(ctx).Model(&model.Echo{}).
 		Where("id = ?", echo.ID).
 		Updates(map[string]interface{}{
@@ -229,21 +253,22 @@ func (echoRepository *EchoRepository) UpdateEcho(ctx context.Context, echo *mode
 		return err
 	}
 
-	// 3. 重新添加Media
-	if len(echo.Media) > 0 {
-		var media []model.Media
-		for _, m := range echo.Media {
-			// 确保每个媒体都关联到正确的 Echo ID
-			m.MessageID = echo.ID
-			media = append(media, m)
-		}
-		// 批量插入新媒体
-		if err := echoRepository.getDB(ctx).Create(&media).Error; err != nil {
-			return err
+	// 6. 处理媒体：保留现有的，新增新的
+	for i := range echo.Media {
+		echo.Media[i].MessageID = echo.ID
+		if existing, ok := existingMediaMap[echo.Media[i].MediaURL]; ok {
+			// 媒体已存在，保留原有 ID 和关联信息
+			echo.Media[i].ID = existing.ID
+			echo.Media[i].LiveVideoID = existing.LiveVideoID
+		} else if echo.Media[i].MediaURL != "" {
+			// 新媒体，插入数据库
+			if err := echoRepository.getDB(ctx).Create(&echo.Media[i]).Error; err != nil {
+				return err
+			}
 		}
 	}
 
-	// 4. 更新标签关联关系
+	// 7. 更新标签关联关系
 	if err := echoRepository.getDB(ctx).Model(echo).Association("Tags").Replace(echo.Tags); err != nil {
 		return err
 	}
@@ -420,4 +445,36 @@ func (echoRepository *EchoRepository) GetEchosByTagId(
 	}
 
 	return echos, total, nil
+}
+
+// UpdateMediaLiveVideoID 更新媒体的实况照片关联
+func (echoRepository *EchoRepository) UpdateMediaLiveVideoID(ctx context.Context, mediaID uint, liveVideoID uint) error {
+	return echoRepository.getDB(ctx).Model(&model.Media{}).
+		Where("id = ?", mediaID).
+		Update("live_video_id", liveVideoID).Error
+}
+
+// GetMediaByID 根据 ID 获取媒体
+func (echoRepository *EchoRepository) GetMediaByID(id uint) (*model.Media, error) {
+	var media model.Media
+	result := echoRepository.db().First(&media, id)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, result.Error
+	}
+	return &media, nil
+}
+
+// IsLivePhotoVideo 检查视频是否是实况照片的一部分
+func (echoRepository *EchoRepository) IsLivePhotoVideo(videoID uint) (bool, error) {
+	var count int64
+	result := echoRepository.db().Model(&model.Media{}).
+		Where("live_video_id = ?", videoID).
+		Count(&count)
+	if result.Error != nil {
+		return false, result.Error
+	}
+	return count > 0, nil
 }

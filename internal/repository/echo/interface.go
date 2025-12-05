@@ -52,4 +52,13 @@ type EchoRepositoryInterface interface {
 		search string,
 		showPrivate bool,
 	) ([]model.Echo, int64, error)
+
+	// UpdateMediaLiveVideoID 更新媒体的实况照片关联
+	UpdateMediaLiveVideoID(ctx context.Context, mediaID uint, liveVideoID uint) error
+
+	// GetMediaByID 根据 ID 获取媒体
+	GetMediaByID(id uint) (*model.Media, error)
+
+	// IsLivePhotoVideo 检查视频是否是实况照片的一部分
+	IsLivePhotoVideo(videoID uint) (bool, error)
 }

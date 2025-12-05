@@ -51,6 +51,8 @@ type Media struct {
 	ObjectKey   string `gorm:"type:text"        json:"object_key,omitempty"` // 对象存储的Key (如果是本地存储则为空)
 	Width       int    `gorm:"default:0"        json:"width,omitempty"`      // 媒体宽度
 	Height      int    `gorm:"default:0"        json:"height,omitempty"`     // 媒体高度
+	LiveVideoID *uint  `gorm:"index"            json:"live_video_id,omitempty"` // 实况照片关联的视频Media ID（仅图片类型有效）
+	LivePairID  string `gorm:"-"                json:"live_pair_id,omitempty"`  // 实况照片配对ID（仅用于请求，不持久化）
 }
 
 // Tag 定义Tag实体

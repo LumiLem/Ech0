@@ -147,6 +147,7 @@ export const useEditorStore = defineStore('editorStore', () => {
       media_type: mediaToAdd.value.media_type,
       media_source: mediaToAdd.value.media_source,
       object_key: mediaToAdd.value.object_key ? mediaToAdd.value.object_key : '',
+      live_pair_id: mediaToAdd.value.live_pair_id, // 传递实况照片配对ID
     })
 
     mediaToAdd.value = {
@@ -168,6 +169,7 @@ export const useEditorStore = defineStore('editorStore', () => {
         object_key: file.object_key ? file.object_key : '',
         width: file.width,
         height: file.height,
+        live_pair_id: file.live_pair_id, // 传递实况照片配对ID
       }
       handleAddMoreMedia()
     })

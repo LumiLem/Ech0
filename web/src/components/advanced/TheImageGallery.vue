@@ -1,19 +1,38 @@
 <template>
-  <div v-if="mediaItems.length" class="image-gallery-container">
+  <div v-if="visibleMediaItems.length" class="image-gallery-container">
     <!-- 瀑布流布局 -->
     <div
       v-if="layout === ImageLayout.WATERFALL || !layout"
       :class="[
         'imgwidth mx-auto grid gap-2 mb-4',
-        mediaItems.length === 1 ? 'grid-cols-1 justify-items-center' : 'grid-cols-2',
+        visibleMediaItems.length === 1 ? 'grid-cols-1 justify-items-center' : 'grid-cols-2',
       ]"
     >
-      <template v-for="(item, idx) in mediaItems" :key="idx">
-        <!-- 图片 -->
+      <template v-for="(item, idx) in visibleMediaItems" :key="idx">
+        <!-- 实况照片 -->
         <button
-          v-if="!isVideo(item)"
+          v-if="isLivePhoto(item)"
+          class="livephoto-preview bg-transparent border-0 p-0 cursor-pointer w-fit relative"
+          :class="getColSpan(idx, visibleMediaItems.length)"
+          @click="openFancybox(idx)"
+        >
+          <img
+            :src="getMediaUrlCompat(item)"
+            :alt="`实况照片${idx + 1}`"
+            loading="lazy"
+            class="echoimg block max-w-full h-auto"
+          />
+          <div class="livephoto-overlay">
+            <LivePhotoIcon class="livephoto-icon" color="#ffffff" />
+            <span class="livephoto-text">LIVE</span>
+          </div>
+        </button>
+        
+        <!-- 普通图片 -->
+        <button
+          v-else-if="!isVideo(item)"
           class="bg-transparent border-0 p-0 cursor-pointer w-fit"
-          :class="getColSpan(idx, mediaItems.length)"
+          :class="getColSpan(idx, visibleMediaItems.length)"
           @click="openFancybox(idx)"
         >
           <img
@@ -28,7 +47,7 @@
         <button
           v-else
           class="video-preview bg-transparent border-0 p-0 cursor-pointer w-fit relative"
-          :class="getColSpan(idx, mediaItems.length)"
+          :class="getColSpan(idx, visibleMediaItems.length)"
           @click="openFancybox(idx)"
         >
           <video
@@ -48,10 +67,30 @@
     <!-- 九宫格布局 -->
     <div v-if="layout === ImageLayout.GRID" class="imgwidth mx-auto mb-4">
       <div class="grid grid-cols-3 gap-2">
-        <template v-for="(item, idx) in displayedImages" :key="idx">
-          <!-- 图片 -->
+        <template v-for="(item, idx) in displayedVisibleImages" :key="idx">
+          <!-- 实况照片 -->
           <button
-            v-if="!isVideo(item)"
+            v-if="isLivePhoto(item)"
+            class="livephoto-preview bg-transparent border-0 p-0 cursor-pointer overflow-hidden aspect-square relative"
+            @click="openFancybox(idx)"
+          >
+            <img
+              :src="getMediaUrlCompat(item)"
+              :alt="`实况照片${idx + 1}`"
+              loading="lazy"
+              class="echoimg w-full h-full object-cover"
+            />
+            <div class="livephoto-overlay livephoto-overlay-small">
+              <LivePhotoIcon class="livephoto-icon-small" color="#ffffff" />
+            </div>
+            <div v-if="extraVisibleCount > 0 && idx === 8" class="more-overlay" aria-hidden="true">
+              +{{ extraVisibleCount }}
+            </div>
+          </button>
+          
+          <!-- 普通图片 -->
+          <button
+            v-else-if="!isVideo(item)"
             class="bg-transparent border-0 p-0 cursor-pointer overflow-hidden aspect-square relative"
             @click="openFancybox(idx)"
           >
@@ -61,9 +100,8 @@
               loading="lazy"
               class="echoimg w-full h-full object-cover"
             />
-
-            <div v-if="extraCount > 0 && idx === 8" class="more-overlay" aria-hidden="true">
-              +{{ extraCount }}
+            <div v-if="extraVisibleCount > 0 && idx === 8" class="more-overlay" aria-hidden="true">
+              +{{ extraVisibleCount }}
             </div>
           </button>
           
@@ -83,9 +121,8 @@
             <div class="play-overlay">
               <Play class="play-icon" color="#ffffff" />
             </div>
-            
-            <div v-if="extraCount > 0 && idx === 8" class="more-overlay" aria-hidden="true">
-              +{{ extraCount }}
+            <div v-if="extraVisibleCount > 0 && idx === 8" class="more-overlay" aria-hidden="true">
+              +{{ extraVisibleCount }}
             </div>
           </button>
         </template>
@@ -95,15 +132,33 @@
     <!-- 单图轮播布局 -->
     <div v-if="layout === ImageLayout.CAROUSEL" class="imgwidth mx-auto mb-4">
       <div class="carousel-container rounded-lg overflow-hidden">
-        <template v-if="mediaItems[carouselIndex]">
-          <!-- 图片 -->
+        <template v-if="visibleMediaItems[carouselIndex]">
+          <!-- 实况照片 -->
           <button
-            v-if="!isVideo(mediaItems[carouselIndex]!)"
+            v-if="isLivePhoto(visibleMediaItems[carouselIndex]!)"
+            class="livephoto-preview carousel-slide bg-transparent border-0 p-0 cursor-pointer w-full relative"
+            @click="openFancybox(carouselIndex)"
+          >
+            <img
+              :src="getMediaUrlCompat(visibleMediaItems[carouselIndex]!)"
+              :alt="`实况照片${carouselIndex + 1}`"
+              loading="lazy"
+              class="echoimg w-full h-auto"
+            />
+            <div class="livephoto-overlay">
+              <LivePhotoIcon class="livephoto-icon" color="#ffffff" />
+              <span class="livephoto-text">LIVE</span>
+            </div>
+          </button>
+          
+          <!-- 普通图片 -->
+          <button
+            v-else-if="!isVideo(visibleMediaItems[carouselIndex]!)"
             class="carousel-slide bg-transparent border-0 p-0 cursor-pointer w-full overflow-hidden"
             @click="openFancybox(carouselIndex)"
           >
             <img
-              :src="getMediaUrlCompat(mediaItems[carouselIndex]!)"
+              :src="getMediaUrlCompat(visibleMediaItems[carouselIndex]!)"
               :alt="`预览图片${carouselIndex + 1}`"
               loading="lazy"
               class="echoimg w-full h-auto"
@@ -117,7 +172,7 @@
             @click="openFancybox(carouselIndex)"
           >
             <video
-              :src="getMediaUrlCompat(mediaItems[carouselIndex]!) + '#t=0.1'"
+              :src="getMediaUrlCompat(visibleMediaItems[carouselIndex]!) + '#t=0.1'"
               preload="metadata"
               muted
               playsinline
@@ -131,7 +186,7 @@
       </div>
 
       <div
-        v-if="mediaItems.length > 1"
+        v-if="visibleMediaItems.length > 1"
         class="carousel-nav mt-3 flex items-center justify-center gap-3 text-[var(--text-color-500)]"
       >
         <button
@@ -141,11 +196,11 @@
         >
           <Prev class="w-5 h-5 text-[var(--text-color-600)]" />
         </button>
-        <span class="text-sm"> {{ carouselIndex + 1 }} / {{ mediaItems.length }} </span>
+        <span class="text-sm"> {{ carouselIndex + 1 }} / {{ visibleMediaItems.length }} </span>
         <button
           class="nav-btn flex items-center justify-center w-8 h-8 rounded-full transition disabled:opacity-40 disabled:cursor-not-allowed"
           @click="nextCarousel"
-          :disabled="carouselIndex === mediaItems.length - 1"
+          :disabled="carouselIndex === visibleMediaItems.length - 1"
         >
           <Next class="w-5 h-5 text-[var(--text-color-600)]" />
         </button>
@@ -156,10 +211,27 @@
     <div v-if="layout === ImageLayout.HORIZONTAL" class="imgwidth mx-auto mb-4">
       <div class="horizontal-scroll-container">
         <div class="horizontal-scroll-wrapper">
-          <template v-for="(item, idx) in mediaItems" :key="idx">
-            <!-- 图片 -->
+          <template v-for="(item, idx) in visibleMediaItems" :key="idx">
+            <!-- 实况照片 -->
             <button
-              v-if="!isVideo(item)"
+              v-if="isLivePhoto(item)"
+              class="livephoto-preview horizontal-item bg-transparent rounded-lg border-0 p-0 cursor-pointer shrink-0 relative"
+              @click="openFancybox(idx)"
+            >
+              <img
+                :src="getMediaUrlCompat(item)"
+                :alt="`实况照片${idx + 1}`"
+                loading="lazy"
+                class="echoimg h-full w-auto object-contain"
+              />
+              <div class="livephoto-overlay livephoto-overlay-small">
+                <LivePhotoIcon class="livephoto-icon-small" color="#ffffff" />
+              </div>
+            </button>
+            
+            <!-- 普通图片 -->
+            <button
+              v-else-if="!isVideo(item)"
               class="horizontal-item bg-transparent rounded-lg border-0 p-0 cursor-pointer shrink-0"
               @click="openFancybox(idx)"
             >
@@ -205,6 +277,7 @@ import { ImageLayout } from '@/enums/enums'
 import Prev from '@/components/icons/prev.vue'
 import Next from '@/components/icons/next.vue'
 import Play from '@/components/icons/play.vue'
+import LivePhotoIcon from '@/components/icons/livephoto.vue'
 
 const props = defineProps<{
   media?: App.Api.Ech0.Media[]
@@ -236,6 +309,28 @@ const isVideo = (item: any) => {
   return item.media_type === 'video'
 }
 
+// 检查是否为实况照片（通过 live_video_id 判断）
+const isLivePhoto = (item: any) => {
+  return item.live_video_id !== undefined && item.live_video_id > 0
+}
+
+// 获取实况照片的视频URL
+const getLiveVideoUrl = (item: any) => {
+  if (!isLivePhoto(item)) return null
+  const video = mediaItems.value.find((m: any) => m.id === item.live_video_id)
+  return video ? getMediaUrlCompat(video) : null
+}
+
+// 检查是否为实况照片的视频部分（应该隐藏）
+const isLivePhotoVideo = (item: any) => {
+  return mediaItems.value.some((m: any) => m.live_video_id === item.id)
+}
+
+// 过滤掉实况照片的视频部分，只显示图片部分
+const visibleMediaItems = computed(() => {
+  return mediaItems.value.filter((item: any) => !isLivePhotoVideo(item))
+})
+
 // 轮播索引
 const carouselIndex = ref(0)
 
@@ -243,6 +338,12 @@ const carouselIndex = ref(0)
 const displayedImages = computed(() => mediaItems.value.slice(0, 9))
 const extraCount = computed(() =>
   mediaItems.value.length > 9 ? mediaItems.value.length - 9 : 0
+)
+
+// 可见媒体的九宫格显示
+const displayedVisibleImages = computed(() => visibleMediaItems.value.slice(0, 9))
+const extraVisibleCount = computed(() =>
+  visibleMediaItems.value.length > 9 ? visibleMediaItems.value.length - 9 : 0
 )
 
 // 瀑布流布局：获取列跨度
@@ -257,134 +358,138 @@ const prevCarousel = () => {
   if (carouselIndex.value > 0) carouselIndex.value--
 }
 const nextCarousel = () => {
-  if (carouselIndex.value < mediaItems.value.length - 1) carouselIndex.value++
+  if (carouselIndex.value < visibleMediaItems.value.length - 1) carouselIndex.value++
 }
 
-// 创建视频HTML内容（用于Fancybox）
-function createVideoHTML(src: string): string {
+// 初始化实况照片交互
+function initLivePhotoInteraction(slide: any): void {
+  try {
+    // 查找容器
+    let container: HTMLElement | null = null
+    
+    if (slide.htmlEl) {
+      container = slide.htmlEl.classList?.contains('fancybox-livephoto-container')
+        ? slide.htmlEl
+        : slide.htmlEl.querySelector('.fancybox-livephoto-container')
+    }
+    if (!container && slide.el) {
+      container = slide.el.querySelector('.fancybox-livephoto-container')
+    }
+    
+    if (!container) return
+    
+    const video = container.querySelector('.livephoto-video') as HTMLVideoElement
+    const image = container.querySelector('.livephoto-image') as HTMLImageElement
+    const icon = container.querySelector('.livephoto-icon') as HTMLElement
+    
+    if (!video || !image || !icon) return
+    
+    const start = (e: Event) => {
+      e.stopPropagation()
+      e.preventDefault()
+      container!.classList.add('zoom')
+      video.currentTime = 0
+      video.play().catch((err) => {
+        console.error('Live photo video play error:', err)
+      })
+    }
+    
+    const leave = () => {
+      container!.classList.remove('zoom')
+      video.pause()
+    }
+    
+    const handleVideoEnded = () => {
+      container!.classList.remove('zoom')
+    }
+    
+    // 鼠标事件绑定到 icon，触摸事件绑定到 image
+    icon.addEventListener('mouseenter', start)
+    icon.addEventListener('mouseleave', leave)
+    image.addEventListener('touchstart', start)
+    image.addEventListener('touchend', leave)
+    image.addEventListener('touchcancel', leave)
+    video.addEventListener('ended', handleVideoEnded)
+    
+    slide.livePhotoCleanup = () => {
+      icon.removeEventListener('mouseenter', start)
+      icon.removeEventListener('mouseleave', leave)
+      image.removeEventListener('touchstart', start)
+      image.removeEventListener('touchend', leave)
+      image.removeEventListener('touchcancel', leave)
+      video.removeEventListener('ended', handleVideoEnded)
+      video.pause()
+      video.src = ''
+    }
+  } catch (error) {
+    console.error('Live photo init error:', error)
+  }
+}
+
+// 清理实况照片资源
+function cleanupLivePhoto(slide: any): void {
+  if (slide?.livePhotoCleanup) {
+    try {
+      slide.livePhotoCleanup()
+      slide.livePhotoCleanup = null
+    } catch (error) {
+      console.error('Failed to cleanup live photo:', error)
+    }
+  }
+}
+
+// 创建实况照片HTML内容（用于Fancybox）
+// 参考实现：视频在下层，图片在上层，通过 CSS class 控制切换
+function createLivePhotoHTML(imageUrl: string, videoUrl: string): string {
   return `
-    <div class="fancybox-video-container">
-      <video 
-        class="fancybox-video-player"
-        playsinline 
-        controls
-        preload="metadata"
-        controlsList="nodownload"
-      >
-        <source src="${src}" type="video/mp4" />
-        您的浏览器不支持视频播放。
-      </video>
-      <div class="video-error-message" style="display: none;">
-        <div class="error-content">
-          <svg class="error-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="8" x2="12" y2="12"></line>
-            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+    <div class="fancybox-livephoto-container">
+      <div class="livephoto-content">
+        <video class="livephoto-video" src="${videoUrl}" preload="metadata" playsinline></video>
+        <img class="livephoto-image" src="${imageUrl}" alt="实况照片" />
+        <div class="livephoto-icon">
+          <svg class="livephoto-icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            <circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            <circle cx="12" cy="12" r="3" fill="currentColor"/>
           </svg>
-          <p class="error-title">视频加载失败</p>
-          <p class="error-description">无法加载视频内容，请检查网络连接或稍后重试</p>
-          <div class="error-actions">
-            <button class="retry-button">重试</button>
-            <button class="skip-button">跳过</button>
-          </div>
+          <span class="livephoto-label">LIVE</span>
         </div>
       </div>
     </div>
   `
 }
 
-// 初始化视频错误处理（在Fancybox中）
-function initVideoErrorHandling(slide: any): void {
-  try {
-    const videoElement = slide.$el?.querySelector('.fancybox-video-player') as HTMLVideoElement
-    const errorMessage = slide.$el?.querySelector('.video-error-message')
-    
-    if (!videoElement) {
-      console.error('Video element not found')
-      return
-    }
-    
-    // 添加视频错误处理
-    const handleVideoError = (event: Event) => {
-      console.error('Video loading error:', event)
-      
-      // 显示错误消息
-      if (errorMessage) {
-        videoElement.style.display = 'none'
-        ;(errorMessage as HTMLElement).style.display = 'flex'
-        
-        // 设置重试按钮
-        const retryButton = errorMessage.querySelector('.retry-button')
-        const skipButton = errorMessage.querySelector('.skip-button')
-        
-        if (retryButton) {
-          retryButton.addEventListener('click', () => {
-            // 重新加载视频
-            videoElement.load()
-            ;(errorMessage as HTMLElement).style.display = 'none'
-            videoElement.style.display = 'block'
-          }, { once: true })
-        }
-        
-        if (skipButton) {
-          skipButton.addEventListener('click', () => {
-            // 跳到下一个
-            const fancybox = Fancybox.getInstance()
-            if (fancybox) {
-              const carousel = fancybox.getCarousel()
-              if (carousel) {
-                carousel.next()
-              }
-            }
-          }, { once: true })
-        }
-      }
-    }
-    
-    videoElement.addEventListener('error', handleVideoError)
-    
-    // 存储清理函数
-    slide.cleanup = () => {
-      videoElement.removeEventListener('error', handleVideoError)
-      videoElement.pause()
-      videoElement.src = ''
-      videoElement.load()
-    }
-    
-  } catch (error) {
-    console.error('Error initializing video error handling:', error)
-  }
-}
-
-// 清理视频资源
-function cleanupVideo(slide: any): void {
-  if (slide?.cleanup) {
-    try {
-      slide.cleanup()
-      slide.cleanup = null
-    } catch (error) {
-      console.error('Failed to cleanup video:', error)
-    }
-  }
-}
-
 function openFancybox(startIndex: number) {
-  // 处理所有媒体类型（图片和视频）
-  const items = mediaItems.value.map((item) => {
+  // 处理所有可见媒体类型（图片、视频、实况照片）
+  const items = visibleMediaItems.value.map((item: any) => {
     const mediaUrl = getMediaUrlCompat(item)
     
-    if (isVideo(item)) {
-      // 为视频创建HTML类型的Fancybox项（不提供缩略图）
+    if (isLivePhoto(item)) {
+      // 为实况照片创建HTML内容
+      const videoUrl = getLiveVideoUrl(item)
+      if (videoUrl) {
+        return {
+          html: createLivePhotoHTML(mediaUrl, videoUrl),
+          thumb: mediaUrl,
+        }
+      }
+      // 如果没有找到视频，作为普通图片处理
       return {
         src: mediaUrl,
-        type: 'html' as const,
-        html: createVideoHTML(mediaUrl),
+        type: 'image',
+        thumb: mediaUrl,
+      }
+    } else if (isVideo(item)) {
+      // 视频使用 Fancybox 原生支持
+      return {
+        src: mediaUrl,
+        thumb: mediaUrl,
       }
     } else {
-      // 为图片创建image类型的Fancybox项
+      // 普通图片
       return {
         src: mediaUrl,
-        type: 'image' as const,
+        type: 'image',
         thumb: mediaUrl,
       }
     }
@@ -397,6 +502,7 @@ function openFancybox(startIndex: number) {
     startIndex: startIndex,
     backdropClick: 'close',
     dragToClose: true,
+    closeButton: 'auto',
     keyboard: {
       Escape: 'close',
       ArrowRight: 'next',
@@ -415,34 +521,72 @@ function openFancybox(startIndex: number) {
       },
     },
     on: {
-      // 当幻灯片附加到DOM时初始化视频错误处理
-      'Carousel.attachSlideEl': (fancybox: any, carousel: any, slide: any) => {
-        if (slide.type === 'html') {
-          setTimeout(() => {
-            initVideoErrorHandling(slide)
-          }, 100)
-        }
+      // Fancybox 准备就绪后初始化实况照片交互
+      ready: (fancybox: any) => {
+        const carousel = fancybox.getCarousel()
+        if (!carousel) return
+        
+        // 初始化所有实况照片幻灯片
+        carousel.getSlides().forEach((slide: any) => {
+          if (!slide.html && !slide.htmlEl) return
+          
+          const slideEl = slide.el || slide.htmlEl
+          const isLivePhoto = slide.htmlEl?.classList?.contains('fancybox-livephoto-container') ||
+            slideEl?.querySelector('.fancybox-livephoto-container')
+          
+          if (isLivePhoto) {
+            initLivePhotoInteraction(slide)
+          }
+        })
+        
+        // 监听 Carousel 的 change 事件来处理幻灯片切换
+        carousel.on('change', (carousel: any, to: number, from?: number) => {
+          // 清理前一个幻灯片（暂停视频，但不移除事件监听器）
+          if (from !== undefined) {
+            const slides = carousel.getSlides()
+            const prevSlide = slides[from]
+            if (prevSlide) {
+              // 只暂停视频，不清理事件监听器
+              const container = prevSlide.el?.querySelector('.fancybox-livephoto-container') || 
+                               prevSlide.htmlEl?.querySelector('.fancybox-livephoto-container')
+              if (container) {
+                const video = container.querySelector('.livephoto-video') as HTMLVideoElement
+                if (video) {
+                  video.pause()
+                  video.currentTime = 0
+                }
+                container.classList.remove('zoom')
+              }
+            }
+          }
+          
+          // 初始化新幻灯片（如果是实况照片且未初始化）
+          const currentSlide = carousel.getSlides()[to]
+          if (currentSlide && (currentSlide.html || currentSlide.htmlEl)) {
+            setTimeout(() => {
+              const slideEl = currentSlide.el || currentSlide.htmlEl
+              const isLivePhoto = currentSlide.htmlEl?.classList?.contains('fancybox-livephoto-container') ||
+                slideEl?.querySelector('.fancybox-livephoto-container')
+              
+              // 如果是实况照片且还没有初始化过，则初始化
+              if (isLivePhoto && !currentSlide.livePhotoCleanup) {
+                initLivePhotoInteraction(currentSlide)
+              }
+            }, 50)
+          }
+        })
       },
       // 当Fancybox关闭时清理资源
       destroy: (fancybox: any) => {
         const carousel = fancybox.getCarousel()
         if (carousel) {
           carousel.getSlides().forEach((slide: any) => {
-            cleanupVideo(slide)
+            cleanupLivePhoto(slide)
           })
-        }
-      },
-      // 当切换幻灯片时，清理前一个幻灯片的视频
-      'Carousel.change': (fancybox: any, carousel: any, to: number, from?: number) => {
-        if (from !== undefined) {
-          const slides = carousel.getSlides()
-          if (slides[from]) {
-            cleanupVideo(slides[from])
-          }
         }
       }
     },
-  })
+  } as any)
 }
 
 onMounted(() => {
@@ -456,7 +600,7 @@ onBeforeUnmount(() => {
     const carousel = fancybox.getCarousel()
     if (carousel) {
       carousel.getSlides().forEach((slide: any) => {
-        cleanupVideo(slide)
+        cleanupLivePhoto(slide)
       })
     }
     fancybox.close()
@@ -687,147 +831,8 @@ button:hover .echoimg {
   border-radius: 8px;
 }
 
-/* Fancybox视频容器样式 */
-:deep(.fancybox-video-container) {
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  aspect-ratio: 16 / 9;
-  background: #000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-  position: relative;
-}
-
-/* 视频错误消息样式 */
-:deep(.video-error-message) {
-  position: absolute;
-  inset: 0;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.95);
-  z-index: 100;
-  padding: 20px;
-}
-
-:deep(.error-content) {
-  text-align: center;
-  color: #fff;
-  max-width: 400px;
-}
-
-:deep(.error-icon) {
-  margin: 0 auto 16px;
-  color: #ef4444;
-  opacity: 0.9;
-}
-
-:deep(.error-title) {
-  font-size: 20px;
-  font-weight: 600;
-  margin: 0 0 8px;
-  color: #fff;
-}
-
-:deep(.error-description) {
-  font-size: 14px;
-  margin: 0 0 24px;
-  color: rgba(255, 255, 255, 0.7);
-  line-height: 1.5;
-}
-
-:deep(.error-actions) {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-}
-
-:deep(.retry-button),
-:deep(.skip-button) {
-  padding: 10px 24px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: none;
-  outline: none;
-}
-
-:deep(.retry-button) {
-  background: #3b82f6;
-  color: #fff;
-}
-
-:deep(.retry-button:hover) {
-  background: #2563eb;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
-}
-
-:deep(.retry-button:active) {
-  transform: translateY(0);
-}
-
-:deep(.skip-button) {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-:deep(.skip-button:hover) {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.3);
-}
-
-:deep(.skip-button:active) {
-  transform: scale(0.98);
-}
-
-:deep(.fancybox-video-player) {
-  width: 100%;
-  height: 100%;
-  max-height: 80vh;
-  background: #000;
-  object-fit: contain;
-}
-
-/* 移动端优化 */
-@media (max-width: 768px) {
-  :deep(.fancybox-video-container) {
-    max-width: 100%;
-    aspect-ratio: auto;
-    height: auto;
-    border-radius: 0;
-  }
-  
-  :deep(.fancybox-video-player) {
-    max-height: 60vh;
-  }
-}
-
-/* 平板优化 */
-@media (min-width: 769px) and (max-width: 1024px) {
-  :deep(.fancybox-video-container) {
-    max-width: 90%;
-  }
-}
-
 /* 超小屏幕优化 */
 @media (max-width: 480px) {
-  :deep(.fancybox-video-container) {
-    aspect-ratio: auto;
-  }
-  
-  :deep(.fancybox-video-player) {
-    max-height: 50vh;
-  }
-  
   .play-overlay {
     width: 56px;
     height: 56px;
@@ -836,6 +841,242 @@ button:hover .echoimg {
   .play-icon {
     width: 28px;
     height: 28px;
+  }
+}
+
+/* 实况照片预览样式 */
+.livephoto-preview {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.livephoto-preview:hover .echoimg {
+  transform: translateY(-2px);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.04),
+    0 4px 8px rgba(0, 0, 0, 0.04),
+    0 8px 16px rgba(0, 0, 0, 0.04),
+    0 16px 32px rgba(0, 0, 0, 0.04);
+}
+
+/* 实况照片指示器覆盖层 */
+.livephoto-overlay {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 12px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  pointer-events: none;
+  transition: all 0.3s ease;
+}
+
+.livephoto-overlay-small {
+  padding: 2px 6px;
+  top: 4px;
+  left: 4px;
+}
+
+.livephoto-preview:hover .livephoto-overlay {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.livephoto-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.livephoto-icon-small {
+  width: 12px;
+  height: 12px;
+}
+
+.livephoto-text {
+  font-size: 10px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+
+@media (max-width: 480px) {
+  .livephoto-overlay {
+    padding: 2px 6px;
+    top: 4px;
+    left: 4px;
+  }
+  
+  .livephoto-icon {
+    width: 12px;
+    height: 12px;
+  }
+  
+  .livephoto-text {
+    font-size: 8px;
+  }
+}
+</style>
+
+<!-- Fancybox 全局样式（非 scoped，因为 Fancybox 内容渲染在 body 下） -->
+<style>
+/* Fancybox 实况照片容器样式 */
+.fancybox-livephoto-container {
+  position: relative;
+  display: inline-block;
+  border-radius: 8px;
+  margin: 0 auto;
+}
+
+.fancybox-livephoto-container .livephoto-content {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.fancybox-livephoto-container .livephoto-content img,
+.fancybox-livephoto-container .livephoto-content video {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+}
+
+.fancybox-livephoto-container .livephoto-content video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+/* 播放状态：显示视频 */
+.fancybox-livephoto-container.zoom .livephoto-content video {
+  opacity: 1;
+}
+
+.fancybox-livephoto-container .livephoto-content img {
+  position: relative;
+  z-index: 1;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+/* 播放状态：zoom class */
+.fancybox-livephoto-container.zoom .livephoto-content img,
+.fancybox-livephoto-container.zoom .livephoto-content video {
+  transform: scale(1.05);
+}
+
+.fancybox-livephoto-container.zoom .livephoto-content img {
+  opacity: 0;
+}
+
+.fancybox-livephoto-container.zoom .livephoto-icon-svg {
+  animation: livephoto-spin 3s linear infinite;
+}
+
+@keyframes livephoto-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 实况图标 - 与预览时保持完全一致的样式 */
+.fancybox-livephoto-container .livephoto-content .livephoto-icon {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  cursor: pointer;
+  user-select: none;
+  z-index: 10;
+  transition: all 0.3s ease;
+  pointer-events: auto;
+}
+
+.fancybox-livephoto-container .livephoto-content .livephoto-icon:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.fancybox-livephoto-container .livephoto-content .livephoto-icon-svg {
+  width: 16px;
+  height: 16px;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.fancybox-livephoto-container .livephoto-content .livephoto-label {
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+  .fancybox-livephoto-container {
+    border-radius: 0;
+  }
+  
+  .fancybox-livephoto-container .livephoto-content img,
+  .fancybox-livephoto-container .livephoto-content video {
+    max-height: 60vh;
+  }
+  
+  /* 移动端保持与预览时一致的样式 */
+  .fancybox-livephoto-container .livephoto-content .livephoto-icon {
+    padding: 3px 6px;
+  }
+  
+  .fancybox-livephoto-container .livephoto-content .livephoto-label {
+    display: none;
+  }
+  
+  .fancybox-livephoto-container .livephoto-content .livephoto-icon-svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+/* 超小屏幕优化 */
+@media (max-width: 480px) {
+  .fancybox-livephoto-container .livephoto-content img,
+  .fancybox-livephoto-container .livephoto-content video {
+    max-height: 50vh;
+  }
+  
+  /* 超小屏幕保持与预览时一致的样式 */
+  .fancybox-livephoto-container .livephoto-content .livephoto-icon {
+    padding: 2px 6px;
+  }
+  
+  .fancybox-livephoto-container .livephoto-content .livephoto-icon-svg {
+    width: 12px;
+    height: 12px;
   }
 }
 </style>

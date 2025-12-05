@@ -112,14 +112,20 @@ watch(
       echoToAdd.value.content = echoToUpdate.value?.content || ''
 
       // 2. 填充媒体（图片和视频）
+      // 现有媒体会保留原有的 ID 和关联信息，不需要重新生成 live_pair_id
       if (echoToUpdate.value?.media && echoToUpdate.value.media.length > 0) {
-        editorStore.mediaListToAdd = echoToUpdate.value.media.map((item) => ({
+        // echoToUpdate 实际上存储的是 Echo 类型，其 media 是 Media[]
+        const originalMedia = echoToUpdate.value.media as unknown as App.Api.Ech0.Media[]
+        
+        editorStore.mediaListToAdd = originalMedia.map((item) => ({
+          id: item.id, // 保留 ID，用于识别实况照片的视频部分
           media_url: item.media_url || '',
           media_type: item.media_type || 'image',
           media_source: item.media_source || '',
           object_key: item.object_key || '',
           width: item.width,
           height: item.height,
+          live_video_id: item.live_video_id, // 保留现有的关联信息
         }))
       } else {
         editorStore.mediaListToAdd = []

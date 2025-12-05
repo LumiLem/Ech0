@@ -17,6 +17,7 @@ import (
 	keyvalueRepository "github.com/lin-snow/ech0/internal/repository/keyvalue"
 	commonService "github.com/lin-snow/ech0/internal/service/common"
 	fediverseService "github.com/lin-snow/ech0/internal/service/fediverse"
+	"github.com/lin-snow/ech0/internal/service/livephoto"
 	"github.com/lin-snow/ech0/internal/transaction"
 	httpUtil "github.com/lin-snow/ech0/internal/util/http"
 	logUtil "github.com/lin-snow/ech0/internal/util/log"
@@ -105,6 +106,12 @@ func (echoService *EchoService) PostEcho(userid uint, newEcho *model.Echo) error
 		return errors.New(commonModel.ECHO_CAN_NOT_BE_EMPTY)
 	}
 
+	// 提取 live_pair_id 列表（在保存前提取，保存后用于建立关联）
+	pairIDs := make([]string, len(newEcho.Media))
+	for i, m := range newEcho.Media {
+		pairIDs[i] = m.LivePairID
+	}
+
 	if err := echoService.txManager.Run(func(ctx context.Context) error {
 		// 处理标签
 		if err := echoService.ProcessEchoTags(ctx, newEcho); err != nil {
@@ -125,7 +132,31 @@ func (echoService *EchoService) PostEcho(userid uint, newEcho *model.Echo) error
 		}
 
 		// 创建Echo
-		return echoService.echoRepository.CreateEcho(ctx, newEcho)
+		if err := echoService.echoRepository.CreateEcho(ctx, newEcho); err != nil {
+			return err
+		}
+
+		// 处理实况照片关联（根据 live_pair_id 建立关联）
+		livePhotoPairs := livephoto.ProcessLivePhotoPairs(newEcho.Media, pairIDs)
+		if len(livePhotoPairs) > 0 {
+			for imgIdx, vidIdx := range livePhotoPairs {
+				if imgIdx < len(newEcho.Media) && vidIdx < len(newEcho.Media) {
+					imgMedia := &newEcho.Media[imgIdx]
+					vidMedia := &newEcho.Media[vidIdx]
+					// 设置图片的 LiveVideoID 指向视频
+					if vidMedia.ID > 0 {
+						imgMedia.LiveVideoID = &vidMedia.ID
+						if err := echoService.echoRepository.UpdateMediaLiveVideoID(ctx, imgMedia.ID, vidMedia.ID); err != nil {
+							logUtil.GetLogger().Error("Failed to update live photo association", zap.Uint("imageID", imgMedia.ID), zap.Uint("videoID", vidMedia.ID))
+							return err
+						}
+						logUtil.GetLogger().Info("Created live photo association", zap.Uint("imageID", imgMedia.ID), zap.Uint("videoID", vidMedia.ID))
+					}
+				}
+			}
+		}
+
+		return nil
 	}); err != nil {
 		return err
 	}
@@ -343,6 +374,16 @@ func (echoService *EchoService) UpdateEcho(userid uint, echo *model.Echo) error 
 		return errors.New(commonModel.ECHO_CAN_NOT_BE_EMPTY)
 	}
 
+	// 提取新媒体的 live_pair_id 列表（仅处理没有 ID 的新媒体）
+	var newMediaPairIDs []string
+	var newMediaIndexes []int
+	for i, m := range echo.Media {
+		if m.ID == 0 && m.LivePairID != "" {
+			newMediaPairIDs = append(newMediaPairIDs, m.LivePairID)
+			newMediaIndexes = append(newMediaIndexes, i)
+		}
+	}
+
 	if err := echoService.txManager.Run(func(ctx context.Context) error {
 		// 处理标签
 		if err := echoService.ProcessEchoTags(ctx, echo); err != nil {
@@ -362,8 +403,42 @@ func (echoService *EchoService) UpdateEcho(userid uint, echo *model.Echo) error 
 			}
 		}
 
-		// 更新Echo
-		return echoService.echoRepository.UpdateEcho(ctx, echo)
+		// 更新Echo（保留现有媒体，只新增/删除变化的媒体）
+		if err := echoService.echoRepository.UpdateEcho(ctx, echo); err != nil {
+			return err
+		}
+
+		// 处理新媒体中的实况照片关联（根据 live_pair_id 建立关联）
+		if len(newMediaIndexes) > 0 {
+			// 提取新媒体
+			newMedia := make([]model.Media, len(newMediaIndexes))
+			for i, idx := range newMediaIndexes {
+				newMedia[i] = echo.Media[idx]
+			}
+
+			livePhotoPairs := livephoto.ProcessLivePhotoPairs(newMedia, newMediaPairIDs)
+			if len(livePhotoPairs) > 0 {
+				for localImgIdx, localVidIdx := range livePhotoPairs {
+					// 转换回原始索引
+					imgIdx := newMediaIndexes[localImgIdx]
+					vidIdx := newMediaIndexes[localVidIdx]
+					if imgIdx < len(echo.Media) && vidIdx < len(echo.Media) {
+						imgMedia := &echo.Media[imgIdx]
+						vidMedia := &echo.Media[vidIdx]
+						if vidMedia.ID > 0 {
+							imgMedia.LiveVideoID = &vidMedia.ID
+							if err := echoService.echoRepository.UpdateMediaLiveVideoID(ctx, imgMedia.ID, vidMedia.ID); err != nil {
+								logUtil.GetLogger().Error("Failed to update live photo association", zap.Uint("imageID", imgMedia.ID), zap.Uint("videoID", vidMedia.ID))
+								return err
+							}
+							logUtil.GetLogger().Info("Created live photo association in update", zap.Uint("imageID", imgMedia.ID), zap.Uint("videoID", vidMedia.ID))
+						}
+					}
+				}
+			}
+		}
+
+		return nil
 	}); err != nil {
 		return err
 	}
