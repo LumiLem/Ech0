@@ -78,7 +78,7 @@ const initUppy = () => {
   // 创建 Uppy 实例
   uppy = new Uppy({
     restrictions: {
-      maxNumberOfFiles: 6,
+      maxNumberOfFiles: 12,
       allowedFileTypes: ['image/*', 'video/*'],
     },
     autoProceed: true,

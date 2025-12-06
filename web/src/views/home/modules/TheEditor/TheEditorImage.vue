@@ -1,98 +1,98 @@
 <template>
-  <!-- 媒体预览（图片和视频） -->
+  <!-- 媒体预览（九宫格布局） -->
   <div
     v-if="
       visibleMediaItems &&
       visibleMediaItems.length > 0 &&
       (currentMode === Mode.ECH0 || currentMode === Mode.Image)
     "
-    class="relative rounded-lg shadow-lg w-5/6 mx-auto my-7"
+    class="w-5/6 mx-auto my-7"
   >
-    <button
-      @click="handleRemoveImage"
-      class="absolute -top-3 -right-4 bg-red-100 hover:bg-red-300 text-[var(--text-color-600)] rounded-lg w-7 h-7 flex items-center justify-center shadow"
-      title="移除媒体"
-    >
-      <Close class="w-4 h-4" />
-    </button>
-    <div class="rounded-lg overflow-hidden relative">
-      <template v-for="(item, idx) in visibleMediaItems" :key="idx">
-        <!-- 实况照片预览 -->
-        <a
-          v-if="isLivePhoto(item)"
-          :href="getMediaToAddUrl(item)"
-          data-fancybox="gallery"
-          :data-thumb="getMediaToAddUrl(item)"
-          :class="{ hidden: idx !== imageIndex }"
-          class="relative block"
-        >
-          <img
-            :src="getMediaToAddUrl(item)"
-            alt="实况照片"
-            class="max-w-full object-cover"
-            loading="lazy"
-          />
-          <!-- 实况照片指示器 -->
-          <div class="livephoto-overlay">
-            <LivePhotoIcon class="livephoto-icon" color="#ffffff" />
-          </div>
-        </a>
-        
-        <!-- 普通图片预览 -->
-        <a
-          v-else-if="item.media_type === 'image'"
-          :href="getMediaToAddUrl(item)"
-          data-fancybox="gallery"
-          :data-thumb="getMediaToAddUrl(item)"
-          :class="{ hidden: idx !== imageIndex }"
-        >
-          <img
-            :src="getMediaToAddUrl(item)"
-            alt="Image"
-            class="max-w-full object-cover"
-            loading="lazy"
-          />
-        </a>
-        
-        <!-- 视频预览 -->
+    <div class="grid grid-cols-3 gap-2">
+      <template v-for="(item, idx) in visibleMediaItems" :key="item.media_url || idx">
         <div
-          v-else-if="item.media_type === 'video'"
-          :class="{ hidden: idx !== imageIndex }"
+          class="relative overflow-hidden aspect-square rounded-lg shadow-lg group media-item"
+          :class="{ 'dragging': draggedIndex === idx }"
+          :data-media-index="idx"
+          :draggable="true"
+          @dragstart="handleDragStart(idx, $event)"
+          @dragover.prevent="handleDragOver(idx)"
+          @drop="handleDrop(idx)"
+          @dragend="handleDragEnd"
+          @touchstart="handleTouchStart(idx, $event)"
+          @touchmove="handleTouchMove"
+          @touchend="handleTouchEnd"
         >
-          <video
-            :src="getMediaToAddUrl(item)"
-            controls
-            playsinline
-            preload="metadata"
-            class="max-w-full object-cover"
+          <!-- 删除按钮 - 移动端始终显示，桌面端悬停显示 -->
+          <button
+            @click.stop="handleRemoveImage(idx)"
+            class="delete-btn absolute top-1 right-1 bg-red-100 hover:bg-red-300 active:bg-red-400 text-[var(--text-color-600)] rounded-lg w-7 h-7 flex items-center justify-center shadow z-10 transition-all"
+            title="移除媒体"
           >
-            您的浏览器不支持视频播放
-          </video>
+            <Close class="w-3.5 h-3.5" />
+          </button>
+
+          <!-- 实况照片预览 -->
+          <button
+            v-if="isLivePhoto(item)"
+            class="livephoto-preview w-full h-full bg-transparent border-0 p-0 cursor-pointer"
+            @click="openFancybox(idx)"
+          >
+            <img
+              :src="getMediaToAddUrl(item)"
+              alt="实况照片"
+              class="w-full h-full object-cover"
+              loading="lazy"
+            />
+            <!-- 实况照片指示器 -->
+            <div class="livephoto-overlay">
+              <LivePhotoIcon class="livephoto-icon" color="#ffffff" />
+            </div>
+          </button>
+
+          <!-- 普通图片预览 -->
+          <button
+            v-else-if="item.media_type === 'image'"
+            class="w-full h-full bg-transparent border-0 p-0 cursor-pointer"
+            @click="openFancybox(idx)"
+          >
+            <img
+              :src="getMediaToAddUrl(item)"
+              alt="图片"
+              class="w-full h-full object-cover"
+              loading="lazy"
+            />
+          </button>
+
+          <!-- 视频预览 -->
+          <button
+            v-else-if="item.media_type === 'video'"
+            class="video-preview w-full h-full bg-transparent border-0 p-0 cursor-pointer relative"
+            @click="openFancybox(idx)"
+          >
+            <video
+              :src="getMediaToAddUrl(item) + '#t=0.1'"
+              preload="metadata"
+              muted
+              playsinline
+              class="w-full h-full object-cover"
+            ></video>
+            <div class="play-overlay">
+              <Play class="play-icon" color="#ffffff" />
+            </div>
+          </button>
         </div>
       </template>
     </div>
   </div>
-  <!-- 媒体切换 -->
-  <div v-if="visibleMediaItems.length > 1" class="flex items-center justify-center">
-    <button @click="imageIndex = Math.max(imageIndex - 1, 0)">
-      <Prev class="w-7 h-7" />
-    </button>
-    <span class="text-[var(--text-color-500)] text-sm mx-2">
-      {{ imageIndex + 1 }} / {{ visibleMediaItems.length }}
-    </span>
-    <button @click="imageIndex = Math.min(imageIndex + 1, visibleMediaItems.length - 1)">
-      <Next class="w-7 h-7" />
-    </button>
-  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { storeToRefs } from 'pinia'
-import Next from '@/components/icons/next.vue'
-import Prev from '@/components/icons/prev.vue'
 import Close from '@/components/icons/close.vue'
 import LivePhotoIcon from '@/components/icons/livephoto.vue'
+import Play from '@/components/icons/play.vue'
 import { getMediaToAddUrl } from '@/utils/other'
 import { fetchDeleteMedia } from '@/service/api'
 import { theToast } from '@/utils/toast'
@@ -106,19 +106,16 @@ import { useBaseDialog } from '@/composables/useBaseDialog'
 
 const { openConfirm } = useBaseDialog()
 
-// const images = defineModel<App.Api.Ech0.ImageToAdd[]>('imagesToAdd', { required: true })
-
-// const { currentMode } = defineProps<{
-//   currentMode: Mode
-// }>()
-
-// const emit = defineEmits(['handleAddorUpdateEcho'])
-
-const imageIndex = ref<number>(0) // 临时图片索引变量
 const echoStore = useEchoStore()
 const { echoToUpdate } = storeToRefs(echoStore)
 const editorStore = useEditorStore()
 const { mediaListToAdd: imagesToAdd, currentMode, isUpdateMode } = storeToRefs(editorStore)
+
+// 拖放相关状态
+const draggedIndex = ref<number | null>(null)
+const touchStartIndex = ref<number | null>(null)
+const touchStartX = ref<number>(0)
+const touchStartY = ref<number>(0)
 
 // 检查是否为实况照片
 const isLivePhoto = (item: App.Api.Ech0.MediaToAdd) => {
@@ -164,17 +161,344 @@ const visibleMediaItems = computed(() => {
   return imagesToAdd.value.filter((item: any) => !isLivePhotoVideo(item))
 })
 
-const handleRemoveImage = () => {
+// 拖放处理函数
+const handleDragStart = (index: number, event: DragEvent) => {
+  draggedIndex.value = index
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move'
+  }
+}
+
+const handleDragOver = (index: number) => {
+  if (draggedIndex.value === null || draggedIndex.value === index) return
+  
+  // 交换位置
+  const draggedItem = visibleMediaItems.value[draggedIndex.value]
+  const targetItem = visibleMediaItems.value[index]
+  
+  if (!draggedItem || !targetItem) return
+  
+  // 在原始数组中找到对应的索引
+  const draggedActualIndex = imagesToAdd.value.indexOf(draggedItem)
+  const targetActualIndex = imagesToAdd.value.indexOf(targetItem)
+  
+  if (draggedActualIndex === -1 || targetActualIndex === -1) return
+  
+  // 交换数组中的元素
+  const temp = imagesToAdd.value[draggedActualIndex]
+  const targetValue = imagesToAdd.value[targetActualIndex]
+  if (temp && targetValue) {
+    imagesToAdd.value[draggedActualIndex] = targetValue
+    imagesToAdd.value[targetActualIndex] = temp
+  }
+  
+  // 更新拖拽索引
+  draggedIndex.value = index
+}
+
+const handleDrop = (index: number) => {
+  // 拖放完成，不需要额外操作
+}
+
+const handleDragEnd = () => {
+  draggedIndex.value = null
+}
+
+// 触摸拖放处理（移动端）
+const handleTouchStart = (index: number, event: TouchEvent) => {
+  touchStartIndex.value = index
+  draggedIndex.value = index
+  const touch = event.touches[0]
+  if (touch) {
+    touchStartX.value = touch.clientX
+    touchStartY.value = touch.clientY
+  }
+}
+
+const handleTouchMove = (event: TouchEvent) => {
+  if (touchStartIndex.value === null) return
+  
+  event.preventDefault() // 防止页面滚动
+  
+  const touch = event.touches[0]
+  if (!touch) return
+  
+  const element = document.elementFromPoint(touch.clientX, touch.clientY)
+  
+  // 找到目标媒体项
+  const mediaItem = element?.closest('[data-media-index]')
+  if (mediaItem) {
+    const targetIndex = parseInt(mediaItem.getAttribute('data-media-index') || '-1')
+    if (targetIndex >= 0 && targetIndex !== draggedIndex.value) {
+      handleDragOver(targetIndex)
+    }
+  }
+}
+
+const handleTouchEnd = () => {
+  touchStartIndex.value = null
+  draggedIndex.value = null
+}
+
+// 获取实况照片的视频URL
+const getLiveVideoUrl = (item: App.Api.Ech0.MediaToAdd) => {
+  if (!isLivePhoto(item)) return null
+  
+  // 情况1: 已保存的实况照片 - 通过 live_video_id 查找
+  if (item.live_video_id) {
+    const video = imagesToAdd.value.find(m => m.id === item.live_video_id)
+    return video ? getMediaToAddUrl(video) : null
+  }
+  
+  // 情况2: 新上传的实况照片 - 通过 live_pair_id 查找
+  if (item.live_pair_id) {
+    const video = imagesToAdd.value.find((m: any) => 
+      m.media_type === 'video' && m.live_pair_id === item.live_pair_id
+    )
+    return video ? getMediaToAddUrl(video) : null
+  }
+  
+  return null
+}
+
+// 初始化实况照片交互
+function initLivePhotoInteraction(slide: any): void {
+  try {
+    // 查找容器
+    let container: HTMLElement | null = null
+    
+    if (slide.htmlEl) {
+      container = slide.htmlEl.classList?.contains('fancybox-livephoto-container')
+        ? slide.htmlEl
+        : slide.htmlEl.querySelector('.fancybox-livephoto-container')
+    }
+    if (!container && slide.el) {
+      container = slide.el.querySelector('.fancybox-livephoto-container')
+    }
+    
+    if (!container) return
+    
+    const video = container.querySelector('.livephoto-video') as HTMLVideoElement
+    const image = container.querySelector('.livephoto-image') as HTMLImageElement
+    const icon = container.querySelector('.livephoto-icon') as HTMLElement
+    
+    if (!video || !image || !icon) return
+    
+    const start = (e: Event) => {
+      e.stopPropagation()
+      e.preventDefault()
+      container!.classList.add('zoom')
+      video.currentTime = 0
+      video.play().catch((err) => {
+        console.error('Live photo video play error:', err)
+      })
+    }
+    
+    const leave = () => {
+      container!.classList.remove('zoom')
+      video.pause()
+    }
+    
+    const handleVideoEnded = () => {
+      container!.classList.remove('zoom')
+    }
+    
+    // 鼠标事件绑定到 icon，触摸事件绑定到 image
+    icon.addEventListener('mouseenter', start)
+    icon.addEventListener('mouseleave', leave)
+    image.addEventListener('touchstart', start)
+    image.addEventListener('touchend', leave)
+    image.addEventListener('touchcancel', leave)
+    video.addEventListener('ended', handleVideoEnded)
+    
+    slide.livePhotoCleanup = () => {
+      icon.removeEventListener('mouseenter', start)
+      icon.removeEventListener('mouseleave', leave)
+      image.removeEventListener('touchstart', start)
+      image.removeEventListener('touchend', leave)
+      image.removeEventListener('touchcancel', leave)
+      video.removeEventListener('ended', handleVideoEnded)
+      video.pause()
+      video.src = ''
+    }
+  } catch (error) {
+    console.error('Live photo init error:', error)
+  }
+}
+
+// 清理实况照片资源
+function cleanupLivePhoto(slide: any): void {
+  if (slide?.livePhotoCleanup) {
+    try {
+      slide.livePhotoCleanup()
+      slide.livePhotoCleanup = null
+    } catch (error) {
+      console.error('Failed to cleanup live photo:', error)
+    }
+  }
+}
+
+// 创建实况照片HTML内容（用于Fancybox）
+function createLivePhotoHTML(imageUrl: string, videoUrl: string): string {
+  return `
+    <div class="fancybox-livephoto-container">
+      <div class="livephoto-content">
+        <video class="livephoto-video" src="${videoUrl}" preload="metadata" playsinline></video>
+        <img class="livephoto-image" src="${imageUrl}" alt="实况照片" />
+        <div class="livephoto-icon">
+          <svg class="livephoto-icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            <circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            <circle cx="12" cy="12" r="3" fill="currentColor"/>
+          </svg>
+          <span class="livephoto-label">LIVE</span>
+        </div>
+      </div>
+    </div>
+  `
+}
+
+// 打开 Fancybox 查看大图
+const openFancybox = (startIndex: number) => {
+  // 处理所有可见媒体类型（图片、视频、实况照片）
+  const items = visibleMediaItems.value.map((item: any) => {
+    const mediaUrl = getMediaToAddUrl(item)
+    
+    if (isLivePhoto(item)) {
+      // 为实况照片创建HTML内容
+      const videoUrl = getLiveVideoUrl(item)
+      if (videoUrl) {
+        return {
+          html: createLivePhotoHTML(mediaUrl, videoUrl),
+          thumb: mediaUrl,
+        }
+      }
+      // 如果没有找到视频，作为普通图片处理
+      return {
+        src: mediaUrl,
+        type: 'image',
+        thumb: mediaUrl,
+      }
+    } else if (item.media_type === 'video') {
+      // 视频使用 Fancybox 原生支持
+      return {
+        src: mediaUrl,
+        thumb: mediaUrl,
+      }
+    } else {
+      // 普通图片
+      return {
+        src: mediaUrl,
+        type: 'image',
+        thumb: mediaUrl,
+      }
+    }
+  })
+
+  Fancybox.show(items, {
+    theme: 'auto',
+    zoomEffect: true,
+    fadeEffect: true,
+    startIndex: startIndex,
+    backdropClick: 'close',
+    dragToClose: true,
+    closeButton: 'auto',
+    keyboard: {
+      Escape: 'close',
+      ArrowRight: 'next',
+      ArrowLeft: 'prev',
+      Delete: 'close',
+      Backspace: 'close',
+      ArrowDown: 'next',
+      ArrowUp: 'prev',
+      PageUp: 'close',
+      PageDown: 'close',
+    },
+    Carousel: {
+      Thumbs: {
+        type: 'classic',
+        showOnStart: true,
+      },
+    },
+    on: {
+      // Fancybox 准备就绪后初始化实况照片交互
+      ready: (fancybox: any) => {
+        const carousel = fancybox.getCarousel()
+        if (!carousel) return
+        
+        // 初始化所有实况照片幻灯片
+        carousel.getSlides().forEach((slide: any) => {
+          if (!slide.html && !slide.htmlEl) return
+          
+          const slideEl = slide.el || slide.htmlEl
+          const isLivePhotoSlide = slide.htmlEl?.classList?.contains('fancybox-livephoto-container') ||
+            slideEl?.querySelector('.fancybox-livephoto-container')
+          
+          if (isLivePhotoSlide) {
+            initLivePhotoInteraction(slide)
+          }
+        })
+        
+        // 监听 Carousel 的 change 事件来处理幻灯片切换
+        carousel.on('change', (carousel: any, to: number, from?: number) => {
+          // 清理前一个幻灯片（暂停视频，但不移除事件监听器）
+          if (from !== undefined) {
+            const slides = carousel.getSlides()
+            const prevSlide = slides[from]
+            if (prevSlide) {
+              // 只暂停视频，不清理事件监听器
+              const container = prevSlide.el?.querySelector('.fancybox-livephoto-container') || 
+                               prevSlide.htmlEl?.querySelector('.fancybox-livephoto-container')
+              if (container) {
+                const video = container.querySelector('.livephoto-video') as HTMLVideoElement
+                if (video) {
+                  video.pause()
+                  video.currentTime = 0
+                }
+                container.classList.remove('zoom')
+              }
+            }
+          }
+          
+          // 初始化新幻灯片（如果是实况照片且未初始化）
+          const currentSlide = carousel.getSlides()[to]
+          if (currentSlide && (currentSlide.html || currentSlide.htmlEl)) {
+            setTimeout(() => {
+              const slideEl = currentSlide.el || currentSlide.htmlEl
+              const isLivePhotoSlide = currentSlide.htmlEl?.classList?.contains('fancybox-livephoto-container') ||
+                slideEl?.querySelector('.fancybox-livephoto-container')
+              
+              // 如果是实况照片且还没有初始化过，则初始化
+              if (isLivePhotoSlide && !currentSlide.livePhotoCleanup) {
+                initLivePhotoInteraction(currentSlide)
+              }
+            }, 50)
+          }
+        })
+      },
+      // 当Fancybox关闭时清理资源
+      destroy: (fancybox: any) => {
+        const carousel = fancybox.getCarousel()
+        if (carousel) {
+          carousel.getSlides().forEach((slide: any) => {
+            cleanupLivePhoto(slide)
+          })
+        }
+      }
+    },
+  } as any)
+}
+
+const handleRemoveImage = (visibleIndex: number) => {
   if (
-    imageIndex.value < 0 ||
-    imageIndex.value >= visibleMediaItems.value.length ||
+    visibleIndex < 0 ||
+    visibleIndex >= visibleMediaItems.value.length ||
     visibleMediaItems.value.length === 0
   ) {
     theToast.error('当前媒体索引无效，无法删除！')
     return
   }
   
-  const visibleIndex = imageIndex.value
   const currentItem = visibleMediaItems.value[visibleIndex]
   
   if (!currentItem) {
@@ -250,8 +574,6 @@ const handleRemoveImage = () => {
           imagesToAdd.value.splice(newIndex, 1)
         }
       })
-
-      imageIndex.value = 0
     },
   })
 }
@@ -259,39 +581,289 @@ const handleRemoveImage = () => {
 onMounted(() => {
   Fancybox.bind('[data-fancybox]', {})
 })
+
+onBeforeUnmount(() => {
+  // 清理所有可能残留的Fancybox实例
+  const fancybox = Fancybox.getInstance()
+  if (fancybox) {
+    const carousel = fancybox.getCarousel()
+    if (carousel) {
+      carousel.getSlides().forEach((slide: any) => {
+        cleanupLivePhoto(slide)
+      })
+    }
+    fancybox.close()
+  }
+})
 </script>
 
 <style scoped>
-/* 实况照片指示器覆盖层 - 与 TheImageGallery 保持一致 */
+/* 实况照片指示器覆盖层 */
 .livephoto-overlay {
   position: absolute;
-  top: 8px;
-  left: 8px;
+  top: 4px;
+  left: 4px;
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 8px;
+  padding: 2px 6px;
   background: rgba(0, 0, 0, 0.5);
   border-radius: 12px;
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   pointer-events: none;
-  z-index: 10;
+  z-index: 5;
 }
 
 .livephoto-icon {
-  width: 16px;
-  height: 16px;
+  width: 12px;
+  height: 12px;
+}
+
+/* 视频元素样式 */
+.video-preview video {
+  pointer-events: none; /* 禁用视频的鼠标事件，防止显示画中画等浏览器控制 */
+}
+
+/* 视频播放按钮覆盖层 */
+.play-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.video-preview:hover .play-overlay {
+  background: rgba(0, 0, 0, 0.7);
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+.play-icon {
+  width: 24px;
+  height: 24px;
+}
+
+/* 媒体项样式 */
+.media-item {
+  cursor: grab;
+  touch-action: none; /* 禁用浏览器默认的触摸行为 */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.media-item:active {
+  cursor: grabbing;
+}
+
+/* 拖拽中的样式 */
+.media-item.dragging {
+  opacity: 0.5;
+  transform: scale(0.95);
+  transition: all 0.2s ease;
+}
+
+/* 删除按钮 - 桌面端悬停显示 */
+.delete-btn {
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+.group:hover .delete-btn {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* 移动端：删除按钮始终显示 */
+@media (max-width: 768px) {
+  .delete-btn {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @media (max-width: 480px) {
-  .livephoto-overlay {
-    padding: 2px 6px;
-    top: 4px;
-    left: 4px;
+  .play-overlay {
+    width: 40px;
+    height: 40px;
   }
   
-  .livephoto-icon {
+  .play-icon {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .delete-btn {
+    width: 8vw;
+    height: 8vw;
+    max-width: 32px;
+    max-height: 32px;
+  }
+}
+</style>
+
+<!-- Fancybox 全局样式（非 scoped，因为 Fancybox 内容渲染在 body 下） -->
+<style>
+/* Fancybox 实况照片容器样式 */
+.fancybox-livephoto-container {
+  position: relative;
+  display: inline-block;
+  border-radius: 8px;
+  margin: 0 auto;
+}
+
+.fancybox-livephoto-container .livephoto-content {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.fancybox-livephoto-container .livephoto-content img,
+.fancybox-livephoto-container .livephoto-content video {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+}
+
+.fancybox-livephoto-container .livephoto-content video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+/* 播放状态：显示视频 */
+.fancybox-livephoto-container.zoom .livephoto-content video {
+  opacity: 1;
+}
+
+.fancybox-livephoto-container .livephoto-content img {
+  position: relative;
+  z-index: 1;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+/* 播放状态：zoom class */
+.fancybox-livephoto-container.zoom .livephoto-content img,
+.fancybox-livephoto-container.zoom .livephoto-content video {
+  transform: scale(1.05);
+}
+
+.fancybox-livephoto-container.zoom .livephoto-content img {
+  opacity: 0;
+}
+
+.fancybox-livephoto-container.zoom .livephoto-icon-svg {
+  animation: livephoto-spin 3s linear infinite;
+}
+
+@keyframes livephoto-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 实况图标 - 与预览时保持完全一致的样式 */
+.fancybox-livephoto-container .livephoto-content .livephoto-icon {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  cursor: pointer;
+  user-select: none;
+  z-index: 10;
+  transition: all 0.3s ease;
+  pointer-events: auto;
+}
+
+.fancybox-livephoto-container .livephoto-content .livephoto-icon:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.fancybox-livephoto-container .livephoto-content .livephoto-icon-svg {
+  width: 16px;
+  height: 16px;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.fancybox-livephoto-container .livephoto-content .livephoto-label {
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+  .fancybox-livephoto-container {
+    border-radius: 0;
+  }
+  
+  .fancybox-livephoto-container .livephoto-content img,
+  .fancybox-livephoto-container .livephoto-content video {
+    max-height: 60vh;
+  }
+  
+  /* 移动端保持与预览时一致的样式 */
+  .fancybox-livephoto-container .livephoto-content .livephoto-icon {
+    padding: 3px 6px;
+  }
+  
+  .fancybox-livephoto-container .livephoto-content .livephoto-label {
+    display: none;
+  }
+  
+  .fancybox-livephoto-container .livephoto-content .livephoto-icon-svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+/* 超小屏幕优化 */
+@media (max-width: 480px) {
+  .fancybox-livephoto-container .livephoto-content img,
+  .fancybox-livephoto-container .livephoto-content video {
+    max-height: 50vh;
+  }
+  
+  /* 超小屏幕保持与预览时一致的样式 */
+  .fancybox-livephoto-container .livephoto-content .livephoto-icon {
+    padding: 2px 6px;
+  }
+  
+  .fancybox-livephoto-container .livephoto-content .livephoto-icon-svg {
     width: 12px;
     height: 12px;
   }

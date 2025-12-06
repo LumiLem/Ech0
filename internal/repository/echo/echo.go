@@ -217,7 +217,7 @@ func (echoRepository *EchoRepository) UpdateEcho(ctx context.Context, echo *mode
 		return err
 	}
 
-	// 2. 构建现有媒体的 URL -> Media 映射（用于判断哪些需要保留）
+	// 2. 构建现有媒体的 URL -> Media 映射
 	existingMediaMap := make(map[string]*model.Media)
 	for i := range existingMedia {
 		existingMediaMap[existingMedia[i].MediaURL] = &existingMedia[i]
@@ -253,22 +253,97 @@ func (echoRepository *EchoRepository) UpdateEcho(ctx context.Context, echo *mode
 		return err
 	}
 
-	// 6. 处理媒体：保留现有的，新增新的
-	for i := range echo.Media {
-		echo.Media[i].MessageID = echo.ID
-		if existing, ok := existingMediaMap[echo.Media[i].MediaURL]; ok {
-			// 媒体已存在，保留原有 ID 和关联信息
-			echo.Media[i].ID = existing.ID
-			echo.Media[i].LiveVideoID = existing.LiveVideoID
-		} else if echo.Media[i].MediaURL != "" {
-			// 新媒体，插入数据库
-			if err := echoRepository.getDB(ctx).Create(&echo.Media[i]).Error; err != nil {
-				return err
+	// 6. 检查是否只是顺序变化（媒体集合相同，但顺序不同）
+	orderChanged := false
+	if len(echo.Media) == len(existingMedia) {
+		// 检查 URL 集合是否完全相同
+		allExist := true
+		for _, newMedia := range echo.Media {
+			if _, exists := existingMediaMap[newMedia.MediaURL]; !exists {
+				allExist = false
+				break
+			}
+		}
+
+		// 如果集合相同，检查顺序是否不同
+		if allExist {
+			for i := range echo.Media {
+				if echo.Media[i].MediaURL != existingMedia[i].MediaURL {
+					orderChanged = true
+					break
+				}
 			}
 		}
 	}
 
-	// 7. 更新标签关联关系
+	// 7. 处理媒体
+	if orderChanged {
+		// 顺序变化：删除所有并按新顺序重新插入
+		if err := echoRepository.getDB(ctx).Where("message_id = ?", echo.ID).Delete(&model.Media{}).Error; err != nil {
+			return err
+		}
+
+		// 构建实况照片关联映射：图片URL -> 视频URL
+		livePhotoMap := make(map[string]string)
+		for _, m := range echo.Media {
+			if existing, ok := existingMediaMap[m.MediaURL]; ok {
+				if existing.LiveVideoID != nil && *existing.LiveVideoID > 0 {
+					for _, oldMedia := range existingMedia {
+						if oldMedia.ID == *existing.LiveVideoID {
+							livePhotoMap[m.MediaURL] = oldMedia.MediaURL
+							break
+						}
+					}
+				}
+			}
+		}
+
+		// 插入所有媒体
+		newMediaMap := make(map[string]*model.Media)
+		for i := range echo.Media {
+			echo.Media[i].MessageID = echo.ID
+			echo.Media[i].ID = 0
+			echo.Media[i].LiveVideoID = nil
+
+			if echo.Media[i].MediaURL != "" {
+				if err := echoRepository.getDB(ctx).Create(&echo.Media[i]).Error; err != nil {
+					return err
+				}
+				newMediaMap[echo.Media[i].MediaURL] = &echo.Media[i]
+			}
+		}
+
+		// 更新实况照片关联
+		for imageURL, videoURL := range livePhotoMap {
+			if imageMedia, ok := newMediaMap[imageURL]; ok {
+				if videoMedia, ok := newMediaMap[videoURL]; ok {
+					imageMedia.LiveVideoID = &videoMedia.ID
+					if err := echoRepository.getDB(ctx).Model(&model.Media{}).
+						Where("id = ?", imageMedia.ID).
+						Update("live_video_id", videoMedia.ID).Error; err != nil {
+						return err
+					}
+				}
+			}
+		}
+	} else {
+		// 保留现有的，新增新的（原逻辑）
+		for i := range echo.Media {
+			echo.Media[i].MessageID = echo.ID
+			if existing, ok := existingMediaMap[echo.Media[i].MediaURL]; ok {
+				// 媒体已存在，保留原有 ID 和关联信息
+				echo.Media[i].ID = existing.ID
+				echo.Media[i].LiveVideoID = existing.LiveVideoID
+			} else if echo.Media[i].MediaURL != "" {
+				// 新媒体，插入数据库
+				if err := echoRepository.getDB(ctx).Create(&echo.Media[i]).Error; err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	// 8. 更新标签关联关系
 	if err := echoRepository.getDB(ctx).Model(echo).Association("Tags").Replace(echo.Tags); err != nil {
 		return err
 	}
