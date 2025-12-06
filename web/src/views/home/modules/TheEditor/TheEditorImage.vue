@@ -116,6 +116,8 @@ const draggedIndex = ref<number | null>(null)
 const touchStartIndex = ref<number | null>(null)
 const touchStartX = ref<number>(0)
 const touchStartY = ref<number>(0)
+const isDragging = ref<boolean>(false) // 是否正在拖拽
+const dragThreshold = 10 // 拖拽阈值（像素）
 
 // 检查是否为实况照片
 const isLivePhoto = (item: App.Api.Ech0.MediaToAdd) => {
@@ -206,8 +208,10 @@ const handleDragEnd = () => {
 
 // 触摸拖放处理（移动端）
 const handleTouchStart = (index: number, event: TouchEvent) => {
+  // 不立即阻止默认行为，让点击事件可以正常触发
   touchStartIndex.value = index
-  draggedIndex.value = index
+  isDragging.value = false
+  
   const touch = event.touches[0]
   if (touch) {
     touchStartX.value = touch.clientX
@@ -218,26 +222,46 @@ const handleTouchStart = (index: number, event: TouchEvent) => {
 const handleTouchMove = (event: TouchEvent) => {
   if (touchStartIndex.value === null) return
   
-  event.preventDefault() // 防止页面滚动
-  
   const touch = event.touches[0]
   if (!touch) return
   
-  const element = document.elementFromPoint(touch.clientX, touch.clientY)
+  // 计算移动距离
+  const deltaX = Math.abs(touch.clientX - touchStartX.value)
+  const deltaY = Math.abs(touch.clientY - touchStartY.value)
+  const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
   
-  // 找到目标媒体项
-  const mediaItem = element?.closest('[data-media-index]')
-  if (mediaItem) {
-    const targetIndex = parseInt(mediaItem.getAttribute('data-media-index') || '-1')
-    if (targetIndex >= 0 && targetIndex !== draggedIndex.value) {
-      handleDragOver(targetIndex)
+  // 只有移动距离超过阈值时才认为是拖拽
+  if (!isDragging.value && distance > dragThreshold) {
+    isDragging.value = true
+    draggedIndex.value = touchStartIndex.value
+  }
+  
+  // 只有在拖拽状态下才阻止默认行为和执行拖拽逻辑
+  if (isDragging.value) {
+    event.preventDefault() // 防止页面滚动和长按菜单
+    
+    const element = document.elementFromPoint(touch.clientX, touch.clientY)
+    
+    // 找到目标媒体项
+    const mediaItem = element?.closest('[data-media-index]')
+    if (mediaItem) {
+      const targetIndex = parseInt(mediaItem.getAttribute('data-media-index') || '-1')
+      if (targetIndex >= 0 && targetIndex !== draggedIndex.value) {
+        handleDragOver(targetIndex)
+      }
     }
   }
 }
 
-const handleTouchEnd = () => {
+const handleTouchEnd = (event: TouchEvent) => {
+  // 只有在拖拽状态下才阻止默认行为
+  if (isDragging.value) {
+    event.preventDefault()
+  }
+  
   touchStartIndex.value = null
   draggedIndex.value = null
+  isDragging.value = false
 }
 
 // 获取实况照片的视频URL
@@ -677,10 +701,19 @@ onBeforeUnmount(() => {
   touch-action: none; /* 禁用浏览器默认的触摸行为 */
   user-select: none;
   -webkit-user-select: none;
+  -webkit-touch-callout: none; /* 禁用 iOS 长按菜单 */
+  -webkit-tap-highlight-color: transparent; /* 移除点击高亮 */
 }
 
 .media-item:active {
   cursor: grabbing;
+}
+
+/* 禁用媒体项内所有元素的长按菜单 */
+.media-item * {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 /* 拖拽中的样式 */
