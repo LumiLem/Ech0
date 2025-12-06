@@ -24,6 +24,8 @@ import AwsS3 from '@uppy/aws-s3'
 import '@uppy/core/css/style.min.css'
 import '@uppy/dashboard/css/style.min.css'
 import zh_CN from '@uppy/locales/lib/zh_CN'
+/* --------------- HEIC 转换 ---------------- */
+import heic2any from 'heic2any'
 
 let uppy: Uppy | null = null
 
@@ -67,9 +69,50 @@ const handlePaste = async (e: ClipboardEvent) => {
           data: uniqueFile,
           source: 'PastedImage',
         })
-        uppy?.upload()
+        // 粘贴的图片会触发 files-added 事件，在那里统一处理上传
       }
     }
+  }
+}
+
+// HEIC 转换函数
+const convertHeicToJpeg = async (file: any): Promise<void> => {
+  const isHeic = file.type === 'image/heic' || 
+                 file.type === 'image/heif' ||
+                 file.name.toLowerCase().endsWith('.heic') ||
+                 file.name.toLowerCase().endsWith('.heif')
+  
+  if (!isHeic) return
+
+  try {
+    console.log('检测到 HEIC 文件，开始转换:', file.name, 'type:', file.type)
+    theToast.info('正在转换 HEIC 格式...', { duration: 1500 })
+    
+    const convertedBlob = await heic2any({
+      blob: file.data as Blob,
+      toType: 'image/jpeg',
+      quality: 0.9
+    })
+    
+    // 处理可能返回的数组或单个 Blob
+    const jpegBlob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob
+    
+    if (!jpegBlob) {
+      throw new Error('转换后的 Blob 为空')
+    }
+    
+    // 更新文件数据和类型，保持原文件名不变
+    uppy?.setFileState(file.id, {
+      data: jpegBlob,
+      type: 'image/jpeg'
+    })
+    
+    console.log('HEIC 转换成功，文件类型已更新为 image/jpeg')
+    theToast.success('HEIC 转换完成！', { duration: 1000 })
+  } catch (error) {
+    console.error('HEIC 转换失败:', error)
+    theToast.warning('HEIC 转换失败，将上传原文件（部分浏览器可能无法查看）', { duration: 3000 })
+    // 转换失败不影响上传，继续使用原文件
   }
 }
 
@@ -79,9 +122,14 @@ const initUppy = () => {
   uppy = new Uppy({
     restrictions: {
       maxNumberOfFiles: 12,
-      allowedFileTypes: ['image/*', 'video/*'],
+      allowedFileTypes: [
+        'image/*', 
+        'video/*',
+        '.heic',  // 显式支持 HEIC 格式
+        '.heif',  // 显式支持 HEIF 格式
+      ],
     },
-    autoProceed: true,
+    autoProceed: false, // 关闭自动上传，等待 HEIC 转换完成后手动触发
   })
 
   // 使用 Dashboard 插件
@@ -89,7 +137,7 @@ const initUppy = () => {
     inline: true,
     target: '#uppy-dashboard',
     hideProgressDetails: false,
-    hideUploadButton: false,
+    hideUploadButton: true, // 隐藏上传按钮，因为我们自动触发上传
     hideCancelButton: false,
     hideRetryButton: false,
     hidePauseResumeButton: false,
@@ -147,17 +195,26 @@ const initUppy = () => {
   document.addEventListener('paste', handlePaste)
 
   // 添加文件时，检测实况照片对并生成 pairId
-  uppy.on('files-added', (addedFiles) => {
+  uppy.on('files-added', async (addedFiles) => {
     if (!isLogin.value) {
       theToast.error('请先登录再上传图片 😢')
+      uppy?.cancelAll()
       return
     }
     isUploading.value = true
     editorStore.MediaUploading = true
     
-    // 保存原始文件名映射
+    // 1. 先转换 HEIC 文件
     for (const file of addedFiles) {
-      uppyFileIdToOriginalName.value.set(file.id, file.name)
+      await convertHeicToJpeg(file)
+    }
+    
+    // 2. 保存原始文件名映射（转换后的文件名）
+    const currentFiles = uppy?.getFiles() || []
+    for (const file of currentFiles) {
+      if (addedFiles.some(f => f.id === file.id)) {
+        uppyFileIdToOriginalName.value.set(file.id, file.name)
+      }
     }
     
     // 获取所有当前文件（包括之前添加的）
@@ -179,6 +236,9 @@ const initUppy = () => {
         console.log('预检测实况照片对:', imgFile.name, vidFile.name, 'pairId:', pair.pairId)
       }
     }
+    
+    // 3. 转换完成后手动触发上传
+    uppy?.upload()
   })
   // 上传开始前，检查是否登录
   uppy.on('upload', () => {

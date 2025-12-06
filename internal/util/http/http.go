@@ -113,6 +113,14 @@ func GetMIMETypeFromFilenameOrURL(filenameOrURL string) string {
 		return "image/bmp"
 	case strings.HasSuffix(lowerFilename, ".webp"):
 		return "image/webp"
+	case strings.HasSuffix(lowerFilename, ".heic"):
+		return "image/heic"
+	case strings.HasSuffix(lowerFilename, ".heif"):
+		return "image/heif"
+	case strings.HasSuffix(lowerFilename, ".avif"):
+		return "image/avif"
+	case strings.HasSuffix(lowerFilename, ".svg"):
+		return "image/svg+xml"
 	case strings.HasSuffix(lowerFilename, ".mp4"):
 		return "video/mp4"
 	case strings.HasSuffix(lowerFilename, ".mov"):

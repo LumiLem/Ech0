@@ -538,19 +538,36 @@ const handleRemoveImage = (visibleIndex: number) => {
       }
 
       // 如果是实况照片，找到并删除关联的视频
-      if (isLive && currentItem.live_video_id) {
-        const videoIndex = imagesToAdd.value.findIndex(m => m.id === currentItem.live_video_id)
-        if (videoIndex >= 0) {
-          const videoItem = imagesToAdd.value[videoIndex]
-          if (videoItem) {
-            // 删除视频文件
-            deleteMediaFile(videoItem).then(() => {
-              // 从数组中删除视频
-              imagesToAdd.value.splice(videoIndex, 1)
-            }).catch((err) => {
-              console.error('删除实况照片视频失败:', err)
-            })
+      if (isLive) {
+        let videoItem = null
+        let videoIndex = -1
+        
+        // 情况1: 已保存的实况照片 - 通过 live_video_id 查找
+        if (currentItem.live_video_id) {
+          videoIndex = imagesToAdd.value.findIndex(m => m.id === currentItem.live_video_id)
+          if (videoIndex >= 0) {
+            videoItem = imagesToAdd.value[videoIndex]
           }
+        }
+        
+        // 情况2: 新上传的实况照片 - 通过 live_pair_id 查找
+        if (!videoItem && currentItem.live_pair_id) {
+          videoIndex = imagesToAdd.value.findIndex((m: any) => 
+            m.media_type === 'video' && m.live_pair_id === currentItem.live_pair_id
+          )
+          if (videoIndex >= 0) {
+            videoItem = imagesToAdd.value[videoIndex]
+          }
+        }
+        
+        // 删除找到的视频
+        if (videoItem && videoIndex >= 0) {
+          deleteMediaFile(videoItem).then(() => {
+            // 从数组中删除视频
+            imagesToAdd.value.splice(videoIndex, 1)
+          }).catch((err) => {
+            console.error('删除实况照片视频失败:', err)
+          })
         }
       }
 
