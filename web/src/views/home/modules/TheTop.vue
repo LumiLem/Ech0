@@ -30,28 +30,33 @@
         <!-- RSS -->
         <div>
           <a href="/rss" title="RSS">
-            <!-- icon -->
             <Rss class="w-8 h-8 text-[var(--text-color-400)]" />
           </a>
         </div>
         <!-- Ech0 Hub -->
         <div>
-          <RouterLink to="/hub" title="Ech0 Hub">
-            <!-- icon -->
+          <a v-if="isInAppBrowser" href="/hub" title="Ech0 Hub">
+            <HubIcon class="w-8 h-8 text-[var(--text-color-400)]" />
+          </a>
+          <RouterLink v-else to="/hub" title="Ech0 Hub">
             <HubIcon class="w-8 h-8 text-[var(--text-color-400)]" />
           </RouterLink>
         </div>
         <!-- Ech0 Widget -->
         <div class="block xl:hidden">
-          <RouterLink to="/Widget" title="Ech0 Widget">
-            <!-- icon -->
+          <a v-if="isInAppBrowser" href="/widget" title="Ech0 Widget">
+            <Widget class="w-8 h-8 text-[var(--text-color-400)]" />
+          </a>
+          <RouterLink v-else to="/widget" title="Ech0 Widget">
             <Widget class="w-8 h-8 text-[var(--text-color-400)]" />
           </RouterLink>
         </div>
         <!-- PanelPage -->
         <div>
-          <RouterLink to="/panel" title="面板">
-            <!-- icon -->
+          <a v-if="isInAppBrowser" href="/panel" title="面板">
+            <Panel class="w-8 h-8 text-[var(--text-color-400)]" />
+          </a>
+          <RouterLink v-else to="/panel" title="面板">
             <Panel class="w-8 h-8 text-[var(--text-color-400)]" />
           </RouterLink>
         </div>
@@ -68,10 +73,20 @@ import HubIcon from '@/components/icons/hub.vue'
 import { RouterLink } from 'vue-router'
 import { useEchoStore } from '@/stores/echo'
 import { storeToRefs } from 'pinia'
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import Close from '@/components/icons/close.vue'
 import Filter from '@/components/icons/filter.vue'
 import Widget from '@/components/icons/widget.vue'
+
+// 检测是否在 QQ/微信等内置浏览器中
+const isInAppBrowser = ref(false)
+
+// 在客户端挂载后检测
+onMounted(() => {
+  const ua = navigator.userAgent.toLowerCase()
+  isInAppBrowser.value = ua.includes('qq') || ua.includes('micromessenger') || ua.includes('weibo')
+})
+
 const echoStore = useEchoStore()
 const { refreshForSearch, getEchosByPage } = echoStore
 const { searchingMode, filteredTag, isFilteringMode } = storeToRefs(echoStore)
@@ -82,7 +97,6 @@ const handleSearch = () => {
   console.log('搜索内容:', searchContent.value)
 
   // 设置搜索内容
-
   echoStore.searchValue = searchContent.value
 
   // 判断是否是搜索模式
