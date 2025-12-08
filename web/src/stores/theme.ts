@@ -2,19 +2,19 @@ import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import { localStg } from '@/utils/storage'
 
-type ThemeMode = 'light' | 'dark' | 'auto'
+export type ThemeMode = 'light' | 'dark' | 'auto'
 type ThemeType = 'light' | 'dark'
+
+const isValidThemeMode = (value: unknown): value is ThemeMode => {
+  return value === 'light' || value === 'dark' || value === 'auto'
+}
 
 export const useThemeStore = defineStore('themeStore', () => {
   const savedMode = localStg.getItem('themeMode')
-  const mode = ref<ThemeMode>(
-    savedMode === 'light' || savedMode === 'dark' || savedMode === 'auto' ? savedMode : 'auto',
-  )
-
+  const mode = ref<ThemeMode>(isValidThemeMode(savedMode) ? savedMode : 'auto')
+  
   const systemTheme = ref<ThemeType>(
-    window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
-      ? 'dark'
-      : 'light',
+    window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
   )
 
   const theme = computed<ThemeType>(() => {
@@ -22,13 +22,7 @@ export const useThemeStore = defineStore('themeStore', () => {
   })
 
   const toggleTheme = () => {
-    if (mode.value === 'light') {
-      mode.value = 'dark'
-    } else if (mode.value === 'dark') {
-      mode.value = 'auto'
-    } else {
-      mode.value = 'light'
-    }
+    mode.value = mode.value === 'light' ? 'dark' : mode.value === 'dark' ? 'auto' : 'light'
     localStg.setItem('themeMode', mode.value)
   }
 
@@ -43,7 +37,7 @@ export const useThemeStore = defineStore('themeStore', () => {
 
     if (window.matchMedia) {
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-      mediaQuery.addEventListener('change', (e) => {
+      mediaQuery.addEventListener('change', (e: MediaQueryListEvent) => {
         systemTheme.value = e.matches ? 'dark' : 'light'
       })
     }

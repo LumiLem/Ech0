@@ -39,7 +39,7 @@ import { storeToRefs } from 'pinia'
 import { onMounted, ref } from 'vue'
 import { fetchGetStatus, fetchHelloEch0 } from '@/service/api'
 import { useSettingStore } from '@/stores/setting'
-import { useThemeStore } from '@/stores/theme'
+import { useThemeStore, type ThemeMode } from '@/stores/theme'
 import { getApiUrl } from '@/service/request/shared'
 import { theToast } from '@/utils/toast'
 
@@ -51,11 +51,13 @@ const { SystemSetting } = storeToRefs(settingStore)
 const apiUrl = getApiUrl()
 const logo = ref<string>('/favicon.svg')
 
-const modeTextMap = { light: '浅色', dark: '深色', auto: '自动' }
-
-const getModeText = () => {
-  return modeTextMap[themeStore.mode]
+const modeTextMap: Record<ThemeMode, string> = {
+  light: '浅色',
+  dark: '深色',
+  auto: '自动',
 }
+
+const getModeText = () => modeTextMap[themeStore.mode]
 
 const handleHello = () => {
   themeStore.toggleTheme()
