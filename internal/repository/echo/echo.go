@@ -278,51 +278,143 @@ func (echoRepository *EchoRepository) UpdateEcho(ctx context.Context, echo *mode
 
 	// 7. 处理媒体
 	if orderChanged {
-		// 顺序变化：删除所有并按新顺序重新插入
-		if err := echoRepository.getDB(ctx).Where("message_id = ?", echo.ID).Delete(&model.Media{}).Error; err != nil {
+		// 顺序变化：交换数据而不是删除重建，保持原有 ID 不变
+		//
+		// 原逻辑（已注释，供备用）：
+		// // 顺序变化：删除所有并按新顺序重新插入
+		// if err := echoRepository.getDB(ctx).Where("message_id = ?", echo.ID).Delete(&model.Media{}).Error; err != nil {
+		// 	return err
+		// }
+		// // 构建实况照片关联映射：图片URL -> 视频URL
+		// livePhotoMap := make(map[string]string)
+		// for _, m := range echo.Media {
+		// 	if existing, ok := existingMediaMap[m.MediaURL]; ok {
+		// 		if existing.LiveVideoID != nil && *existing.LiveVideoID > 0 {
+		// 			for _, oldMedia := range existingMedia {
+		// 				if oldMedia.ID == *existing.LiveVideoID {
+		// 					livePhotoMap[m.MediaURL] = oldMedia.MediaURL
+		// 					break
+		// 				}
+		// 			}
+		// 		}
+		// 	}
+		// }
+		// // 插入所有媒体
+		// newMediaMap := make(map[string]*model.Media)
+		// for i := range echo.Media {
+		// 	echo.Media[i].MessageID = echo.ID
+		// 	echo.Media[i].ID = 0
+		// 	echo.Media[i].LiveVideoID = nil
+		// 	if echo.Media[i].MediaURL != "" {
+		// 		if err := echoRepository.getDB(ctx).Create(&echo.Media[i]).Error; err != nil {
+		// 			return err
+		// 		}
+		// 		newMediaMap[echo.Media[i].MediaURL] = &echo.Media[i]
+		// 	}
+		// }
+		// // 更新实况照片关联
+		// for imageURL, videoURL := range livePhotoMap {
+		// 	if imageMedia, ok := newMediaMap[imageURL]; ok {
+		// 		if videoMedia, ok := newMediaMap[videoURL]; ok {
+		// 			imageMedia.LiveVideoID = &videoMedia.ID
+		// 			if err := echoRepository.getDB(ctx).Model(&model.Media{}).
+		// 				Where("id = ?", imageMedia.ID).
+		// 				Update("live_video_id", videoMedia.ID).Error; err != nil {
+		// 				return err
+		// 			}
+		// 		}
+		// 	}
+		// }
+
+		// 新逻辑：交换数据，保持 ID 不变
+		// 1. 构建新顺序的 URL 列表
+		newOrder := make([]string, 0, len(echo.Media))
+		for _, m := range echo.Media {
+			if m.MediaURL != "" {
+				newOrder = append(newOrder, m.MediaURL)
+			}
+		}
+
+		// 2. 构建旧顺序的 URL 列表和 ID 列表
+		oldOrder := make([]string, 0, len(existingMedia))
+		oldIDs := make([]uint, 0, len(existingMedia))
+		for _, m := range existingMedia {
+			oldOrder = append(oldOrder, m.MediaURL)
+			oldIDs = append(oldIDs, m.ID)
+		}
+
+		// 3. 保存实况照片关联信息（URL -> 视频URL）
+		livePhotoRelations := make(map[string]string)
+		for _, m := range existingMedia {
+			if m.LiveVideoID != nil && *m.LiveVideoID > 0 {
+				for _, oldMedia := range existingMedia {
+					if oldMedia.ID == *m.LiveVideoID {
+						livePhotoRelations[m.MediaURL] = oldMedia.MediaURL
+						break
+					}
+				}
+			}
+		}
+
+		// 4. 按新顺序更新每个媒体记录的数据（保持 ID 不变）
+		for i, newURL := range newOrder {
+			if i >= len(oldIDs) {
+				break
+			}
+			targetID := oldIDs[i]
+
+			// 获取新 URL 对应的原始媒体数据
+			sourceMedia, ok := existingMediaMap[newURL]
+			if !ok {
+				continue
+			}
+
+			// 更新目标 ID 的记录，使用源媒体的数据
+			updateData := map[string]interface{}{
+				"media_url":    sourceMedia.MediaURL,
+				"media_type":   sourceMedia.MediaType,
+				"media_source": sourceMedia.MediaSource,
+				"object_key":   sourceMedia.ObjectKey,
+				"width":        sourceMedia.Width,
+				"height":       sourceMedia.Height,
+			}
+
+			if err := echoRepository.getDB(ctx).Model(&model.Media{}).
+				Where("id = ?", targetID).
+				Updates(updateData).Error; err != nil {
+				return err
+			}
+		}
+
+		// 5. 重新建立实况照片关联（基于新的 URL 位置）
+		// 先清除所有关联
+		if err := echoRepository.getDB(ctx).Model(&model.Media{}).
+			Where("message_id = ?", echo.ID).
+			Update("live_video_id", nil).Error; err != nil {
 			return err
 		}
 
-		// 构建实况照片关联映射：图片URL -> 视频URL
-		livePhotoMap := make(map[string]string)
-		for _, m := range echo.Media {
-			if existing, ok := existingMediaMap[m.MediaURL]; ok {
-				if existing.LiveVideoID != nil && *existing.LiveVideoID > 0 {
-					for _, oldMedia := range existingMedia {
-						if oldMedia.ID == *existing.LiveVideoID {
-							livePhotoMap[m.MediaURL] = oldMedia.MediaURL
-							break
-						}
-					}
-				}
-			}
+		// 重新查询更新后的媒体列表
+		var updatedMedia []model.Media
+		if err := echoRepository.getDB(ctx).Where("message_id = ?", echo.ID).Find(&updatedMedia).Error; err != nil {
+			return err
 		}
 
-		// 插入所有媒体
-		newMediaMap := make(map[string]*model.Media)
-		for i := range echo.Media {
-			echo.Media[i].MessageID = echo.ID
-			echo.Media[i].ID = 0
-			echo.Media[i].LiveVideoID = nil
+		// 构建新的 URL -> ID 映射
+		newURLToID := make(map[string]uint)
+		for _, m := range updatedMedia {
+			newURLToID[m.MediaURL] = m.ID
+		}
 
-			if echo.Media[i].MediaURL != "" {
-				if err := echoRepository.getDB(ctx).Create(&echo.Media[i]).Error; err != nil {
+		// 恢复实况照片关联
+		for imageURL, videoURL := range livePhotoRelations {
+			imageID, imageOK := newURLToID[imageURL]
+			videoID, videoOK := newURLToID[videoURL]
+			if imageOK && videoOK {
+				if err := echoRepository.getDB(ctx).Model(&model.Media{}).
+					Where("id = ?", imageID).
+					Update("live_video_id", videoID).Error; err != nil {
 					return err
-				}
-				newMediaMap[echo.Media[i].MediaURL] = &echo.Media[i]
-			}
-		}
-
-		// 更新实况照片关联
-		for imageURL, videoURL := range livePhotoMap {
-			if imageMedia, ok := newMediaMap[imageURL]; ok {
-				if videoMedia, ok := newMediaMap[videoURL]; ok {
-					imageMedia.LiveVideoID = &videoMedia.ID
-					if err := echoRepository.getDB(ctx).Model(&model.Media{}).
-						Where("id = ?", imageMedia.ID).
-						Update("live_video_id", videoMedia.ID).Error; err != nil {
-						return err
-					}
 				}
 			}
 		}

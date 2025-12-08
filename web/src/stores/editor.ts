@@ -187,11 +187,55 @@ export const useEditorStore = defineStore('editorStore', () => {
   }
 
   //===============================================================
+  // 检测是否有实际变更（用于更新模式）
+  //===============================================================
+  const hasChanges = (): boolean => {
+    const original = echoStore.echoToUpdate
+    if (!original) return true // 没有原始数据，认为有变更
+
+    // 比较基本内容
+    if (echoToAdd.value.content !== original.content) return true
+    if (echoToAdd.value.private !== original.private) return true
+    if (echoToAdd.value.layout !== original.layout) return true
+
+    // 比较标签
+    const originalTagNames = original.tags?.map((tag) => tag.name).sort() || []
+    const newTagName = tagToAdd.value?.trim() || ''
+    const newTagNames = newTagName ? [newTagName] : []
+    if (originalTagNames.length !== newTagNames.length) return true
+    if (originalTagNames.some((name, index) => name !== newTagNames[index])) return true
+
+    // 比较媒体数量
+    const originalMediaCount = original.media?.length || 0
+    const newMediaCount = mediaListToAdd.value.length
+    if (originalMediaCount !== newMediaCount) return true
+
+    // 比较媒体顺序（通过 URL 比较）
+    const originalMediaUrls = original.media?.map((m) => m.media_url) || []
+    const newMediaUrls = mediaListToAdd.value.map((m) => m.media_url)
+    if (originalMediaUrls.some((url, index) => url !== newMediaUrls[index])) return true
+
+    return false // 没有变更
+  }
+
+  //===============================================================
   // 添加或更新Echo
   //===============================================================
   const handleAddOrUpdateEcho = async (justSyncMedia: boolean) => {
     // 防止重复提交
     if (isSubmitting.value) return
+
+    // 如果是更新模式且不是仅同步媒体，检测是否有实际变更
+    if (!justSyncMedia && isUpdateMode.value && !hasChanges()) {
+      theToast.info('没有需要更新的内容，已退出更新模式')
+      // 自动退出更新模式
+      clearEditor()
+      isUpdateMode.value = false
+      echoStore.echoToUpdate = null
+      setMode(Mode.ECH0)
+      return
+    }
+
     isSubmitting.value = true
 
     // 执行添加或更新
@@ -265,6 +309,7 @@ export const useEditorStore = defineStore('editorStore', () => {
               echoStore.getTags() // 刷新标签列表
               return '🎉更新成功！'
             } else if (res.code === 1 && justSyncMedia) {
+              echoStore.refreshEchos() // 刷新列表以显示新媒体
               return '🔁发现图片/视频更改，已自动更新同步Echo！'
             } else {
               return '😭更新失败，请稍后再试！'
