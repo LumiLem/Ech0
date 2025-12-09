@@ -1,5 +1,6 @@
 /**
  * 实况照片（Live Photo）工具函数
+ * 包含实况照片配对检测和嵌入式实况照片分离功能
  */
 
 export interface LivePhotoPair {
@@ -7,6 +8,136 @@ export interface LivePhotoPair {
   videoIndex: number
   pairId: string // 前端生成的 UUID，用于后端建立关联
 }
+
+/* ==================== 嵌入式实况照片分离 ==================== */
+
+/**
+ * 检测文件是否为嵌入式实况照片
+ * 支持小米、三星等厂商的嵌入式实况照片格式
+ * 格式：图片数据 + 特殊标记 + 视频数据
+ * 
+ * @param file 要检测的文件
+ * @returns 是否为嵌入式实况照片
+ */
+export async function isEmbeddedMotionPhoto(file: File): Promise<boolean> {
+  try {
+    // 只检测图片文件
+    if (!file.type.startsWith('image/')) {
+      return false
+    }
+
+    // 读取文件内容
+    const arrayBuffer = await file.arrayBuffer()
+    const uint8Array = new Uint8Array(arrayBuffer)
+
+    // 查找 MP4 文件头标记 (ftyp)
+    // MP4 文件通常以 "ftyp" 标记开始，位于文件的某个位置
+    const ftypSignature = [0x66, 0x74, 0x79, 0x70] // "ftyp" in ASCII
+    
+    // 从文件中间开始搜索（跳过图片数据）
+    // 通常图片数据不会超过文件的前 80%
+    const searchStart = Math.floor(uint8Array.length * 0.3)
+    
+    for (let i = searchStart; i < uint8Array.length - 4; i++) {
+      if (
+        uint8Array[i] === ftypSignature[0] &&
+        uint8Array[i + 1] === ftypSignature[1] &&
+        uint8Array[i + 2] === ftypSignature[2] &&
+        uint8Array[i + 3] === ftypSignature[3]
+      ) {
+        // 找到 ftyp 标记，检查前面是否有 MP4 box size
+        // MP4 box 格式：4字节大小 + 4字节类型
+        if (i >= 4) {
+          console.log('检测到嵌入式实况照片，ftyp 位置:', i)
+          return true
+        }
+      }
+    }
+
+    return false
+  } catch (error) {
+    console.error('检测嵌入式实况照片失败:', error)
+    return false
+  }
+}
+
+/**
+ * 分离嵌入式实况照片为图片和视频两个文件
+ * 
+ * @param file 嵌入式实况照片文件
+ * @returns 分离后的图片和视频文件，失败返回 null
+ */
+export async function separateEmbeddedMotionPhoto(
+  file: File
+): Promise<{ imageFile: File; videoFile: File } | null> {
+  try {
+    const arrayBuffer = await file.arrayBuffer()
+    const uint8Array = new Uint8Array(arrayBuffer)
+
+    // 查找 MP4 文件头标记
+    const ftypSignature = [0x66, 0x74, 0x79, 0x70] // "ftyp"
+    const searchStart = Math.floor(uint8Array.length * 0.3)
+    
+    let videoStartPos = -1
+    
+    for (let i = searchStart; i < uint8Array.length - 4; i++) {
+      if (
+        uint8Array[i] === ftypSignature[0] &&
+        uint8Array[i + 1] === ftypSignature[1] &&
+        uint8Array[i + 2] === ftypSignature[2] &&
+        uint8Array[i + 3] === ftypSignature[3]
+      ) {
+        // 找到 ftyp，往前找 MP4 box 的起始位置（4字节大小信息）
+        if (i >= 4) {
+          videoStartPos = i - 4
+          break
+        }
+      }
+    }
+
+    if (videoStartPos === -1) {
+      console.error('未找到视频数据起始位置')
+      return null
+    }
+
+    console.log('视频数据起始位置:', videoStartPos)
+
+    // 分离图片数据（从开始到视频起始位置）
+    const imageData = uint8Array.slice(0, videoStartPos)
+    const imageBlob = new Blob([imageData], { type: 'image/jpeg' })
+    
+    // 分离视频数据（从视频起始位置到文件末尾）
+    const videoData = uint8Array.slice(videoStartPos)
+    const videoBlob = new Blob([videoData], { type: 'video/mp4' })
+
+    // 生成文件名
+    const originalName = file.name.replace(/\.[^/.]+$/, '') // 去除扩展名
+    const imageFile = new File([imageBlob], `${originalName}.jpg`, {
+      type: 'image/jpeg',
+      lastModified: file.lastModified,
+    })
+    const videoFile = new File([videoBlob], `${originalName}.mp4`, {
+      type: 'video/mp4',
+      lastModified: file.lastModified,
+    })
+
+    console.log('✅ 嵌入式实况照片分离成功:', {
+      original: file.name,
+      originalName: originalName,
+      imageName: imageFile.name,
+      videoName: videoFile.name,
+      imageSize: imageBlob.size,
+      videoSize: videoBlob.size,
+    })
+
+    return { imageFile, videoFile }
+  } catch (error) {
+    console.error('分离嵌入式实况照片失败:', error)
+    return null
+  }
+}
+
+/* ==================== 实况照片配对检测 ==================== */
 
 /**
  * 获取文件基础名（不含扩展名）

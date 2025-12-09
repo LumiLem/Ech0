@@ -15,7 +15,14 @@ import { storeToRefs } from 'pinia'
 import { ImageSource } from '@/enums/enums'
 import { fetchGetPresignedUrl } from '@/service/api'
 import { useEditorStore } from '@/stores/editor'
-import { detectLivePhotoPairs, detectLivePhotoPairsFromMedia, applyLivePhotoPairIds, getBaseName } from '@/utils/livephoto'
+import { 
+  detectLivePhotoPairs, 
+  detectLivePhotoPairsFromMedia, 
+  applyLivePhotoPairIds, 
+  getBaseName,
+  isEmbeddedMotionPhoto,
+  separateEmbeddedMotionPhoto
+} from '@/utils/livephoto'
 /* --------------- 与Uppy相关 ---------------- */
 import Uppy from '@uppy/core'
 import Dashboard from '@uppy/dashboard'
@@ -42,6 +49,8 @@ const tempFiles = ref<Map<string, { url: string; objectKey: string }>>(new Map()
 const originalFilenameToPairId = ref<Map<string, string>>(new Map())
 // 用于保存上传文件的原始文件名（key: uppy file id, value: original filename）
 const uppyFileIdToOriginalName = ref<Map<string, string>>(new Map())
+// 标记是否正在处理嵌入式实况照片分离（防止重复触发）
+const isProcessingEmbedded = ref<boolean>(false)
 
 const userStore = useUserStore()
 const editorStore = useEditorStore()
@@ -113,6 +122,84 @@ const convertHeicToJpeg = async (file: any): Promise<void> => {
     console.error('HEIC 转换失败:', error)
     theToast.warning('HEIC 转换失败，将上传原文件（部分浏览器可能无法查看）', { duration: 3000 })
     // 转换失败不影响上传，继续使用原文件
+  }
+}
+
+// 嵌入式实况照片分离函数
+const separateEmbeddedMotionPhotoFile = async (file: any): Promise<boolean> => {
+  try {
+    // 性能优化：跳过小文件（嵌入式实况照片通常 > 2MB）
+    if (file.size && file.size < 2 * 1024 * 1024) {
+      return false
+    }
+    
+    // 性能优化：只检测 JPEG 图片（大多数嵌入式实况照片是 JPEG）
+    const isJpeg = file.type === 'image/jpeg' || 
+                   file.type === 'image/jpg' ||
+                   file.name.toLowerCase().endsWith('.jpg') ||
+                   file.name.toLowerCase().endsWith('.jpeg')
+    if (!isJpeg) {
+      return false
+    }
+    
+    // 将 Uppy 文件转换为标准 File 对象
+    const standardFile = new File([file.data as Blob], file.name, {
+      type: file.type,
+      lastModified: Date.now(),
+    })
+
+    // 检测是否为嵌入式实况照片
+    const isEmbedded = await isEmbeddedMotionPhoto(standardFile)
+    if (!isEmbedded) {
+      return false
+    }
+
+    console.log('检测到嵌入式实况照片，开始分离:', file.name)
+    theToast.info('检测到嵌入式实况照片，正在分离...', { duration: 1500 })
+
+    // 分离图片和视频
+    const result = await separateEmbeddedMotionPhoto(standardFile)
+    if (!result) {
+      theToast.warning('嵌入式实况照片分离失败，将上传原文件', { duration: 2000 })
+      return false
+    }
+
+    const { imageFile, videoFile } = result
+
+    // 移除原文件
+    console.log('移除原始嵌入式文件:', file.name)
+    uppy?.removeFile(file.id)
+
+    // 添加分离后的图片文件
+    const imageId = `embedded-image-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+    console.log('添加分离后的图片文件:', imageFile.name, 'ID:', imageId)
+    uppy?.addFile({
+      id: imageId,
+      name: imageFile.name,
+      type: imageFile.type,
+      data: imageFile,
+      source: 'EmbeddedMotionPhoto',
+    })
+
+    // 添加分离后的视频文件
+    const videoId = `embedded-video-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+    console.log('添加分离后的视频文件:', videoFile.name, 'ID:', videoId)
+    uppy?.addFile({
+      id: videoId,
+      name: videoFile.name,
+      type: videoFile.type,
+      data: videoFile,
+      source: 'EmbeddedMotionPhoto',
+    })
+
+    console.log('✅ 嵌入式实况照片分离完成，等待配对检测')
+    theToast.success('实况照片分离完成！', { duration: 1500 })
+
+    return true
+  } catch (error) {
+    console.error('嵌入式实况照片分离失败:', error)
+    theToast.warning('嵌入式实况照片分离失败，将上传原文件', { duration: 2000 })
+    return false
   }
 }
 
@@ -201,28 +288,65 @@ const initUppy = () => {
       uppy?.cancelAll()
       return
     }
+    
+    // 如果是嵌入式实况照片分离产生的文件，不要重复处理
+    const isFromEmbedded = addedFiles.every(f => f.source === 'EmbeddedMotionPhoto')
+    if (isFromEmbedded && isProcessingEmbedded.value) {
+      console.log('检测到嵌入式分离产生的文件，跳过处理，等待批量检测')
+      return
+    }
+    
     isUploading.value = true
     editorStore.MediaUploading = true
+    isProcessingEmbedded.value = true
     
     // 1. 先转换 HEIC 文件
     for (const file of addedFiles) {
       await convertHeicToJpeg(file)
     }
     
-    // 2. 保存原始文件名映射（转换后的文件名）
-    const currentFiles = uppy?.getFiles() || []
-    for (const file of currentFiles) {
-      if (addedFiles.some(f => f.id === file.id)) {
-        uppyFileIdToOriginalName.value.set(file.id, file.name)
+    // 2. 检测并分离嵌入式实况照片
+    // 注意：分离后会移除原文件并添加新文件，所以需要重新获取文件列表
+    const filesToCheck = uppy?.getFiles() || []
+    const embeddedSeparatedFiles: string[] = [] // 记录已分离的文件 ID
+    
+    for (const file of filesToCheck) {
+      // 只检查新添加的文件（通过 source 判断，避免重复处理）
+      if (file.source !== 'EmbeddedMotionPhoto') {
+        const separated = await separateEmbeddedMotionPhotoFile(file)
+        if (separated) {
+          embeddedSeparatedFiles.push(file.id)
+        }
       }
     }
     
-    // 获取所有当前文件（包括之前添加的）
+    // 等待一小段时间，确保所有分离的文件都已添加
+    if (embeddedSeparatedFiles.length > 0) {
+      console.log('等待嵌入式实况照片分离完成...')
+      await new Promise(resolve => setTimeout(resolve, 100))
+    }
+    
+    // 3. 保存原始文件名映射（转换后的文件名）
+    const currentFiles = uppy?.getFiles() || []
+    for (const file of currentFiles) {
+      uppyFileIdToOriginalName.value.set(file.id, file.name)
+    }
+    
+    // 获取所有当前文件（包括之前添加的和分离后的）
     const allFiles = uppy?.getFiles() || []
     const fileObjects: File[] = allFiles.map(f => new File([f.data as Blob], f.name, { type: f.type }))
     
+    // 打印所有文件信息用于调试
+    console.log('=== 开始检测实况照片对 ===')
+    console.log('当前文件列表:', allFiles.map(f => ({
+      name: f.name,
+      type: f.type,
+      baseName: getBaseName(f.name)
+    })))
+    
     // 检测实况照片对
     const pairs = detectLivePhotoPairs(fileObjects)
+    console.log('检测到的实况照片对数量:', pairs.length)
     
     // 为每个文件生成 pairId 映射（基于原始文件名）
     originalFilenameToPairId.value.clear()
@@ -233,11 +357,20 @@ const initUppy = () => {
         // 使用原始文件名作为 key
         originalFilenameToPairId.value.set(imgFile.name, pair.pairId)
         originalFilenameToPairId.value.set(vidFile.name, pair.pairId)
-        console.log('预检测实况照片对:', imgFile.name, vidFile.name, 'pairId:', pair.pairId)
+        console.log('✅ 预检测实况照片对:', {
+          image: imgFile.name,
+          video: vidFile.name,
+          imageBaseName: getBaseName(imgFile.name),
+          videoBaseName: getBaseName(vidFile.name),
+          pairId: pair.pairId
+        })
       }
     }
+    console.log('=== 实况照片对检测完成 ===')
     
-    // 3. 转换完成后手动触发上传
+    isProcessingEmbedded.value = false
+    
+    // 4. 转换完成后手动触发上传
     uppy?.upload()
   })
   // 上传开始前，检查是否登录
