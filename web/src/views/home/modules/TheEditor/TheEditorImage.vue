@@ -98,7 +98,7 @@ import Close from '@/components/icons/close.vue'
 import LivePhotoIcon from '@/components/icons/livephoto.vue'
 import Play from '@/components/icons/play.vue'
 import { getMediaToAddUrl } from '@/utils/other'
-import { fetchDeleteMedia } from '@/service/api'
+import { fetchDeleteMedia, fetchDeleteEcho } from '@/service/api'
 import { theToast } from '@/utils/toast'
 import { useEchoStore } from '@/stores/echo'
 import { Mode, ImageSource } from '@/enums/enums'
@@ -111,7 +111,7 @@ const { openConfirm } = useBaseDialog()
 const echoStore = useEchoStore()
 const { echoToUpdate } = storeToRefs(echoStore)
 const editorStore = useEditorStore()
-const { mediaListToAdd: imagesToAdd, currentMode, isUpdateMode } = storeToRefs(editorStore)
+const { mediaListToAdd: imagesToAdd, currentMode, isUpdateMode, echoToAdd } = storeToRefs(editorStore)
 
 // 使用通用的媒体 Fancybox composable
 const {
@@ -336,81 +336,129 @@ const handleRemoveImage = (visibleIndex: number) => {
   const isLive = isLivePhoto(currentItem)
   const mediaType = isLive ? '实况照片' : (currentItem?.media_type === 'video' ? '视频' : '图片')
 
+  // 检查删除后是否会导致Echo为空（仅在更新模式下检查）
+  if (isUpdateMode.value && echoToUpdate.value) {
+    // 计算删除后剩余的媒体数量
+    const itemsToDelete = isLive ? 2 : 1 // 实况照片删除2个（图片+视频），普通媒体删除1个
+    const remainingMediaCount = imagesToAdd.value.length - itemsToDelete
+    
+    // 检查删除后Echo是否会变空
+    const willBeEmpty = !echoToAdd.value.content && 
+                        remainingMediaCount <= 0 && 
+                        !echoToAdd.value.extension && 
+                        !echoToAdd.value.extension_type
+    
+    if (willBeEmpty) {
+      // 询问用户是否删除整个Echo
+      openConfirm({
+        title: '删除后Echo将为空',
+        description: '是否删除整个Echo？删除后将无法恢复',
+        onConfirm: () => {
+          const echoId = echoToUpdate.value!.id
+          fetchDeleteEcho(echoId).then(() => {
+            theToast.success('Echo删除成功！')
+            // 退出更新模式
+            editorStore.handleExitUpdateMode()
+            // 刷新Echo列表
+            echoStore.refreshEchos()
+          }).catch((err) => {
+            console.error('删除Echo失败:', err)
+            theToast.error('删除失败，请重试')
+          })
+        },
+      })
+      return
+    }
+  }
+
+  // 删除媒体文件的通用函数
+  const deleteMediaFile = (item: App.Api.Ech0.MediaToAdd) => {
+    const { media_url, media_source, object_key } = item
+    if (media_source === ImageSource.LOCAL || media_source === ImageSource.S3) {
+      return fetchDeleteMedia({
+        url: String(media_url),
+        source: String(media_source),
+        object_key,
+      })
+    }
+    return Promise.resolve()
+  }
+
+  // 单个媒体删除的通用逻辑（乐观更新 + 回滚）
+  const deleteSingleMedia = (itemToDelete: App.Api.Ech0.MediaToAdd) => {
+    const originalItems = [...imagesToAdd.value]
+    imagesToAdd.value = imagesToAdd.value.filter(item => item !== itemToDelete)
+
+    deleteMediaFile(itemToDelete).then(() => {
+      console.log('✅ 媒体删除成功')
+      if (isUpdateMode.value && echoToUpdate.value) {
+        editorStore.handleAddOrUpdateEcho(true)
+      }
+    }).catch((err) => {
+      console.error('删除媒体文件失败:', err)
+      imagesToAdd.value = [...originalItems]
+      theToast.error('删除失败，请重试')
+    })
+  }
+
+  // 实况照片删除的原子性逻辑（图片+视频同时删除）
+  const deleteLivePhoto = (imageItem: App.Api.Ech0.MediaToAdd, videoItem: App.Api.Ech0.MediaToAdd) => {
+    const originalItems = [...imagesToAdd.value]
+    imagesToAdd.value = imagesToAdd.value.filter(item => item !== imageItem && item !== videoItem)
+
+    const deletePromises = [
+      deleteMediaFile(imageItem).catch(err => ({ error: err })),
+      deleteMediaFile(videoItem).catch(err => ({ error: err }))
+    ]
+
+    Promise.allSettled(deletePromises).then((results) => {
+      const hasFailure = results.some(result => 
+        result.status === 'rejected' || 
+        (result.status === 'fulfilled' && (result.value as any)?.error)
+      )
+
+      if (!hasFailure) {
+        console.log('✅ 媒体删除成功')
+        if (isUpdateMode.value && echoToUpdate.value) {
+          editorStore.handleAddOrUpdateEcho(true)
+        }
+      } else {
+        console.error('❌ 实况照片删除失败')
+        imagesToAdd.value = [...originalItems]
+        theToast.error('删除失败，请重试')
+      }
+    })
+  }
+
   openConfirm({
     title: `确定要移除${mediaType}吗？`,
     description: isLive ? '删除实况照片将同时删除图片和视频' : '',
     onConfirm: () => {
-      const deleteMediaFile = (item: App.Api.Ech0.MediaToAdd) => {
-        const mediaToDel: App.Api.Ech0.MediaToDelete = {
-          url: String(item.media_url),
-          source: String(item.media_source),
-          object_key: item.object_key,
-        }
-
-        if (mediaToDel.source === ImageSource.LOCAL || mediaToDel.source === ImageSource.S3) {
-          return fetchDeleteMedia({
-            url: mediaToDel.url,
-            source: mediaToDel.source,
-            object_key: mediaToDel.object_key,
-          })
-        }
-        return Promise.resolve()
-      }
-
-      // 如果是实况照片，找到并删除关联的视频
       if (isLive) {
-        let videoItem = null
-        let videoIndex = -1
+        // 查找关联的视频
+        let videoItem: App.Api.Ech0.MediaToAdd | null = null
         
         // 情况1: 已保存的实况照片 - 通过 live_video_id 查找
         if (currentItem.live_video_id) {
-          videoIndex = imagesToAdd.value.findIndex(m => m.id === currentItem.live_video_id)
-          if (videoIndex >= 0) {
-            videoItem = imagesToAdd.value[videoIndex]
-          }
+          videoItem = imagesToAdd.value.find(m => m.id === currentItem.live_video_id) || null
         }
         
         // 情况2: 新上传的实况照片 - 通过 live_pair_id 查找
         if (!videoItem && currentItem.live_pair_id) {
-          videoIndex = imagesToAdd.value.findIndex((m: any) => 
+          videoItem = imagesToAdd.value.find((m: any) => 
             m.media_type === 'video' && m.live_pair_id === currentItem.live_pair_id
-          )
-          if (videoIndex >= 0) {
-            videoItem = imagesToAdd.value[videoIndex]
-          }
+          ) || null
         }
-        
-        // 删除找到的视频
-        if (videoItem && videoIndex >= 0) {
-          deleteMediaFile(videoItem).then(() => {
-            // 从数组中删除视频
-            imagesToAdd.value.splice(videoIndex, 1)
-          }).catch((err) => {
-            console.error('删除实况照片视频失败:', err)
-          })
+
+        if (!videoItem) {
+          console.warn('未找到实况照片对应的视频，将只删除图片')
+          deleteSingleMedia(currentItem)
+        } else {
+          deleteLivePhoto(currentItem, videoItem)
         }
+      } else {
+        deleteSingleMedia(currentItem)
       }
-
-      // 删除图片/视频文件
-      deleteMediaFile(currentItem).then(() => {
-        // 从数组中删除当前项（需要重新查找索引，因为可能已经删除了视频）
-        const newIndex = imagesToAdd.value.indexOf(currentItem)
-        if (newIndex >= 0) {
-          imagesToAdd.value.splice(newIndex, 1)
-        }
-
-        // 如果删除成功且当前处于Echo更新模式，则需要立马执行更新（图片删除操作不可逆，需要立马更新确保后端数据同步）
-        if (isUpdateMode.value && echoToUpdate.value) {
-          editorStore.handleAddOrUpdateEcho(true)
-        }
-      }).catch((err) => {
-        console.error('删除媒体文件失败:', err)
-        // 即使删除失败也从数组中移除
-        const newIndex = imagesToAdd.value.indexOf(currentItem)
-        if (newIndex >= 0) {
-          imagesToAdd.value.splice(newIndex, 1)
-        }
-      })
     },
   })
 }
