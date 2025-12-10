@@ -59,11 +59,3 @@ func GetBaseName(urlOrPath string) string {
 
 	return strings.ToLower(filename)
 }
-
-// EmbeddedExtractor 嵌入式实况照片提取器接口（预留）
-type EmbeddedExtractor interface {
-	// IsEmbedded 检测文件是否为嵌入式实况照片
-	IsEmbedded(data []byte) bool
-	// Extract 提取图片和视频数据
-	Extract(data []byte) (image []byte, video []byte, err error)
-}

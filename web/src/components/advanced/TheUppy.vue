@@ -20,7 +20,7 @@ import {
   detectLivePhotoPairsFromMedia, 
   applyLivePhotoPairIds, 
   getBaseName,
-  isEmbeddedMotionPhoto,
+  detectEmbeddedMotionPhoto,
   separateEmbeddedMotionPhoto
 } from '@/utils/livephoto'
 /* --------------- 与Uppy相关 ---------------- */
@@ -128,19 +128,7 @@ const convertHeicToJpeg = async (file: any): Promise<void> => {
 // 嵌入式实况照片分离函数
 const separateEmbeddedMotionPhotoFile = async (file: any): Promise<boolean> => {
   try {
-    // 性能优化：跳过小文件（嵌入式实况照片通常 > 2MB）
-    if (file.size && file.size < 2 * 1024 * 1024) {
-      return false
-    }
-    
-    // 性能优化：只检测 JPEG 图片（大多数嵌入式实况照片是 JPEG）
-    const isJpeg = file.type === 'image/jpeg' || 
-                   file.type === 'image/jpg' ||
-                   file.name.toLowerCase().endsWith('.jpg') ||
-                   file.name.toLowerCase().endsWith('.jpeg')
-    if (!isJpeg) {
-      return false
-    }
+    console.log('🔍 检测嵌入式实况照片:', file.name, (file.size / (1024 * 1024)).toFixed(2) + 'MB')
     
     // 将 Uppy 文件转换为标准 File 对象
     const standardFile = new File([file.data as Blob], file.name, {
@@ -148,17 +136,21 @@ const separateEmbeddedMotionPhotoFile = async (file: any): Promise<boolean> => {
       lastModified: Date.now(),
     })
 
-    // 检测是否为嵌入式实况照片
-    const isEmbedded = await isEmbeddedMotionPhoto(standardFile)
-    if (!isEmbedded) {
+    // 检测是否为嵌入式实况照片（统一在 livephoto.ts 中处理所有检测逻辑）
+    const detection = await detectEmbeddedMotionPhoto(standardFile)
+    if (!detection.isEmbedded) {
       return false
     }
 
     console.log('检测到嵌入式实况照片，开始分离:', file.name)
     theToast.info('检测到嵌入式实况照片，正在分离...', { duration: 1500 })
 
-    // 分离图片和视频
-    const result = await separateEmbeddedMotionPhoto(standardFile)
+    // 分离图片和视频（使用已检测的数据，避免重复搜索）
+    const result = await separateEmbeddedMotionPhoto(
+      standardFile, 
+      detection.ftypPosition, 
+      detection.uint8Array
+    )
     if (!result) {
       theToast.warning('嵌入式实况照片分离失败，将上传原文件', { duration: 2000 })
       return false
@@ -167,12 +159,11 @@ const separateEmbeddedMotionPhotoFile = async (file: any): Promise<boolean> => {
     const { imageFile, videoFile } = result
 
     // 移除原文件
-    console.log('移除原始嵌入式文件:', file.name)
+    // 移除原始嵌入式文件并添加分离后的文件
     uppy?.removeFile(file.id)
 
     // 添加分离后的图片文件
     const imageId = `embedded-image-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
-    console.log('添加分离后的图片文件:', imageFile.name, 'ID:', imageId)
     uppy?.addFile({
       id: imageId,
       name: imageFile.name,
@@ -183,7 +174,6 @@ const separateEmbeddedMotionPhotoFile = async (file: any): Promise<boolean> => {
 
     // 添加分离后的视频文件
     const videoId = `embedded-video-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
-    console.log('添加分离后的视频文件:', videoFile.name, 'ID:', videoId)
     uppy?.addFile({
       id: videoId,
       name: videoFile.name,
@@ -192,7 +182,7 @@ const separateEmbeddedMotionPhotoFile = async (file: any): Promise<boolean> => {
       source: 'EmbeddedMotionPhoto',
     })
 
-    console.log('✅ 嵌入式实况照片分离完成，等待配对检测')
+    console.log('✅ 实况照片分离完成:', imageFile.name, '+', videoFile.name)
     theToast.success('实况照片分离完成！', { duration: 1500 })
 
     return true
@@ -208,7 +198,7 @@ const initUppy = () => {
   // 创建 Uppy 实例
   uppy = new Uppy({
     restrictions: {
-      maxNumberOfFiles: 12,
+      maxNumberOfFiles: 50,
       allowedFileTypes: [
         'image/*', 
         'video/*',

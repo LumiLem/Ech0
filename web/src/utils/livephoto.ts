@@ -11,103 +11,155 @@ export interface LivePhotoPair {
 
 /* ==================== 嵌入式实况照片分离 ==================== */
 
+// 常量定义
+const FTYP_SIGNATURE = [0x66, 0x74, 0x79, 0x70] as const // "ftyp" in ASCII
+const MIN_EMBEDDED_FILE_SIZE = 1024 * 1024 // 1MB
+const SEARCH_START_PERCENTAGE = 0.05 // 5%
+const SEARCH_END_PERCENTAGE = 0.8 // 80% - ftyp后面必须有足够空间存放视频数据
+const MP4_BOX_HEADER_SIZE = 4 // MP4 box header size
+
 /**
- * 检测文件是否为嵌入式实况照片
+ * 在字节数组中查找 ftyp 标记位置
+ * 搜索范围：5% → 80%
+ * 
+ * @param uint8Array 文件字节数组
+ * @param ftypSignature ftyp 标记字节序列
+ * @returns ftyp 位置，未找到返回 -1
+ */
+function findFtypPosition(uint8Array: Uint8Array, ftypSignature: readonly number[]): number {
+  // 搜索范围：
+  // - 从5%开始：跳过JPEG图片数据的主要部分，但保留足够的覆盖范围
+  // - 到80%结束：ftyp后面必须有足够空间存放完整的视频数据
+  const searchStart = Math.floor(uint8Array.length * SEARCH_START_PERCENTAGE) // 5%
+  const searchEnd = Math.floor(uint8Array.length * SEARCH_END_PERCENTAGE) // 80%
+  
+  for (let i = searchStart; i < searchEnd; i++) {
+    if (
+      uint8Array[i] === ftypSignature[0] &&
+      uint8Array[i + 1] === ftypSignature[1] &&
+      uint8Array[i + 2] === ftypSignature[2] &&
+      uint8Array[i + 3] === ftypSignature[3]
+    ) {
+      if (i >= MP4_BOX_HEADER_SIZE) {
+        return i
+      }
+    }
+  }
+  
+  return -1 // 未找到
+}
+
+/**
+ * 检测文件是否为嵌入式实况照片，并返回检测结果
  * 支持小米、三星等厂商的嵌入式实况照片格式
  * 格式：图片数据 + 特殊标记 + 视频数据
  * 
  * @param file 要检测的文件
- * @returns 是否为嵌入式实况照片
+ * @returns 检测结果：{ isEmbedded: boolean, ftypPosition?: number, uint8Array?: Uint8Array }
  */
-export async function isEmbeddedMotionPhoto(file: File): Promise<boolean> {
+export async function detectEmbeddedMotionPhoto(file: File): Promise<{
+  isEmbedded: boolean
+  ftypPosition?: number
+  uint8Array?: Uint8Array
+}> {
+  const startTime = performance.now()
+  
   try {
-    // 只检测图片文件
-    if (!file.type.startsWith('image/')) {
-      return false
+    // 只检测 JPEG 格式的图片
+    const isJpeg = file.type === 'image/jpeg' || 
+                   file.type === 'image/jpg' ||
+                   file.name.toLowerCase().endsWith('.jpg') ||
+                   file.name.toLowerCase().endsWith('.jpeg')
+    
+    if (!isJpeg) {
+      return { isEmbedded: false }
+    }
+
+    // 文件大小必须大于 1MB
+    if (!file.size || file.size < MIN_EMBEDDED_FILE_SIZE) {
+      return { isEmbedded: false }
     }
 
     // 读取文件内容
     const arrayBuffer = await file.arrayBuffer()
     const uint8Array = new Uint8Array(arrayBuffer)
 
-    // 查找 MP4 文件头标记 (ftyp)
-    // MP4 文件通常以 "ftyp" 标记开始，位于文件的某个位置
-    const ftypSignature = [0x66, 0x74, 0x79, 0x70] // "ftyp" in ASCII
+    // 使用统一的搜索函数查找 MP4 文件头标记
+    const ftypPosition = findFtypPosition(uint8Array, FTYP_SIGNATURE)
+    const endTime = performance.now()
+    const duration = Math.round(endTime - startTime)
     
-    // 从文件中间开始搜索（跳过图片数据）
-    // 通常图片数据不会超过文件的前 80%
-    const searchStart = Math.floor(uint8Array.length * 0.3)
-    
-    for (let i = searchStart; i < uint8Array.length - 4; i++) {
-      if (
-        uint8Array[i] === ftypSignature[0] &&
-        uint8Array[i + 1] === ftypSignature[1] &&
-        uint8Array[i + 2] === ftypSignature[2] &&
-        uint8Array[i + 3] === ftypSignature[3]
-      ) {
-        // 找到 ftyp 标记，检查前面是否有 MP4 box size
-        // MP4 box 格式：4字节大小 + 4字节类型
-        if (i >= 4) {
-          console.log('检测到嵌入式实况照片，ftyp 位置:', i)
-          return true
-        }
+    if (ftypPosition !== -1) {
+      console.log('✅ 检测到嵌入式实况照片:', file.name, `(${duration}ms)`, 'ftyp位置:', ((ftypPosition / uint8Array.length) * 100).toFixed(1) + '%')
+      return { 
+        isEmbedded: true, 
+        ftypPosition, 
+        uint8Array 
       }
     }
-
-    return false
+    
+    return { isEmbedded: false }
   } catch (error) {
     console.error('检测嵌入式实况照片失败:', error)
-    return false
+    return { isEmbedded: false }
   }
+}
+
+/**
+ * 检测文件是否为嵌入式实况照片（简化版本，保持向后兼容）
+ * @param file 要检测的文件
+ * @returns 是否为嵌入式实况照片
+ */
+export async function isEmbeddedMotionPhoto(file: File): Promise<boolean> {
+  const result = await detectEmbeddedMotionPhoto(file)
+  return result.isEmbedded
 }
 
 /**
  * 分离嵌入式实况照片为图片和视频两个文件
  * 
  * @param file 嵌入式实况照片文件
+ * @param ftypPosition 可选的 ftyp 位置（如果已知，避免重复搜索）
+ * @param uint8Array 可选的文件字节数组（如果已读取，避免重复读取）
  * @returns 分离后的图片和视频文件，失败返回 null
  */
 export async function separateEmbeddedMotionPhoto(
-  file: File
+  file: File,
+  ftypPosition?: number,
+  uint8Array?: Uint8Array
 ): Promise<{ imageFile: File; videoFile: File } | null> {
   try {
-    const arrayBuffer = await file.arrayBuffer()
-    const uint8Array = new Uint8Array(arrayBuffer)
+    console.log('🔧 分离嵌入式实况照片:', file.name)
+    
+    // 如果没有提供字节数组，则读取文件
+    let fileData = uint8Array
+    if (!fileData) {
+      const arrayBuffer = await file.arrayBuffer()
+      fileData = new Uint8Array(arrayBuffer)
+    }
 
-    // 查找 MP4 文件头标记
-    const ftypSignature = [0x66, 0x74, 0x79, 0x70] // "ftyp"
-    const searchStart = Math.floor(uint8Array.length * 0.3)
-    
-    let videoStartPos = -1
-    
-    for (let i = searchStart; i < uint8Array.length - 4; i++) {
-      if (
-        uint8Array[i] === ftypSignature[0] &&
-        uint8Array[i + 1] === ftypSignature[1] &&
-        uint8Array[i + 2] === ftypSignature[2] &&
-        uint8Array[i + 3] === ftypSignature[3]
-      ) {
-        // 找到 ftyp，往前找 MP4 box 的起始位置（4字节大小信息）
-        if (i >= 4) {
-          videoStartPos = i - 4
-          break
-        }
+    // 如果没有提供 ftyp 位置，则搜索
+    let ftypPos = ftypPosition
+    if (ftypPos === undefined) {
+      ftypPos = findFtypPosition(fileData, FTYP_SIGNATURE)
+      if (ftypPos === -1) {
+        console.error('❌ 分离失败：未找到视频数据起始位置')
+        return null
       }
     }
+    
+    // MP4 box 格式：4字节大小 + 4字节类型，所以视频起始位置是 ftyp 前面的 box header
+    const videoStartPos = ftypPos - MP4_BOX_HEADER_SIZE
+    console.log('✅ 使用已知位置分离视频数据，起始位置:', videoStartPos)
 
-    if (videoStartPos === -1) {
-      console.error('未找到视频数据起始位置')
-      return null
-    }
-
-    console.log('视频数据起始位置:', videoStartPos)
+    // console.log('📍 视频数据起始位置:', videoStartPos, '占文件比例:', ((videoStartPos / uint8Array.length) * 100).toFixed(1) + '%')
 
     // 分离图片数据（从开始到视频起始位置）
-    const imageData = uint8Array.slice(0, videoStartPos)
+    const imageData = fileData.slice(0, videoStartPos)
     const imageBlob = new Blob([imageData], { type: 'image/jpeg' })
     
     // 分离视频数据（从视频起始位置到文件末尾）
-    const videoData = uint8Array.slice(videoStartPos)
+    const videoData = fileData.slice(videoStartPos)
     const videoBlob = new Blob([videoData], { type: 'video/mp4' })
 
     // 生成文件名
@@ -123,11 +175,16 @@ export async function separateEmbeddedMotionPhoto(
 
     console.log('✅ 嵌入式实况照片分离成功:', {
       original: file.name,
-      originalName: originalName,
+      originalSize: fileData.length,
+      originalSizeMB: (fileData.length / (1024 * 1024)).toFixed(2) + 'MB',
       imageName: imageFile.name,
-      videoName: videoFile.name,
       imageSize: imageBlob.size,
+      imageSizeMB: (imageBlob.size / (1024 * 1024)).toFixed(2) + 'MB',
+      videoName: videoFile.name,
       videoSize: videoBlob.size,
+      videoSizeMB: (videoBlob.size / (1024 * 1024)).toFixed(2) + 'MB',
+      videoStartPos: videoStartPos,
+      videoStartPercentage: ((videoStartPos / fileData.length) * 100).toFixed(1) + '%'
     })
 
     return { imageFile, videoFile }
