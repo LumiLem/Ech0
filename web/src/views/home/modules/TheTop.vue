@@ -34,21 +34,28 @@
           </a>
         </div>
         <!-- Ech0 Hub -->
-        <div>
-          <a v-if="isInAppBrowser" href="/hub" title="Ech0 Hub">
+        <div class="relative">
+          <a v-if="isInAppBrowser" href="/hub" title="Ech0 Hub" @click="handleHubClick">
             <HubIcon class="w-8 h-8 text-[var(--text-color-400)]" />
           </a>
-          <RouterLink v-else to="/hub" title="Ech0 Hub">
+          <RouterLink v-else to="/hub" title="Ech0 Hub" @click="handleHubClick">
             <HubIcon class="w-8 h-8 text-[var(--text-color-400)]" />
           </RouterLink>
+          <!-- 更新提示红点 -->
+          <div
+            v-if="hubUpdateCount > 0"
+            class="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-xs rounded-full flex items-center justify-center px-1 font-bold"
+          >
+            {{ hubUpdateCount > 99 ? '99+' : hubUpdateCount }}
+          </div>
         </div>
         <!-- Ech0 Widget -->
         <div class="block xl:hidden">
           <a v-if="isInAppBrowser" href="/widget" title="Ech0 Widget">
-            <Widget class="w-8 h-8 text-[var(--text-color-400)]" />
+            <Widget :class="widgetIconClass" />
           </a>
           <RouterLink v-else to="/widget" title="Ech0 Widget">
-            <Widget class="w-8 h-8 text-[var(--text-color-400)]" />
+            <Widget :class="widgetIconClass" />
           </RouterLink>
         </div>
         <!-- PanelPage -->
@@ -72,8 +79,10 @@ import Rss from '@/components/icons/rss.vue'
 import HubIcon from '@/components/icons/hub.vue'
 import { RouterLink } from 'vue-router'
 import { useEchoStore } from '@/stores/echo'
+import { useTodoStore } from '@/stores/todo'
+import { useConnectStore } from '@/stores/connect'
 import { storeToRefs } from 'pinia'
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import Close from '@/components/icons/close.vue'
 import Filter from '@/components/icons/filter.vue'
 import Widget from '@/components/icons/widget.vue'
@@ -88,10 +97,34 @@ onMounted(() => {
 })
 
 const echoStore = useEchoStore()
+const todoStore = useTodoStore()
+const connectStore = useConnectStore()
 const { refreshForSearch, getEchosByPage } = echoStore
+const { clearHubUpdates } = connectStore
 const { searchingMode, filteredTag, isFilteringMode } = storeToRefs(echoStore)
+const { todos } = storeToRefs(todoStore)
+const { hubUpdateCount } = storeToRefs(connectStore)
 
 const searchContent = ref<string>('')
+
+// 检查是否有未完成的待办事项
+const hasIncompleteTodos = computed(() => {
+  return todos.value.some(todo => todo.status === 0)
+})
+
+// 动态计算Widget图标的样式类
+const widgetIconClass = computed(() => {
+  const baseClass = 'w-8 h-8 text-[var(--text-color-400)]'
+  if (hasIncompleteTodos.value) {
+    return `${baseClass} animate-pulse`
+  }
+  return baseClass
+})
+
+// 处理Hub点击，清除更新提示
+const handleHubClick = () => {
+  clearHubUpdates()
+}
 
 const handleSearch = () => {
   console.log('搜索内容:', searchContent.value)
