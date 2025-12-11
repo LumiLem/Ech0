@@ -25,6 +25,15 @@
       <TheConnects class="mb-2" />
       <TheRecentCard v-if="AgentSetting.enable" />
     </div>
+
+    <!-- PC端固定定位的回到顶部按钮 -->
+    <div
+      v-show="showBackTop"
+      :style="backTopStyle"
+      class="hidden xl:block fixed bottom-6 z-50 transition-all duration-500 animate-fade-in"
+    >
+      <TheBackTop class="w-8 h-8 p-1" />
+    </div>
   </div>
 </template>
 
@@ -48,6 +57,7 @@ import { useEditorStore } from '@/stores/editor'
 import { useSettingStore } from '@/stores/setting'
 import { storeToRefs } from 'pinia'
 import TheAudioCard from '@/components/advanced/TheAudioCard.vue'
+import TheBackTop from '@/components/advanced/TheBackTop.vue'
 
 const todoStore = useTodoStore()
 const userStore = useUserStore()
@@ -62,6 +72,12 @@ const { AgentSetting } = storeToRefs(settingStore)
 
 const mainColumn = ref<HTMLElement | null>(null)
 const backTopStyle = ref({ right: '100px' }) // 默认 fallback
+const showBackTop = ref(true) // PC端回到顶部按钮显示控制
+
+// 监听窗口滚动事件，判断是否显示回到顶部按钮（PC端）
+const updateShowBackTop = () => {
+  showBackTop.value = window.scrollY > 300
+}
 
 const updatePosition = () => {
   if (mainColumn.value) {
@@ -74,12 +90,15 @@ const updatePosition = () => {
 }
 
 onMounted(async () => {
-  // 监听窗口大小变化
+  // 监听窗口大小变化和滚动事件
+  updateShowBackTop()
   updatePosition()
+  window.addEventListener('scroll', updateShowBackTop)
   window.addEventListener('resize', updatePosition)
 })
 
 onBeforeUnmount(() => {
+  window.removeEventListener('scroll', updateShowBackTop)
   window.removeEventListener('resize', updatePosition)
 })
 </script>

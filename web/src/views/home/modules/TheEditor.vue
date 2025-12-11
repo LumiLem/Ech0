@@ -170,7 +170,7 @@ watch(
       echoToAdd.value.private = echoToUpdate.value?.private || false
       echoToAdd.value.layout = echoToUpdate.value?.layout || ImageLayout.WATERFALL
 
-      // 6. 回到页面顶部（触发BackToTop）
+      // 6. 回到页面顶部（进入编辑模式）
       window.scrollTo({ top: 0, behavior: 'smooth' })
 
       // 7. 弹出通知，提示可以编辑了

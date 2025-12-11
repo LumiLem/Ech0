@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full">
+  <div class="w-full" :data-echo-id="props.echo.id">
     <!-- 日期时间 && 操作按钮 -->
     <div class="flex justify-between items-center">
       <!-- 日期时间 -->
@@ -19,7 +19,7 @@
           @click="handleFilterByTag"
           class="text-sm text-[var(--timeline-tag-color)] w-24 px-1 truncate text-nowrap hover:cursor-pointer hover:text-[var(--text-color-400)] hover:underline hover:decoration-offset-3 hover:decoration-1"
         >
-          <span>{{ props.echo.tags ? `#${props.echo.tags[0]?.name}` : '' }}</span>
+          <span>{{ props.echo.tags && props.echo.tags[0]?.name ? `#${props.echo.tags[0].name}` : '' }}</span>
         </div>
       </div>
 

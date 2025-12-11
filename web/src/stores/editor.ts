@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { theToast } from '@/utils/toast'
-import { fetchAddEcho, fetchUpdateEcho, fetchAddTodo, fetchGetMusic } from '@/service/api'
+import { fetchAddEcho, fetchUpdateEcho, fetchAddTodo, fetchGetMusic, fetchGetEchoById } from '@/service/api'
 import { Mode, ExtensionType, ImageSource, ImageLayout } from '@/enums/enums'
 import { useEchoStore } from '@/stores/echo'
 import { useTodoStore } from '@/stores/todo'
@@ -228,11 +228,23 @@ export const useEditorStore = defineStore('editorStore', () => {
     // 如果是更新模式且不是仅同步媒体，检测是否有实际变更
     if (!justSyncMedia && isUpdateMode.value && !hasChanges()) {
       theToast.info('没有需要更新的内容，已退出更新模式')
+      
+      // 保存要回到的Echo ID
+      const echoId = echoStore.echoToUpdate?.id
+      
       // 自动退出更新模式
       clearEditor()
       isUpdateMode.value = false
       echoStore.echoToUpdate = null
       setMode(Mode.ECH0)
+      
+      // 滚动回到编辑内容的位置
+      if (echoId) {
+        setTimeout(() => {
+          scrollToEditedEcho(echoId)
+        }, 100)
+      }
+      
       return
     }
 
@@ -296,20 +308,18 @@ export const useEditorStore = defineStore('editorStore', () => {
         echoStore.echoToUpdate.extension_type = echoToAdd.value.extension_type
         echoStore.echoToUpdate.tags = echoToAdd.value.tags
 
+        // 保存要更新的Echo ID，用于后续滚动定位
+        const updatedEchoId = echoStore.echoToUpdate.id
+
         // 更新 Echo
-        theToast.promise(fetchUpdateEcho(echoStore.echoToUpdate), {
+        const updatePromise = fetchUpdateEcho(echoStore.echoToUpdate)
+        
+        theToast.promise(updatePromise, {
           loading: justSyncMedia ? '🔁同步图片/视频中...' : '🚀更新中...',
           success: (res) => {
             if (res.code === 1 && !justSyncMedia) {
-              clearEditor()
-              echoStore.refreshEchos()
-              isUpdateMode.value = false
-              echoStore.echoToUpdate = null
-              setMode(Mode.ECH0)
-              echoStore.getTags() // 刷新标签列表
               return '🎉更新成功！'
             } else if (res.code === 1 && justSyncMedia) {
-              echoStore.refreshEchos() // 刷新列表以显示新媒体
               return '🔁发现图片/视频更改，已自动更新同步Echo！'
             } else {
               return '😭更新失败，请稍后再试！'
@@ -317,9 +327,53 @@ export const useEditorStore = defineStore('editorStore', () => {
           },
           error: '😭更新失败，请稍后再试！',
         })
+
+        // 等待更新完成后，从服务器获取最新数据
+        updatePromise.then(async (res) => {
+          if (res.code === 1) {
+            // 参考现有模式：直接使用 fetchGetEchoById 获取最新数据
+            const latestRes = await fetchGetEchoById(String(updatedEchoId))
+            if (latestRes.code === 1 && latestRes.data) {
+              // 使用服务器最新数据更新本地
+              echoStore.updateEcho(latestRes.data)
+            }
+            
+            if (!justSyncMedia) {
+              // 完整更新模式的后续处理
+              clearEditor()
+              isUpdateMode.value = false
+              echoStore.echoToUpdate = null
+              setMode(Mode.ECH0)
+              echoStore.getTags() // 刷新标签列表
+              
+              // 延迟滚动到编辑的内容位置
+              setTimeout(() => {
+                scrollToEditedEcho(updatedEchoId)
+              }, 100)
+            }
+          }
+        })
       }
     } finally {
       isSubmitting.value = false
+    }
+  }
+
+  //===============================================================
+  // 滚动到编辑的内容位置
+  //===============================================================
+  const scrollToEditedEcho = (echoId: number) => {
+    // 查找对应的Echo元素
+    const echoElement = document.querySelector(`[data-echo-id="${echoId}"]`)
+    if (echoElement) {
+      // 滚动到该元素，并留出一些顶部空间
+      const elementTop = echoElement.getBoundingClientRect().top + window.pageYOffset
+      const offsetTop = elementTop - 100 // 留出100px的顶部空间
+      
+      window.scrollTo({
+        top: offsetTop,
+        behavior: 'smooth'
+      })
     }
   }
 
@@ -432,11 +486,21 @@ export const useEditorStore = defineStore('editorStore', () => {
   // 退出更新模式
   //===============================================================
   const handleExitUpdateMode = () => {
+    // 保存要回到的Echo ID
+    const echoId = echoStore.echoToUpdate?.id
+    
     isUpdateMode.value = false
     echoStore.echoToUpdate = null
     clearEditor()
     setMode(Mode.ECH0)
     theToast.info('已退出更新模式')
+    
+    // 延迟滚动回到原来编辑的内容位置
+    if (echoId) {
+      setTimeout(() => {
+        scrollToEditedEcho(echoId)
+      }, 100)
+    }
   }
 
   //===============================================================
@@ -496,5 +560,6 @@ export const useEditorStore = defineStore('editorStore', () => {
     syncEchoExtension,
     clearExtension,
     handleUppyUploaded,
+    scrollToEditedEcho,
   }
 })

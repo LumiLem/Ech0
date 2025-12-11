@@ -23,7 +23,7 @@
           >继续装填</span
         >
       </BaseButton>
-      <TheBackTop class="w-8 h-8 p-1" />
+      <TheBackTop class="xl:hidden w-8 h-8 p-1" />
     </div>
     <!-- 没有更多 -->
     <div v-if="!echoStore.hasMore && !echoStore.isLoading" class="mx-auto my-5 text-center">

@@ -125,9 +125,16 @@ export const useEchoStore = defineStore('echoStore', () => {
   }
 
   const updateEcho = (echo: App.Api.Ech0.Echo) => {
+    // 更新主列表
     const idx = echoIndexMap.value.get(echo.id)
     if (idx !== undefined) {
       echoList.value[idx] = echo // 更新
+    }
+    
+    // 更新过滤列表（如果存在）
+    const filteredIdx = filteredEchoIndexMap.value.get(echo.id)
+    if (filteredIdx !== undefined) {
+      filteredEchoList.value[filteredIdx] = echo // 更新过滤列表
     }
   }
 

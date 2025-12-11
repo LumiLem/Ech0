@@ -11,13 +11,17 @@
       </div>
     </div>
     <!-- 加载更多 -->
-    <div v-if="echoStore.filteredHasMore && !echoStore.isLoading" class="mb-4 mt-1 -ml-2">
+    <div
+      v-if="echoStore.filteredHasMore && !echoStore.isLoading"
+      class="mb-4 mt-1 -ml-2 flex items-center justify-between"
+    >
       <BaseButton
         @click="handleLoadMore"
-        class="rounded-full bg-[var(--timeline-load-more-bg-color)] !active:bg-[var(--bg-color-100)]"
+        class="rounded-full bg-[var(--timeline-load-more-bg-color)] !active:bg-[var(--bg-color-100)] mr-2"
       >
         <span class="text-[var(--text-color-600)] text-md text-center px-2 py-1">继续装填</span>
       </BaseButton>
+      <TheBackTop class="xl:hidden w-8 h-8 p-1" />
     </div>
     <!-- 没有更多 -->
     <div v-if="!echoStore.filteredHasMore && !echoStore.isLoading" class="mx-auto my-5 text-center">
@@ -45,6 +49,7 @@ import { useEchoStore } from '@/stores/echo'
 import { useSettingStore } from '@/stores/setting'
 import BaseButton from '@/components/common/BaseButton.vue'
 import { storeToRefs } from 'pinia'
+import TheBackTop from '@/components/advanced/TheBackTop.vue'
 
 const echoStore = useEchoStore()
 const settingStore = useSettingStore()

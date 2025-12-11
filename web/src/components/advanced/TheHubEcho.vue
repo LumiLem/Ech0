@@ -116,7 +116,7 @@
         </div>
         <!-- 标签 -->
         <div class="text-sm text-[var(--text-color-300)] w-18 truncate text-nowrap">
-          <span>{{ props.echo.tags ? `#${props.echo.tags[0]?.name}` : '' }}</span>
+          <span>{{ props.echo.tags && props.echo.tags[0]?.name ? `#${props.echo.tags[0].name}` : '' }}</span>
         </div>
       </div>
 
