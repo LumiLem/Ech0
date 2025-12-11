@@ -410,7 +410,7 @@ func (echoRepository *EchoRepository) GetEchosByTagId(
 	}
 
 	if err := echoRepository.db().
-		Where("id IN ?", echoIDs).
+		Where("echos.id IN ?", echoIDs).
 		Preload("Images").
 		Preload("Tags").
 		Joins("User").
