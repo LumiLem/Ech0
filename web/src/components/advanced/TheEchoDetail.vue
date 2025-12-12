@@ -106,8 +106,11 @@
     <div class="flex justify-between items-center">
       <!-- 日期时间 -->
       <div class="flex justify-start items-center h-auto">
-        <div class="flex justify-start text-sm text-[var(--echo-detail-datetime-color)] mr-1">
-          {{ formatDate(props.echo.created_at) }}
+        <div 
+          class="flex justify-start text-sm text-[var(--echo-detail-datetime-color)] mr-1 cursor-pointer"
+          @click="toggleTimeDisplay"
+        >
+          {{ displayTime }}
         </div>
         <!-- 标签 -->
         <div class="text-sm text-[var(--text-color-300)] w-18 truncate text-nowrap">
@@ -178,7 +181,7 @@ import { useSettingStore } from '@/stores/setting'
 import { useUserStore } from '@/stores/user'
 import { getApiUrl } from '@/service/request/shared'
 import { ExtensionType, ImageLayout } from '@/enums/enums'
-import { formatDate } from '@/utils/other'
+import { formatDate, formatDetailedTime } from '@/utils/other'
 import { useThemeStore } from '@/stores/theme'
 
 const emit = defineEmits(['updateLikeCount'])
@@ -204,6 +207,7 @@ const previewOptions = {
 
 const isLikeAnimating = ref(false)
 const isShareAnimating = ref(false)
+const showDetailedTime = ref(false)
 
 const LIKE_LIST_KEY = 'likedEchoIds'
 const likedEchoIds: number[] = localStg.getItem(LIKE_LIST_KEY) || []
@@ -289,6 +293,18 @@ const handleImageError = (event: Event) => {
   const img = event.target as HTMLImageElement
   img.src = '/favicon.svg'
 }
+
+// 时间显示切换功能
+const toggleTimeDisplay = () => {
+  showDetailedTime.value = !showDetailedTime.value
+}
+
+// 计算显示的时间
+const displayTime = computed(() => {
+  return showDetailedTime.value 
+    ? formatDetailedTime(props.echo.created_at)
+    : formatDate(props.echo.created_at)
+})
 
 onMounted(() => {
   // 获取系统设置

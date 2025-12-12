@@ -80,8 +80,32 @@ export const formatDate = (dateString: string) => {
   } else {
     const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
     const weekDay = weekDays[date.getDay()]
+    
+    // 如果是今年，不显示年份
+    const isCurrentYear = date.getFullYear() === now.getFullYear()
+    if (isCurrentYear) {
+      return `${date.getMonth() + 1}月${date.getDate()}日 ${weekDay}`
+    } else {
+      return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 ${weekDay}`
+    }
+  }
+}
 
-    return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 · ${weekDay}`
+// 格式化详细时间，今年不显示年份："12月10日 周二 14:30"，非今年显示年份："2023年12月10日 周二 14:30"
+export const formatDetailedTime = (dateString: string) => {
+  const date = new Date(dateString)
+  const now = new Date()
+  const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+  const weekDay = weekDays[date.getDay()]
+  const hours = date.getHours().toString().padStart(2, '0')
+  const minutes = date.getMinutes().toString().padStart(2, '0')
+
+  // 如果是今年，不显示年份
+  const isCurrentYear = date.getFullYear() === now.getFullYear()
+  if (isCurrentYear) {
+    return `${date.getMonth() + 1}月${date.getDate()}日 ${weekDay} ${hours}:${minutes}`
+  } else {
+    return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 ${weekDay} ${hours}:${minutes}`
   }
 }
 
