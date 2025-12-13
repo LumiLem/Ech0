@@ -382,6 +382,54 @@ func (commonService *CommonService) GetHeatMap() ([]commonModel.Heatmap, error) 
 	return results[:], nil
 }
 
+func (commonService *CommonService) GetHeatMapByMonth(year, month int) ([]commonModel.Heatmap, error) {
+	// 计算指定月份的第一天和最后一天
+	monthFirstDay := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.Local)
+	monthLastDay := monthFirstDay.AddDate(0, 1, -1)
+
+	// 计算日历视图需要的实际日期范围
+	// 日历从周日开始，需要包含上个月末的日期
+	startWeekDay := int(monthFirstDay.Weekday()) // 0=周日, 1=周一, ...
+	calendarStartDate := monthFirstDay.AddDate(0, 0, -startWeekDay)
+
+	// 计算日历需要的总天数（包括上月末和下月初）
+	totalDays := startWeekDay + monthLastDay.Day()
+	weeksNeeded := (totalDays + 6) / 7 // 向上取整
+	totalCalendarDays := weeksNeeded * 7
+	calendarEndDate := calendarStartDate.AddDate(0, 0, totalCalendarDays-1)
+
+	startDateStr := calendarStartDate.Format("2006-01-02")
+	endDateStr := calendarEndDate.Format("2006-01-02")
+
+	// 数据库查询（获取日历视图完整范围的数据）
+	heatmapData, err := commonService.commonRepository.GetHeatMap(startDateStr, endDateStr)
+	if err != nil {
+		return nil, err
+	}
+
+	// 创建日期到数据的映射
+	heatmapMap := make(map[string]commonModel.Heatmap)
+	for _, item := range heatmapData {
+		heatmapMap[item.Date] = item
+	}
+
+	// 生成日历视图所有日期的数据
+	results := make([]commonModel.Heatmap, totalCalendarDays)
+	for i := 0; i < totalCalendarDays; i++ {
+		date := calendarStartDate.AddDate(0, 0, i).Format("2006-01-02")
+		if item, ok := heatmapMap[date]; ok {
+			results[i] = item
+		} else {
+			results[i] = commonModel.Heatmap{
+				Date:  date,
+				Count: 0,
+			}
+		}
+	}
+
+	return results, nil
+}
+
 func (commonService *CommonService) GenerateRSS(ctx *gin.Context) (string, error) {
 	// 获取所有Echo
 	echos, err := commonService.commonRepository.GetAllEchos(false)

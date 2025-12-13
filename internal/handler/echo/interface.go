@@ -32,4 +32,7 @@ type EchoHandlerInterface interface {
 
 	// GetEchosByTagId 获取指定标签 ID 的 Echo 列表
 	GetEchosByTagId() gin.HandlerFunc
+
+	// GetEchosByDate 获取指定日期的 Echo 列表
+	GetEchosByDate() gin.HandlerFunc
 }

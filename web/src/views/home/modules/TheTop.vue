@@ -15,12 +15,22 @@
         />
         <!-- 过滤条件 -->
         <Filter v-if="isFilteringMode" class="w-7 h-7" />
+        <!-- 标签筛选 -->
         <div
           v-if="isFilteringMode && filteredTag"
           @click="handleCancelFilter"
           class="w-34 text-nowrap flex items-center justify-between px-1 py-0.5 text-[var(--text-color-300)] border border-dashed border-[var(--border-color-400)] rounded-md hover:cursor-pointer hover:line-through hover:text-[var(--text-color-500)]"
         >
           <p class="text-nowrap truncate">{{ filteredTag.name }}</p>
+          <Close class="inline w-4 h-4 ml-1" />
+        </div>
+        <!-- 日期筛选 -->
+        <div
+          v-if="isFilteringMode && (filteredDate || filteredYearMonth)"
+          @click="handleCancelFilter"
+          class="w-34 text-nowrap flex items-center justify-between px-1 py-0.5 text-[var(--text-color-300)] border border-dashed border-[var(--border-color-400)] rounded-md hover:cursor-pointer hover:line-through hover:text-[var(--text-color-500)]"
+        >
+          <p class="text-nowrap truncate">{{ filterDateLabel }}</p>
           <Close class="inline w-4 h-4 ml-1" />
         </div>
       </div>
@@ -101,7 +111,7 @@ const todoStore = useTodoStore()
 const connectStore = useConnectStore()
 const { refreshForSearch, getEchosByPage } = echoStore
 const { clearHubUpdates } = connectStore
-const { searchingMode, filteredTag, isFilteringMode } = storeToRefs(echoStore)
+const { searchingMode, filteredTag, isFilteringMode, filteredDate, filteredYearMonth, isDateFilteringMode } = storeToRefs(echoStore)
 const { todos } = storeToRefs(todoStore)
 const { hubUpdateCount } = storeToRefs(connectStore)
 
@@ -110,6 +120,17 @@ const searchContent = ref<string>('')
 // 检查是否有未完成的待办事项
 const hasIncompleteTodos = computed(() => {
   return todos.value.some(todo => todo.status === 0)
+})
+
+// 日期筛选显示标签
+const filterDateLabel = computed(() => {
+  if (filteredDate.value) {
+    return filteredDate.value
+  }
+  if (filteredYearMonth.value) {
+    return `${filteredYearMonth.value.year}年${filteredYearMonth.value.month}月`
+  }
+  return ''
 })
 
 // 动态计算Widget图标的样式类
@@ -143,7 +164,10 @@ const handleSearch = () => {
 
 const handleCancelFilter = () => {
   echoStore.isFilteringMode = false
+  echoStore.isDateFilteringMode = false
   echoStore.filteredTag = null
+  echoStore.filteredDate = null
+  echoStore.filteredYearMonth = null
   echoStore.refreshEchosForFilter()
 }
 </script>

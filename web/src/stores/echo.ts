@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
-import { fetchGetEchosByPage, fetchGetTags, fetchGetEchosByTagId } from '@/service/api'
+import { fetchGetEchosByPage, fetchGetTags, fetchGetEchosByTagId, fetchGetEchosByDate } from '@/service/api'
 
 export const useEchoStore = defineStore('echoStore', () => {
   /**
@@ -42,6 +42,11 @@ export const useEchoStore = defineStore('echoStore', () => {
     return filteredSearchValue.value.length > 0
   }) // 过滤后是否处于搜索模式
 
+  // 日期筛选相关
+  const isDateFilteringMode = ref<boolean>(false) // 是否正在通过日期过滤
+  const filteredDate = ref<string | null>(null) // 当前用于过滤的日期 (YYYY-MM-DD)
+  const filteredYearMonth = ref<{ year: number; month: number } | null>(null) // 当前用于过滤的年月
+
   // 监听 searchingMode 的变化
   watch(searchingMode, (newValue, oldValue) => {
     // 如果从搜索模式切换到非搜索模式，重置当前页码和数据列表
@@ -60,6 +65,14 @@ export const useEchoStore = defineStore('echoStore', () => {
   // 监听 isFilteringMode 的变化
   watch(isFilteringMode, (newValue, oldValue) => {
     // 如果从过滤模式切换到非过滤模式，重置当前页码和数据列表
+    if (newValue === false && oldValue === true) {
+      refreshEchosForFilter()
+    }
+  })
+
+  // 监听 isDateFilteringMode 的变化
+  watch(isDateFilteringMode, (newValue, oldValue) => {
+    // 如果从日期过滤模式切换到非过滤模式，重置当前页码和数据列表
     if (newValue === false && oldValue === true) {
       refreshEchosForFilter()
     }
@@ -167,15 +180,14 @@ export const useEchoStore = defineStore('echoStore', () => {
   async function getEchosByPageForFilter() {
     if (filteredCurrent.value <= filteredPage.value) return
 
-    if (!filteredTag.value) return
-
-    isLoading.value = true
-
-    await fetchGetEchosByTagId(filteredTag.value.id, {
-      page: filteredCurrent.value,
-      pageSize: filteredPageSize.value,
-      search: filteredSearchValue.value || '',
-    })
+    // 标签筛选模式
+    if (filteredTag.value) {
+      isLoading.value = true
+      await fetchGetEchosByTagId(filteredTag.value.id, {
+        page: filteredCurrent.value,
+        pageSize: filteredPageSize.value,
+        search: filteredSearchValue.value || '',
+      })
       .then((res) => {
         if (res.code === 1) {
           filteredTotal.value = res.data.total
@@ -197,6 +209,46 @@ export const useEchoStore = defineStore('echoStore', () => {
       .finally(() => {
         isLoading.value = false
       })
+      return
+    }
+
+    // 日期筛选模式
+    if (filteredDate.value || filteredYearMonth.value) {
+      isLoading.value = true
+      const params: App.Api.Ech0.ParamsByPagination & { date?: string; year?: number; month?: number } = {
+        page: filteredCurrent.value,
+        pageSize: filteredPageSize.value,
+        search: filteredSearchValue.value || '',
+      }
+      if (filteredDate.value) {
+        params.date = filteredDate.value
+      } else if (filteredYearMonth.value) {
+        params.year = filteredYearMonth.value.year
+        params.month = filteredYearMonth.value.month
+      }
+
+      await fetchGetEchosByDate(params)
+        .then((res) => {
+          if (res.code === 1) {
+            filteredTotal.value = res.data.total
+
+            res.data.items.forEach((item: App.Api.Ech0.Echo) => {
+              const idx = filteredEchoIndexMap.value.get(item.id)
+              if (idx !== undefined) {
+                filteredEchoList.value[idx] = item
+              } else {
+                filteredEchoList.value.push(item)
+                filteredEchoIndexMap.value.set(item.id, filteredEchoList.value.length - 1)
+              }
+            })
+
+            filteredPage.value += 1
+          }
+        })
+        .finally(() => {
+          isLoading.value = false
+        })
+    }
   }
 
   const refreshForFilterSearch = () => {
@@ -235,6 +287,9 @@ export const useEchoStore = defineStore('echoStore', () => {
     filteredHasMore,
     filteredTag,
     filteredSearchingMode,
+    isDateFilteringMode,
+    filteredDate,
+    filteredYearMonth,
     refreshForFilterSearch,
     getEchosByPageForFilter,
     refreshEchosForFilter,

@@ -73,10 +73,12 @@ export function fetchGetStatus() {
   })
 }
 
-// 获取一个月内的热力图
-export function fetchGetHeatMap() {
+// 获取热力图数据
+// 不传参数返回近30天数据，传year和month返回指定月份数据
+export function fetchGetHeatMap(year?: number, month?: number) {
+  const params = year && month ? `?year=${year}&month=${month}` : ''
   return request<App.Api.Ech0.HeatMap>({
-    url: `/heatmap`,
+    url: `/heatmap${params}`,
     method: 'GET',
   })
 }
@@ -134,6 +136,24 @@ export function fetchDeleteTagById(tagId: number) {
 export function fetchGetEchosByTagId(tagId: number, searchParams: App.Api.Ech0.ParamsByPagination) {
   return request<App.Api.Ech0.PaginationResult>({
     url: `/echo/tag/${tagId}?page=${searchParams.page}&pageSize=${searchParams.pageSize}&search=${searchParams.search || ''}`,
+    method: 'GET',
+  })
+}
+
+// 根据日期查询Echos（支持分页）
+// date: 具体日期 YYYY-MM-DD，或者传 year 和 month 获取整月数据
+export function fetchGetEchosByDate(
+  searchParams: App.Api.Ech0.ParamsByPagination & { date?: string; year?: number; month?: number }
+) {
+  const { page, pageSize, search, date, year, month } = searchParams
+  let params = `page=${page}&pageSize=${pageSize}&search=${search || ''}`
+  if (date) {
+    params += `&date=${date}`
+  } else if (year && month) {
+    params += `&year=${year}&month=${month}`
+  }
+  return request<App.Api.Ech0.PaginationResult>({
+    url: `/echo/date?${params}`,
     method: 'GET',
   })
 }

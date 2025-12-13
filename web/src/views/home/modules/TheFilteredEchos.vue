@@ -44,7 +44,7 @@
 
 <script setup lang="ts">
 import TheEchoCard from '@/components/advanced/TheEchoCard.vue'
-import { onMounted } from 'vue'
+import { onMounted, watch } from 'vue'
 import { useEchoStore } from '@/stores/echo'
 import { useSettingStore } from '@/stores/setting'
 import BaseButton from '@/components/common/BaseButton.vue'
@@ -54,6 +54,7 @@ import TheBackTop from '@/components/advanced/TheBackTop.vue'
 const echoStore = useEchoStore()
 const settingStore = useSettingStore()
 const { SystemSetting } = storeToRefs(settingStore)
+const { filteredTag, filteredDate, filteredYearMonth } = storeToRefs(echoStore)
 
 const handleLoadMore = async () => {
   echoStore.filteredCurrent = echoStore.filteredCurrent + 1
@@ -69,6 +70,14 @@ const handleRefresh = () => {
 const handleUpdateLikeCount = (echoId: number) => {
   echoStore.updateLikeCount(echoId, 1)
 }
+
+// 监听筛选参数变化，重新加载数据
+watch([filteredTag, filteredDate, filteredYearMonth], () => {
+  // 当筛选参数变化时，重新加载数据
+  if (filteredTag.value || filteredDate.value || filteredYearMonth.value) {
+    echoStore.getEchosByPageForFilter()
+  }
+})
 
 onMounted(async () => {
   // 获取数据

@@ -53,6 +53,14 @@ type EchoRepositoryInterface interface {
 		showPrivate bool,
 	) ([]model.Echo, int64, error)
 
+	// GetEchosByDate 根据日期范围获取 Echo 列表
+	GetEchosByDate(
+		startDate, endDate string,
+		page, pageSize int,
+		search string,
+		showPrivate bool,
+	) ([]model.Echo, int64, error)
+
 	// UpdateMediaLiveVideoID 更新媒体的实况照片关联
 	UpdateMediaLiveVideoID(ctx context.Context, mediaID uint, liveVideoID uint) error
 

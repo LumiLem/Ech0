@@ -83,11 +83,11 @@ func (commonRepository *CommonRepository) GetHeatMap(startDate, endDate string) 
 	var results []commonModel.Heatmap
 
 	// 查询数据
-	// 执行查询
+	// 执行查询，使用 localtime 转换确保时区一致性
 	err := commonRepository.db().Table("echos").
-		Select("DATE(created_at) as date, COUNT(*) as count").
-		Where("DATE(created_at) >= ? AND DATE(created_at) <= ?", startDate, endDate).
-		Group("DATE(created_at)").
+		Select("DATE(created_at, 'localtime') as date, COUNT(*) as count").
+		Where("DATE(created_at, 'localtime') >= ? AND DATE(created_at, 'localtime') <= ?", startDate, endDate).
+		Group("DATE(created_at, 'localtime')").
 		Order("date ASC").
 		Scan(&results).Error
 	if err != nil {

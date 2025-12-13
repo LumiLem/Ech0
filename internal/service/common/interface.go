@@ -31,8 +31,11 @@ type CommonServiceInterface interface {
 	// GetStatus 获取系统状态
 	GetStatus() (model.Status, error)
 
-	// GetHeatMap 获取热力图数据
+	// GetHeatMap 获取近30天热力图数据
 	GetHeatMap() ([]model.Heatmap, error)
+
+	// GetHeatMapByMonth 获取指定月份热力图数据
+	GetHeatMapByMonth(year, month int) ([]model.Heatmap, error)
 
 	// GenerateRSS 生成RSS订阅链接
 	GenerateRSS(ctx *gin.Context) (string, error)

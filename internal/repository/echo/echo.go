@@ -614,6 +614,56 @@ func (echoRepository *EchoRepository) GetEchosByTagId(
 	return echos, total, nil
 }
 
+// GetEchosByDate 根据日期范围获取 Echo 列表
+func (echoRepository *EchoRepository) GetEchosByDate(
+	startDate, endDate string,
+	page, pageSize int,
+	search string,
+	showPrivate bool,
+) ([]model.Echo, int64, error) {
+	var (
+		echos []model.Echo
+		total int64
+	)
+
+	applyFilters := func(db *gorm.DB) *gorm.DB {
+		// 使用 localtime 转换确保时区一致性
+		db = db.Where("DATE(echos.created_at, 'localtime') >= ? AND DATE(echos.created_at, 'localtime') <= ?", startDate, endDate)
+
+		if !showPrivate {
+			db = db.Where("echos.private = ?", false)
+		}
+
+		if search != "" {
+			db = db.Where("echos.content LIKE ?", "%"+search+"%")
+		}
+
+		return db
+	}
+
+	countQuery := applyFilters(echoRepository.db().Model(&model.Echo{}))
+
+	if err := countQuery.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	offset := (page - 1) * pageSize
+
+	dataQuery := applyFilters(echoRepository.db().Model(&model.Echo{}))
+	if err := dataQuery.
+		Preload("Media").
+		Preload("Tags").
+		Joins("User").
+		Order("created_at DESC").
+		Limit(pageSize).
+		Offset(offset).
+		Find(&echos).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return echos, total, nil
+}
+
 // UpdateMediaLiveVideoID 更新媒体的实况照片关联
 func (echoRepository *EchoRepository) UpdateMediaLiveVideoID(ctx context.Context, mediaID uint, liveVideoID uint) error {
 	return echoRepository.getDB(ctx).Model(&model.Media{}).

@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -410,6 +411,81 @@ func (echoHandler *EchoHandler) GetEchosByTagId() gin.HandlerFunc {
 		return res.Response{
 			Data: result,
 			Msg:  commonModel.GET_ECHOS_BY_TAG_ID_SUCCESS,
+		}
+	})
+}
+
+// GetEchosByDate 获取指定日期的 Echo 列表
+//
+// @Summary 获取指定日期的 Echo 列表
+// @Description 根据日期获取该日期的 Echo 列表，支持 query 分页与搜索。date 格式为 YYYY-MM-DD，如果只传 year 和 month 则获取整月数据
+// @Tags Echo
+// @Accept json
+// @Produce json
+// @Param date query string false "日期 (YYYY-MM-DD)"
+// @Param year query int false "年份"
+// @Param month query int false "月份 (1-12)"
+// @Param page query int false "页码"
+// @Param pageSize query int false "每页数量"
+// @Param search query string false "搜索关键字"
+// @Success 200 {object} res.Response{data=object} "获取成功"
+// @Failure 200 {object} res.Response "获取失败"
+// @Router /echo/date [get]
+func (echoHandler *EchoHandler) GetEchosByDate() gin.HandlerFunc {
+	return res.Execute(func(ctx *gin.Context) res.Response {
+		// 获取日期参数
+		date := ctx.Query("date")
+		yearStr := ctx.Query("year")
+		monthStr := ctx.Query("month")
+
+		var startDate, endDate string
+
+		if date != "" {
+			// 按具体日期筛选
+			startDate = date
+			endDate = date
+		} else if yearStr != "" && monthStr != "" {
+			// 按年月筛选
+			year, yearErr := strconv.Atoi(yearStr)
+			month, monthErr := strconv.Atoi(monthStr)
+			if yearErr != nil || monthErr != nil || month < 1 || month > 12 {
+				return res.Response{
+					Msg: commonModel.INVALID_QUERY_PARAMS,
+				}
+			}
+			// 计算月份的起止日期
+			startTime := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.Local)
+			endTime := startTime.AddDate(0, 1, -1)
+			startDate = startTime.Format("2006-01-02")
+			endDate = endTime.Format("2006-01-02")
+		} else {
+			return res.Response{
+				Msg: commonModel.INVALID_QUERY_PARAMS,
+			}
+		}
+
+		// 获取分页/搜索查询参数
+		var pageRequest commonModel.PageQueryDto
+		if err := ctx.ShouldBindQuery(&pageRequest); err != nil {
+			return res.Response{
+				Msg: commonModel.INVALID_QUERY_PARAMS,
+				Err: err,
+			}
+		}
+
+		userid := ctx.MustGet("userid").(uint)
+
+		result, err := echoHandler.echoService.GetEchosByDate(userid, startDate, endDate, pageRequest)
+		if err != nil {
+			return res.Response{
+				Msg: "",
+				Err: err,
+			}
+		}
+
+		return res.Response{
+			Data: result,
+			Msg:  commonModel.GET_ECHOS_BY_DATE_SUCCESS,
 		}
 	})
 }

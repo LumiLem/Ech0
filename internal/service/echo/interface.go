@@ -40,4 +40,11 @@ type EchoServiceInterface interface {
 		userId, tagId uint,
 		pageQueryDto commonModel.PageQueryDto,
 	) (commonModel.PageQueryResult[[]model.Echo], error)
+
+	// GetEchosByDate 获取指定日期范围的 Echo 列表
+	GetEchosByDate(
+		userId uint,
+		startDate, endDate string,
+		pageQueryDto commonModel.PageQueryDto,
+	) (commonModel.PageQueryResult[[]model.Echo], error)
 }

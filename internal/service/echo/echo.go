@@ -632,3 +632,51 @@ func (echoService *EchoService) GetEchosByTagId(
 		Total: total,
 	}, nil
 }
+
+// GetEchosByDate 获取指定日期范围的 Echo 列表
+func (echoService *EchoService) GetEchosByDate(
+	userId uint,
+	startDate, endDate string,
+	pageQueryDto commonModel.PageQueryDto,
+) (commonModel.PageQueryResult[[]model.Echo], error) {
+	if pageQueryDto.Page < 1 {
+		pageQueryDto.Page = 1
+	}
+	if pageQueryDto.PageSize < 1 || pageQueryDto.PageSize > 100 {
+		pageQueryDto.PageSize = 10
+	}
+	pageQueryDto.Search = strings.TrimSpace(pageQueryDto.Search)
+
+	// 管理员登陆则支持查看隐私数据，否则不允许
+	showPrivate := false
+	if userId == authModel.NO_USER_LOGINED {
+		showPrivate = false
+	} else {
+		user, err := echoService.commonService.CommonGetUserByUserId(userId)
+		if err != nil {
+			return commonModel.PageQueryResult[[]model.Echo]{}, err
+		}
+		if user.IsAdmin {
+			showPrivate = true
+		} else {
+			showPrivate = false
+		}
+	}
+
+	echos, total, err := echoService.echoRepository.GetEchosByDate(
+		startDate,
+		endDate,
+		pageQueryDto.Page,
+		pageQueryDto.PageSize,
+		pageQueryDto.Search,
+		showPrivate,
+	)
+	if err != nil {
+		return commonModel.PageQueryResult[[]model.Echo]{}, err
+	}
+
+	return commonModel.PageQueryResult[[]model.Echo]{
+		Items: echos,
+		Total: total,
+	}, nil
+}

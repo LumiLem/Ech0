@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 
@@ -156,17 +157,40 @@ func (commonHandler *CommonHandler) GetStatus() gin.HandlerFunc {
 // GetHeatMap 获取热力图数据
 //
 // @Summary 获取热力图数据
-// @Description 获取系统活动热力图数据，用于展示用户活动分布情况
+// @Description 获取系统活动热力图数据，用于展示用户活动分布情况。不传参数返回近30天数据，传year和month返回指定月份数据
 // @Tags 通用功能
 // @Accept json
 // @Produce json
+// @Param year query int false "年份（可选）"
+// @Param month query int false "月份（可选，1-12）"
 // @Success 200 {object} res.Response{data=object} "获取热力图数据成功"
 // @Failure 200 {object} res.Response "获取热力图数据失败"
 // @Router /heatmap [get]
 func (commonHandler *CommonHandler) GetHeatMap() gin.HandlerFunc {
 	return res.Execute(func(ctx *gin.Context) res.Response {
-		// 调用 Service 层获取热力图数据
-		heatMap, err := commonHandler.commonService.GetHeatMap()
+		// 获取可选的年月参数
+		yearStr := ctx.Query("year")
+		monthStr := ctx.Query("month")
+
+		var heatMap []commonModel.Heatmap
+		var err error
+
+		if yearStr != "" && monthStr != "" {
+			// 如果传了年月参数，获取指定月份的数据
+			year, yearErr := strconv.Atoi(yearStr)
+			month, monthErr := strconv.Atoi(monthStr)
+			if yearErr != nil || monthErr != nil || month < 1 || month > 12 {
+				return res.Response{
+					Msg: commonModel.INVALID_QUERY_PARAMS,
+					Err: nil,
+				}
+			}
+			heatMap, err = commonHandler.commonService.GetHeatMapByMonth(year, month)
+		} else {
+			// 默认获取近30天数据
+			heatMap, err = commonHandler.commonService.GetHeatMap()
+		}
+
 		if err != nil {
 			return res.Response{
 				Msg: "",
