@@ -14,8 +14,8 @@
           @mousedown="startLongPress"
           @mouseup="cancelLongPress"
           @mouseleave="cancelLongPress"
-          @touchstart.prevent="startLongPress"
-          @touchend="cancelLongPress"
+          @touchstart="handleTouchStart"
+          @touchend="handleTouchEnd"
           @touchcancel="cancelLongPress"
           title="单击筛选本月内容，长按切换到30天视图"
         >
@@ -56,11 +56,11 @@
       <div 
         v-else 
         class="flex" 
-        @mousedown="startLongPress"
+        @mousedown="startLongPressForOriginal"
         @mouseup="cancelLongPress"
         @mouseleave="cancelLongPress"
-        @touchstart.prevent="startLongPress"
-        @touchend="cancelLongPress"
+        @touchstart="handleTouchStartForOriginal"
+        @touchend="handleTouchEndForOriginal"
         @touchcancel="cancelLongPress"
         title="长按切换到日历视图"
       >
@@ -70,6 +70,8 @@
             :key="row"
             class="relative w-5 h-5 rounded-[6px] transition-colors duration-300 ease ring-1 ring-[var(--heatmap-ring-color)] hover:ring-[var(--ring-color-300)] hover:shadow-sm cursor-pointer"
             :style="{ backgroundColor: getColor(getCell(row - 1, col - 1)?.count ?? 0) }"
+            :data-row="row - 1"
+            :data-col="col - 1"
             @click.stop="handleFilterByOriginalDate(row - 1, col - 1)"
             @mouseenter="showOriginalTooltip(row - 1, col - 1, $event)"
             @mouseleave="hideTooltip"
@@ -245,9 +247,20 @@ const toggleMode = () => {
 const longPressTimer = ref<ReturnType<typeof setTimeout> | null>(null)
 const isLongPress = ref(false)
 const LONG_PRESS_DURATION = 500 // 长按时间阈值（毫秒）
+const touchStartTime = ref(0)
+const touchTarget = ref<{ row: number; col: number } | null>(null)
 
 function startLongPress() {
   isLongPress.value = false
+  longPressTimer.value = setTimeout(() => {
+    isLongPress.value = true
+    toggleMode()
+  }, LONG_PRESS_DURATION)
+}
+
+function startLongPressForOriginal() {
+  isLongPress.value = false
+  touchTarget.value = null
   longPressTimer.value = setTimeout(() => {
     isLongPress.value = true
     toggleMode()
@@ -259,6 +272,58 @@ function cancelLongPress() {
     clearTimeout(longPressTimer.value)
     longPressTimer.value = null
   }
+}
+
+// 移动端触摸处理 - 年月标题
+function handleTouchStart(event: TouchEvent) {
+  touchStartTime.value = Date.now()
+  isLongPress.value = false
+  longPressTimer.value = setTimeout(() => {
+    isLongPress.value = true
+    toggleMode()
+  }, LONG_PRESS_DURATION)
+}
+
+function handleTouchEnd(event: TouchEvent) {
+  cancelLongPress()
+  const touchDuration = Date.now() - touchStartTime.value
+  // 如果不是长按，则触发筛选
+  if (!isLongPress.value && touchDuration < LONG_PRESS_DURATION) {
+    handleFilterByYearMonth()
+  }
+  isLongPress.value = false
+}
+
+// 移动端触摸处理 - 30天视图
+function handleTouchStartForOriginal(event: TouchEvent) {
+  touchStartTime.value = Date.now()
+  isLongPress.value = false
+  
+  // 获取触摸的目标元素
+  const target = event.target as HTMLElement
+  const row = target.dataset.row
+  const col = target.dataset.col
+  if (row !== undefined && col !== undefined) {
+    touchTarget.value = { row: parseInt(row), col: parseInt(col) }
+  } else {
+    touchTarget.value = null
+  }
+  
+  longPressTimer.value = setTimeout(() => {
+    isLongPress.value = true
+    toggleMode()
+  }, LONG_PRESS_DURATION)
+}
+
+function handleTouchEndForOriginal(event: TouchEvent) {
+  cancelLongPress()
+  const touchDuration = Date.now() - touchStartTime.value
+  // 如果不是长按且有有效的触摸目标，则触发筛选
+  if (!isLongPress.value && touchDuration < LONG_PRESS_DURATION && touchTarget.value) {
+    handleFilterByOriginalDate(touchTarget.value.row, touchTarget.value.col)
+  }
+  isLongPress.value = false
+  touchTarget.value = null
 }
 
 // Tooltip 相关
