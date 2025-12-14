@@ -327,6 +327,14 @@ export function useMediaFancybox(options: UseMediaFancyboxOptions) {
         }, 300)
       }
       
+      // 暂停播放（切换 slide 时调用，不清空视频源）
+      slide.livePhotoPause = () => {
+        video.pause()
+        video.currentTime = 0
+        container!.classList.remove('zoom')
+      }
+      
+      // 完全清理（关闭 Fancybox 时调用）
       slide.livePhotoCleanup = () => {
         document.removeEventListener('click', closeOnClickOutside)
         icon.removeEventListener('mouseenter', start)
@@ -462,14 +470,19 @@ export function useMediaFancybox(options: UseMediaFancyboxOptions) {
           const carousel = fancybox.getCarousel()
           if (!carousel) return
           
-          carousel.getSlides().forEach((slide: any) => {
+          // 获取起始索引（即 startIndex）
+          const currentIndex = startIndex
+          
+          // 遍历所有 slides，但只初始化当前显示的那个
+          carousel.getSlides().forEach((slide: any, index: number) => {
             if (!slide.html && !slide.htmlEl) return
             
             const slideEl = slide.el || slide.htmlEl
             const isLivePhotoSlide = slide.htmlEl?.classList?.contains('fancybox-livephoto-container') ||
               slideEl?.querySelector('.fancybox-livephoto-container')
             
-            if (isLivePhotoSlide) {
+            // 只初始化当前显示的 slide
+            if (isLivePhotoSlide && index === currentIndex) {
               initLivePhotoInteraction(slide)
             }
           })
@@ -479,15 +492,21 @@ export function useMediaFancybox(options: UseMediaFancyboxOptions) {
               const slides = carousel.getSlides()
               const prevSlide = slides[from]
               if (prevSlide) {
-                const container = prevSlide.el?.querySelector('.fancybox-livephoto-container') || 
-                                 prevSlide.htmlEl?.querySelector('.fancybox-livephoto-container')
-                if (container) {
-                  const video = container.querySelector('.livephoto-video') as HTMLVideoElement
-                  if (video) {
-                    video.pause()
-                    video.currentTime = 0
+                // 只暂停，不完全清理（保留视频源和事件监听）
+                if (prevSlide.livePhotoPause) {
+                  prevSlide.livePhotoPause()
+                } else {
+                  // 兼容：如果没有 livePhotoPause，手动暂停
+                  const container = prevSlide.el?.querySelector('.fancybox-livephoto-container') || 
+                                   prevSlide.htmlEl?.querySelector('.fancybox-livephoto-container')
+                  if (container) {
+                    const video = container.querySelector('.livephoto-video') as HTMLVideoElement
+                    if (video) {
+                      video.pause()
+                      video.currentTime = 0
+                    }
+                    container.classList.remove('zoom')
                   }
-                  container.classList.remove('zoom')
                 }
               }
             }
@@ -499,8 +518,27 @@ export function useMediaFancybox(options: UseMediaFancyboxOptions) {
                 const isLivePhotoSlide = currentSlide.htmlEl?.classList?.contains('fancybox-livephoto-container') ||
                   slideEl?.querySelector('.fancybox-livephoto-container')
                 
-                if (isLivePhotoSlide && !currentSlide.livePhotoCleanup) {
-                  initLivePhotoInteraction(currentSlide)
+                if (isLivePhotoSlide) {
+                  // 如果已经初始化过，只需要触发自动播放
+                  if (currentSlide.livePhotoCleanup) {
+                    // 已初始化，触发自动播放
+                    if (livePhotoAutoPlay.value) {
+                      const container = slideEl?.querySelector('.fancybox-livephoto-container')
+                      const video = container?.querySelector('.livephoto-video') as HTMLVideoElement
+                      if (container && video) {
+                        setTimeout(() => {
+                          container.classList.add('zoom')
+                          video.currentTime = 0
+                          video.play().catch((err: any) => {
+                            console.error('Live photo auto-play error:', err)
+                          })
+                        }, 300)
+                      }
+                    }
+                  } else {
+                    // 未初始化，进行初始化
+                    initLivePhotoInteraction(currentSlide)
+                  }
                 }
               }, 50)
             }
