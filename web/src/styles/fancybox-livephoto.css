@@ -20,6 +20,7 @@
   overflow: hidden;
   border-radius: 8px;
   background: transparent;
+  transition: transform 0.5s ease;
 }
 
 .fancybox-livephoto-container .livephoto-content img,
@@ -28,7 +29,7 @@
   width: auto;
   height: auto;
   max-width: 100%;
-  max-height: 80vh;
+  max-height: 85vh;
   object-fit: contain;
 }
 
@@ -86,9 +87,10 @@
 }
 
 /* 播放状态：zoom class */
-.fancybox-livephoto-container.zoom .livephoto-content img,
-.fancybox-livephoto-container.zoom .livephoto-content video {
-  transform: scale(1.05);
+/* 对 livephoto-content 整体应用 scale，这样图片和视频会一起放大，保持一致 */
+.fancybox-livephoto-container.zoom .livephoto-content {
+  transform: scale(1.03);
+  transition: transform 0.5s ease;
 }
 
 .fancybox-livephoto-container.zoom .livephoto-content img {
@@ -260,17 +262,8 @@
   white-space: nowrap;
 }
 
-/* 移动端优化 */
+/* 移动端优化 - 只调整图标样式，不限制图片/视频大小 */
 @media (max-width: 768px) {
-  .fancybox-livephoto-container {
-    border-radius: 0;
-  }
-  
-  .fancybox-livephoto-container .livephoto-content img,
-  .fancybox-livephoto-container .livephoto-content video {
-    max-height: 60vh;
-  }
-  
   .fancybox-livephoto-container .livephoto-content .livephoto-icon {
     padding: 4px 8px;
   }
@@ -286,13 +279,8 @@
   }
 }
 
-/* 超小屏幕优化 */
+/* 超小屏幕优化 - 只调整图标样式 */
 @media (max-width: 480px) {
-  .fancybox-livephoto-container .livephoto-content img,
-  .fancybox-livephoto-container .livephoto-content video {
-    max-height: 50vh;
-  }
-  
   .fancybox-livephoto-container .livephoto-content .livephoto-icon {
     padding: 3px 6px;
   }
