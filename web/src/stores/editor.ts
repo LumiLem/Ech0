@@ -145,10 +145,18 @@ export const useEditorStore = defineStore('editorStore', () => {
   const handleAddMoreMedia = async () => {
     let width: number | undefined = mediaToAdd.value.width
     let height: number | undefined = mediaToAdd.value.height
-    if (width === undefined || height === undefined) {
-      const size = await getImageSize(mediaToAdd.value.media_url)
-      width = size.width
-      height = size.height
+    // 只对图片类型获取尺寸，视频类型跳过（避免 Image 加载视频 URL 报错）
+    if ((width === undefined || height === undefined) && mediaToAdd.value.media_type === 'image') {
+      try {
+        const size = await getImageSize(mediaToAdd.value.media_url)
+        width = size.width
+        height = size.height
+      } catch (error) {
+        console.warn('获取图片尺寸失败:', error)
+        // 获取失败时使用默认值
+        width = 0
+        height = 0
+      }
     }
     mediaListToAdd.value.push({
       media_url: mediaToAdd.value.media_url,
