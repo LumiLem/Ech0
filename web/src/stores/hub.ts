@@ -65,11 +65,10 @@ export const useHubStore = defineStore('hubStore', () => {
       timeout: number = 5000,
     ): Promise<App.Api.Hub.HubItemInfo | null> => {
       return new Promise((resolve) => {
-        let timeoutId: ReturnType<typeof setTimeout>
         let isResolved = false
 
         // 设置超时
-        timeoutId = setTimeout(() => {
+        const timeoutId = setTimeout(() => {
           if (!isResolved) {
             isResolved = true
             console.warn(`[Hub] 请求超时: ${url}`)
@@ -235,7 +234,7 @@ export const useHubStore = defineStore('hubStore', () => {
             logo:
               hubInfoMap.value.get(url)?.logo && hubInfoMap.value.get(url)?.logo !== ''
                 ? hubInfoMap.value.get(url)?.logo
-                : '/favicon.ico',
+                : '/Ech0.svg',
           }
         })
       })

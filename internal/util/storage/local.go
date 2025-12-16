@@ -1,12 +1,12 @@
 package util
 
 import (
+	"crypto/rand"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
 	"log"
-	"math/rand"
 	"mime/multipart"
 	"os"
 	"path/filepath"

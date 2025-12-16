@@ -718,7 +718,7 @@ func (settingHandler *SettingHandler) UpdateBackupScheduleSetting() gin.HandlerF
 // @Tags 系统设置
 // @Accept json
 // @Produce json
-// @Success 200 {object} res.Response{data=model.AgentInfoDto} "获取 Agent 信息成功"
+// @Success 200 {object} res.Response "获取 Agent 信息成功"
 // @Failure 200 {object} res.Response "获取 Agent 信息失败"
 // @Router /agent/info [get]
 func (settingHandler *SettingHandler) GetAgentInfo() gin.HandlerFunc {

@@ -82,7 +82,7 @@ const props = defineProps<{
 
 const { loading, error, items } = toRefs(props)
 
-const DEFAULT_AVATAR = '/favicon.svg'
+const DEFAULT_AVATAR = '/Ech0.svg'
 
 const stripHtml = (value: string) =>
   value

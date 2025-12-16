@@ -21,6 +21,8 @@ import (
 	httpUtil "github.com/lin-snow/ech0/internal/util/http"
 	jsonUtil "github.com/lin-snow/ech0/internal/util/json"
 	jwtUtil "github.com/lin-snow/ech0/internal/util/jwt"
+	logUtil "github.com/lin-snow/ech0/internal/util/log"
+	"go.uber.org/zap"
 )
 
 type SettingService struct {
@@ -57,6 +59,7 @@ func (settingService *SettingService) GetSetting(setting *model.SystemSetting) e
 		if err != nil {
 			// 数据库中不存在数据，手动添加初始数据
 			setting.SiteTitle = config.Config.Setting.SiteTitle
+			setting.ServerLogo = config.Config.Setting.ServerLogo
 			setting.ServerName = config.Config.Setting.Servername
 			setting.ServerURL = config.Config.Setting.Serverurl
 			setting.AllowRegister = config.Config.Setting.AllowRegister
@@ -64,7 +67,6 @@ func (settingService *SettingService) GetSetting(setting *model.SystemSetting) e
 			setting.MetingAPI = config.Config.Setting.MetingAPI
 			setting.CustomCSS = config.Config.Setting.CustomCSS
 			setting.CustomJS = config.Config.Setting.CustomJS
-			setting.Logo = config.Config.Setting.Logo
 
 			// 处理 URL
 			setting.ServerURL = httpUtil.TrimURL(setting.ServerURL)
@@ -108,6 +110,7 @@ func (settingService *SettingService) UpdateSetting(userid uint, newSetting *mod
 
 		var setting model.SystemSetting
 		setting.SiteTitle = newSetting.SiteTitle
+		setting.ServerLogo = newSetting.ServerLogo
 		setting.ServerName = newSetting.ServerName
 		setting.ServerURL = httpUtil.TrimURL(newSetting.ServerURL)
 		setting.AllowRegister = newSetting.AllowRegister
@@ -115,7 +118,6 @@ func (settingService *SettingService) UpdateSetting(userid uint, newSetting *mod
 		setting.MetingAPI = httpUtil.TrimURL(newSetting.MetingAPI)
 		setting.CustomCSS = newSetting.CustomCSS
 		setting.CustomJS = newSetting.CustomJS
-		setting.Logo = newSetting.Logo
 
 		// 序列化为 JSON
 		settingToJSON, err := jsonUtil.JSONMarshal(setting)
@@ -473,11 +475,9 @@ func (settingService *SettingService) DeleteWebhook(userid, id uint) error {
 		return errors.New(commonModel.NO_PERMISSION_DENIED)
 	}
 
-	settingService.txManager.Run(func(ctx context.Context) error {
+	return settingService.txManager.Run(func(ctx context.Context) error {
 		return settingService.webhookRepository.DeleteWebhookByID(ctx, id)
 	})
-
-	return nil
 }
 
 // UpdateWebhook 更新 Webhook
@@ -508,15 +508,13 @@ func (settingService *SettingService) UpdateWebhook(userid, id uint, newWebhook 
 		IsActive: newWebhook.IsActive,
 	}
 
-	settingService.txManager.Run(func(ctx context.Context) error {
+	return settingService.txManager.Run(func(ctx context.Context) error {
 		// 先删除再创建，避免部分字段无法更新的问题
 		if err := settingService.webhookRepository.DeleteWebhookByID(ctx, webhook.ID); err != nil {
 			return err
 		}
 		return settingService.webhookRepository.CreateWebhook(ctx, webhook)
 	})
-
-	return nil
 }
 
 // CreateWebhook 创建 Webhook
@@ -546,11 +544,9 @@ func (settingService *SettingService) CreateWebhook(userid uint, newWebhook *mod
 		IsActive: newWebhook.IsActive,
 	}
 
-	settingService.txManager.Run(func(ctx context.Context) error {
+	return settingService.txManager.Run(func(ctx context.Context) error {
 		return settingService.webhookRepository.CreateWebhook(ctx, webhook)
 	})
-
-	return nil
 }
 
 // ListAccessTokens 列出访问令牌
@@ -579,7 +575,7 @@ func (settingService *SettingService) ListAccessTokens(userid uint) ([]model.Acc
 			validTokens = append(validTokens, token)
 		} else {
 			// 删除过期 token
-			settingService.txManager.Run(func(ctx context.Context) error {
+			_ = settingService.txManager.Run(func(ctx context.Context) error {
 				return settingService.settingRepository.DeleteAccessTokenByID(ctx, uint(token.ID))
 			})
 		}
@@ -642,9 +638,11 @@ func (settingService *SettingService) CreateAccessToken(
 		CreatedAt: time.Now(),
 	}
 
-	settingService.txManager.Run(func(ctx context.Context) error {
+	if err := settingService.txManager.Run(func(ctx context.Context) error {
 		return settingService.settingRepository.CreateAccessToken(ctx, accessToken)
-	})
+	}); err != nil {
+		return "", err
+	}
 
 	return tokenString, nil
 }
@@ -660,11 +658,9 @@ func (settingService *SettingService) DeleteAccessToken(userid, id uint) error {
 		return errors.New(commonModel.NO_PERMISSION_DENIED)
 	}
 
-	settingService.txManager.Run(func(ctx context.Context) error {
+	return settingService.txManager.Run(func(ctx context.Context) error {
 		return settingService.settingRepository.DeleteAccessTokenByID(ctx, id)
 	})
-
-	return nil
 }
 
 // GetFediverseSetting 获取联邦网络设置
@@ -807,7 +803,7 @@ func (settingService *SettingService) UpdateBackupScheduleSetting(
 		}
 
 		// 发送更新备份计划的事件
-		settingService.eventBus.Publish(
+		if err := settingService.eventBus.Publish(
 			context.Background(),
 			event.NewEvent(
 				event.EventTypeUpdateBackupSchedule,
@@ -815,7 +811,9 @@ func (settingService *SettingService) UpdateBackupScheduleSetting(
 					event.EventPayloadSchedule: setting,
 				},
 			),
-		)
+		); err != nil {
+			logUtil.GetLogger().Error("Failed to publish update backup schedule event", zap.String("error", err.Error()))
+		}
 
 		return nil
 	})
@@ -883,6 +881,7 @@ func (settingService *SettingService) GetAgentSettings(userid uint, setting *mod
 			if err := settingService.keyvalueRepository.AddKeyValue(ctx, commonModel.AgentSettingKey, string(settingToJSON)); err != nil {
 				return err
 			}
+
 			return nil
 		}
 

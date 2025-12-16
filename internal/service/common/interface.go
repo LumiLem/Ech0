@@ -17,7 +17,7 @@ type CommonServiceInterface interface {
 	CommonGetUserByUserId(userId uint) (userModel.User, error)
 
 	// UploadImage 上传图片
-	UploadImage(userid uint, file *multipart.FileHeader) (string, error)
+	UploadImage(userid uint, file *multipart.FileHeader, source string) (model.ImageDto, error)
 
 	// DeleteImage 删除图片
 	DeleteImage(userid uint, url, source, object_key string) error

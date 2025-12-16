@@ -9,11 +9,13 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 
 	"github.com/lin-snow/ech0/internal/backup"
 	"github.com/lin-snow/ech0/internal/event"
 	commonModel "github.com/lin-snow/ech0/internal/model/common"
 	commonService "github.com/lin-snow/ech0/internal/service/common"
+	logUtil "github.com/lin-snow/ech0/internal/util/log"
 )
 
 type BackupService struct {
@@ -48,7 +50,7 @@ func (backupService *BackupService) Backup(userid uint) error {
 	}
 
 	// 触发备份完成事件
-	backupService.eventBus.Publish(
+	if err := backupService.eventBus.Publish(
 		context.Background(),
 		event.NewEvent(
 			event.EventTypeSystemBackup,
@@ -56,7 +58,9 @@ func (backupService *BackupService) Backup(userid uint) error {
 				event.EventPayloadInfo: "System backup completed",
 			},
 		),
-	)
+	); err != nil {
+		logUtil.GetLogger().Error("Failed to publish system backup completed event", zap.String("error", err.Error()))
+	}
 
 	return nil
 }
@@ -105,7 +109,7 @@ func (backupService *BackupService) ExportBackup(ctx *gin.Context, userid uint) 
 	ctx.File(backupFilePath)
 
 	// 触发导出完成事件
-	backupService.eventBus.Publish(
+	if err := backupService.eventBus.Publish(
 		context.Background(),
 		event.NewEvent(
 			event.EventTypeSystemExport,
@@ -114,7 +118,9 @@ func (backupService *BackupService) ExportBackup(ctx *gin.Context, userid uint) 
 				event.EventPayloadSize: fileInfo.Size(),
 			},
 		),
-	)
+	); err != nil {
+		logUtil.GetLogger().Error("Failed to publish system export completed event", zap.String("error", err.Error()))
+	}
 
 	return nil
 }
@@ -143,7 +149,7 @@ func (backupService *BackupService) ImportBackup(ctx *gin.Context, userid uint, 
 	}
 
 	// 触发恢复完成事件
-	backupService.eventBus.Publish(
+	if err := backupService.eventBus.Publish(
 		context.Background(),
 		event.NewEvent(
 			event.EventTypeSystemRestore,
@@ -151,7 +157,9 @@ func (backupService *BackupService) ImportBackup(ctx *gin.Context, userid uint, 
 				event.EventPayloadInfo: "System restore completed",
 			},
 		),
-	)
+	); err != nil {
+		logUtil.GetLogger().Error("Failed to publish system restore completed event", zap.String("error", err.Error()))
+	}
 
 	return nil
 }

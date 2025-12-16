@@ -136,6 +136,84 @@ const docTemplate = `{
                 }
             }
         },
+        "/agent/info": {
+            "get": {
+                "description": "获取系统的 Agent 信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "系统设置"
+                ],
+                "summary": "获取 Agent 信息",
+                "responses": {
+                    "200": {
+                        "description": "获取 Agent 信息失败",
+                        "schema": {
+                            "$ref": "#/definitions/handler.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/agent/settings": {
+            "get": {
+                "description": "获取系统的 Agent 相关设置",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "系统设置"
+                ],
+                "summary": "获取 Agent 设置",
+                "responses": {
+                    "200": {
+                        "description": "获取 Agent 设置失败",
+                        "schema": {
+                            "$ref": "#/definitions/handler.Response"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "更新系统的 Agent 相关设置",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "系统设置"
+                ],
+                "summary": "更新 Agent 设置",
+                "parameters": [
+                    {
+                        "description": "新的 Agent 设置",
+                        "name": "settings",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.AgentSettingDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "更新 Agent 设置失败",
+                        "schema": {
+                            "$ref": "#/definitions/handler.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/allusers": {
             "get": {
                 "security": [
@@ -1024,6 +1102,157 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "上传失败",
+                        "schema": {
+                            "$ref": "#/definitions/handler.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/inbox": {
+            "get": {
+                "description": "根据分页条件获取系统收件箱",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "收件箱"
+                ],
+                "summary": "获取收件箱列表",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "页码",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页数量",
+                        "name": "pageSize",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "搜索关键词",
+                        "name": "search",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "获取失败",
+                        "schema": {
+                            "$ref": "#/definitions/handler.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "删除所有收件箱消息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "收件箱"
+                ],
+                "summary": "清空收件箱",
+                "responses": {
+                    "200": {
+                        "description": "清空失败",
+                        "schema": {
+                            "$ref": "#/definitions/handler.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/inbox/unread": {
+            "get": {
+                "description": "获取所有未读收件箱消息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "收件箱"
+                ],
+                "summary": "获取未读消息",
+                "responses": {
+                    "200": {
+                        "description": "获取失败",
+                        "schema": {
+                            "$ref": "#/definitions/handler.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/inbox/{id}": {
+            "delete": {
+                "description": "根据 ID 删除收件箱消息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "收件箱"
+                ],
+                "summary": "删除收件箱消息",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "收件箱ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "删除失败",
+                        "schema": {
+                            "$ref": "#/definitions/handler.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/inbox/{id}/read": {
+            "put": {
+                "description": "根据 ID 将消息标记为已读",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "收件箱"
+                ],
+                "summary": "标记消息为已读",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "收件箱ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "标记失败",
                         "schema": {
                             "$ref": "#/definitions/handler.Response"
                         }
@@ -1954,6 +2183,64 @@ const docTemplate = `{
                 },
                 "name": {
                     "description": "访问令牌名称",
+                    "type": "string"
+                }
+            }
+        },
+        "model.AgentSetting": {
+            "type": "object",
+            "properties": {
+                "api_key": {
+                    "description": "LLM API Key",
+                    "type": "string"
+                },
+                "base_url": {
+                    "description": "自定义 API URL（可选）",
+                    "type": "string"
+                },
+                "enable": {
+                    "description": "是否启用 Agent 功能",
+                    "type": "boolean"
+                },
+                "model": {
+                    "description": "LLM 模型名称",
+                    "type": "string"
+                },
+                "prompt": {
+                    "description": "Agent 额外使用的提示词",
+                    "type": "string"
+                },
+                "provider": {
+                    "description": "LLM 提供商 （OpenAI、DeepSeek、Anthropic、Gemini、阿里百炼、Ollama等）",
+                    "type": "string"
+                }
+            }
+        },
+        "model.AgentSettingDto": {
+            "type": "object",
+            "properties": {
+                "api_key": {
+                    "description": "LLM API Key",
+                    "type": "string"
+                },
+                "base_url": {
+                    "description": "自定义 API URL（可选）",
+                    "type": "string"
+                },
+                "enable": {
+                    "description": "是否启用 Agent 功能",
+                    "type": "boolean"
+                },
+                "model": {
+                    "description": "LLM 模型名称",
+                    "type": "string"
+                },
+                "prompt": {
+                    "description": "Agent 额外使用的提示词",
+                    "type": "string"
+                },
+                "provider": {
+                    "description": "LLM 提供商 （OpenAI、DeepSeek、Anthropic、Gemini、阿里百炼、Ollama等）",
                     "type": "string"
                 }
             }

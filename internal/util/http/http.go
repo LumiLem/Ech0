@@ -183,7 +183,9 @@ func PostActivity(activity []byte, inboxURL string, actorID string) error {
 	if err != nil {
 		return fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	// 检查响应
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {

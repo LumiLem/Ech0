@@ -35,8 +35,6 @@ type Heatmap struct {
 	Count int    `json:"count"` // Echo数量
 }
 
-// File 相关
-
 type (
 	UploadFileType  string
 	FileStorageType string
@@ -44,6 +42,8 @@ type (
 	S3Provider      string
 	OAuth2Provider  string
 	AgentProvider   string
+	InboxType       string
+	InboxSource     string
 )
 
 const (
@@ -99,6 +99,17 @@ const (
 	Custom    AgentProvider = "custom"
 )
 
+const (
+	// Inbox 类型
+	EchoInboxType         InboxType = "echo"
+	NotificationInboxType InboxType = "notification"
+
+	// Inbox 来源
+	SystemSource InboxSource = "system"
+	AgentSource  InboxSource = "agent"
+	UserSource   InboxSource = "user"
+)
+
 // key value表
 type KeyValue struct {
 	Key   string `json:"key"   gorm:"primaryKey"`
@@ -140,5 +151,5 @@ const (
 
 const (
 	// Version 是当前版本号
-	Version = "3.0.3"
+	Version = "3.0.4"
 )

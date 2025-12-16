@@ -69,6 +69,9 @@ func SetupRouter(r *gin.Engine, h *di.Handlers) {
 
 	// Setup Agent Routes
 	setupAgentRoutes(appRouterGroup, h)
+
+	// Setup Inbox Routes
+	setupInboxRoutes(appRouterGroup, h)
 }
 
 // setupRouterGroup 初始化路由组

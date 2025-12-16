@@ -8,6 +8,7 @@ import (
 
 	res "github.com/lin-snow/ech0/internal/handler/response"
 	commonModel "github.com/lin-snow/ech0/internal/model/common"
+	echoModel "github.com/lin-snow/ech0/internal/model/echo"
 	service "github.com/lin-snow/ech0/internal/service/common"
 	errorUtil "github.com/lin-snow/ech0/internal/util/err"
 )
@@ -60,11 +61,17 @@ func (commonHandler *CommonHandler) UploadImage() gin.HandlerFunc {
 			}
 		}
 
+		// 从表单中提取source字符串
+		source := ctx.PostForm("ImageSource")
+		if source != string(echoModel.MediaSourceLocal) && source != string(echoModel.MediaSourceS3) {
+			source = string(echoModel.MediaSourceLocal)
+		}
+
 		// 提取userid
 		userId := ctx.MustGet("userid").(uint)
 
 		// 调用 CommonService 上传文件
-		imageUrl, err := commonHandler.commonService.UploadImage(userId, file)
+		imageDto, err := commonHandler.commonService.UploadImage(userId, file, source)
 		if err != nil {
 			return res.Response{
 				Msg: "",
@@ -73,7 +80,7 @@ func (commonHandler *CommonHandler) UploadImage() gin.HandlerFunc {
 		}
 
 		return res.Response{
-			Data: imageUrl,
+			Data: imageDto,
 			Msg:  commonModel.UPLOAD_SUCCESS,
 		}
 	})

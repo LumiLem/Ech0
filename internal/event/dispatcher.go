@@ -95,7 +95,7 @@ func (wd *WebhookDispatcher) Dispatch(ctx context.Context, wh *webhookModel.Webh
 		if err != nil {
 			return err
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		// 处理响应
 		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
@@ -134,9 +134,11 @@ func (wd *WebhookDispatcher) Dispatch(ctx context.Context, wh *webhookModel.Webh
 		deadLetter.Status = queueModel.DeadLetterStatusPending // 初始状态为待处理
 
 		// 使用事务保存死信任务
-		wd.txManager.Run(func(ctx context.Context) error {
+		if err := wd.txManager.Run(func(ctx context.Context) error {
 			return wd.queueRepo.SaveDeadLetter(ctx, &deadLetter)
-		})
+		}); err != nil {
+			logUtil.GetLogger().Error("Failed to save dead letter", zap.String("error", err.Error()))
+		}
 	}
 }
 
@@ -215,7 +217,7 @@ func (wd *WebhookDispatcher) HandleDeadLetter(ctx context.Context, deadLetter *q
 		if err != nil {
 			return err
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		// 处理响应
 		if resp.StatusCode >= 200 && resp.StatusCode < 300 {

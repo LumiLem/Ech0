@@ -141,15 +141,15 @@ func (connectService *ConnectService) GetConnect() (model.Connect, error) {
 		trimmedServerURL = trimmedServerURL[:len(trimmedServerURL)-1]
 	}
 
-	// 设置站点Logo（从Status获取，Status.Logo现在存储的是站点Logo）
-	if status.Logo != "" {
-		logoPath := status.Logo
+	if setting.ServerLogo != "" {
+		// 如果 Logo URL 以 / 开头，去掉一个 /
+		logoPath := setting.ServerLogo
 		if len(logoPath) > 0 && logoPath[0] == '/' {
 			logoPath = logoPath[1:]
 		}
 		connect.Logo = fmt.Sprintf("%s/api/%s", trimmedServerURL, logoPath)
 	} else {
-		connect.Logo = fmt.Sprintf("%s/favicon.svg", trimmedServerURL)
+		connect.Logo = fmt.Sprintf("%s/Ech0.svg", trimmedServerURL)
 	}
 
 	return connect, nil
@@ -365,11 +365,8 @@ func (connectService *ConnectService) GetConnectsInfo() ([]model.Connect, error)
 
 	// 安全地返回结果
 	mu.Lock()
-	result := make([]model.Connect, len(connectList))
-	copy(result, connectList)
-	mu.Unlock()
-
-	return result, nil
+	defer mu.Unlock()
+	return connectList, nil
 }
 
 // GetConnects 获取当前实例添加的所有连接

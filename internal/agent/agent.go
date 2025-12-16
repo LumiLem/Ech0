@@ -21,7 +21,13 @@ const (
 	GEN_RECENT = "gen_recent"
 )
 
-func Generate(ctx context.Context, setting model.AgentSetting, in []*schema.Message) (string, error) {
+func Generate(
+	ctx context.Context,
+	setting model.AgentSetting,
+	in []*schema.Message,
+	usePrompt bool,
+	temperature ...float32,
+) (string, error) {
 	if !setting.Enable {
 		return "", errors.New(commonModel.AGENT_NOT_ENABLED)
 	}
@@ -43,12 +49,16 @@ func Generate(ctx context.Context, setting model.AgentSetting, in []*schema.Mess
 	apiKey := setting.ApiKey
 	model := setting.Model
 	prompt := setting.Prompt
-	if prompt != "" {
+	if prompt != "" && usePrompt {
 		// 在对话开头添加系统提示
 		in = append(in, &schema.Message{
 			Role:    schema.User,
 			Content: prompt,
 		})
+	}
+	var t *float32
+	if len(temperature) > 0 {
+		t = &temperature[0]
 	}
 
 	var resp *schema.Message
@@ -58,9 +68,10 @@ func Generate(ctx context.Context, setting model.AgentSetting, in []*schema.Mess
 	switch setting.Provider {
 	case string(commonModel.OpenAI):
 		cm, err := openai.NewChatModel(ctx, &openai.ChatModelConfig{
-			APIKey:  apiKey,
-			Model:   model,
-			BaseURL: baseURL,
+			APIKey:      apiKey,
+			Model:       model,
+			BaseURL:     baseURL,
+			Temperature: t,
 		})
 		if err != nil {
 			return "", err
@@ -75,9 +86,10 @@ func Generate(ctx context.Context, setting model.AgentSetting, in []*schema.Mess
 		}
 
 		cm, err := claude.NewChatModel(ctx, &claude.Config{
-			APIKey:  apiKey,
-			Model:   model,
-			BaseURL: baseURLPtr,
+			APIKey:      apiKey,
+			Model:       model,
+			BaseURL:     baseURLPtr,
+			Temperature: t,
 		})
 		if err != nil {
 			return "", err
@@ -104,9 +116,10 @@ func Generate(ctx context.Context, setting model.AgentSetting, in []*schema.Mess
 
 	case string(commonModel.Qwen):
 		cm, err := qwen.NewChatModel(ctx, &qwen.ChatModelConfig{
-			APIKey:  apiKey,
-			Model:   setting.Model,
-			BaseURL: baseURL,
+			APIKey:      apiKey,
+			Model:       setting.Model,
+			BaseURL:     baseURL,
+			Temperature: t,
 		})
 		if err != nil {
 			return "", err
@@ -116,9 +129,10 @@ func Generate(ctx context.Context, setting model.AgentSetting, in []*schema.Mess
 
 	case string(commonModel.DeepSeek):
 		cm, err := deepseek.NewChatModel(ctx, &deepseek.ChatModelConfig{
-			APIKey:  apiKey,
-			Model:   model,
-			BaseURL: baseURL,
+			APIKey:      apiKey,
+			Model:       model,
+			BaseURL:     baseURL,
+			Temperature: *t,
 		})
 		if err != nil {
 			return "", err
@@ -139,9 +153,10 @@ func Generate(ctx context.Context, setting model.AgentSetting, in []*schema.Mess
 
 	case string(commonModel.Custom):
 		cm, err := openai.NewChatModel(ctx, &openai.ChatModelConfig{
-			APIKey:  apiKey,
-			Model:   model,
-			BaseURL: baseURL,
+			APIKey:      apiKey,
+			Model:       model,
+			BaseURL:     baseURL,
+			Temperature: t,
 		})
 		if err != nil {
 			return "", err

@@ -41,6 +41,48 @@ definitions:
         description: 访问令牌名称
         type: string
     type: object
+  model.AgentSetting:
+    properties:
+      api_key:
+        description: LLM API Key
+        type: string
+      base_url:
+        description: 自定义 API URL（可选）
+        type: string
+      enable:
+        description: 是否启用 Agent 功能
+        type: boolean
+      model:
+        description: LLM 模型名称
+        type: string
+      prompt:
+        description: Agent 额外使用的提示词
+        type: string
+      provider:
+        description: LLM 提供商 （OpenAI、DeepSeek、Anthropic、Gemini、阿里百炼、Ollama等）
+        type: string
+    type: object
+  model.AgentSettingDto:
+    properties:
+      api_key:
+        description: LLM API Key
+        type: string
+      base_url:
+        description: 自定义 API URL（可选）
+        type: string
+      enable:
+        description: 是否启用 Agent 功能
+        type: boolean
+      model:
+        description: LLM 模型名称
+        type: string
+      prompt:
+        description: Agent 额外使用的提示词
+        type: string
+      provider:
+        description: LLM 提供商 （OpenAI、DeepSeek、Anthropic、Gemini、阿里百炼、Ollama等）
+        type: string
+    type: object
   model.BackupSchedule:
     properties:
       cron_expression:
@@ -594,6 +636,57 @@ paths:
       summary: 添加连接
       tags:
       - 连接管理
+  /agent/info:
+    get:
+      consumes:
+      - application/json
+      description: 获取系统的 Agent 信息
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取 Agent 信息失败
+          schema:
+            $ref: '#/definitions/handler.Response'
+      summary: 获取 Agent 信息
+      tags:
+      - 系统设置
+  /agent/settings:
+    get:
+      consumes:
+      - application/json
+      description: 获取系统的 Agent 相关设置
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取 Agent 设置失败
+          schema:
+            $ref: '#/definitions/handler.Response'
+      summary: 获取 Agent 设置
+      tags:
+      - 系统设置
+    put:
+      consumes:
+      - application/json
+      description: 更新系统的 Agent 相关设置
+      parameters:
+      - description: 新的 Agent 设置
+        in: body
+        name: settings
+        required: true
+        schema:
+          $ref: '#/definitions/model.AgentSettingDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新 Agent 设置失败
+          schema:
+            $ref: '#/definitions/handler.Response'
+      summary: 更新 Agent 设置
+      tags:
+      - 系统设置
   /allusers:
     get:
       consumes:
@@ -1175,6 +1268,105 @@ paths:
       summary: 上传图片
       tags:
       - 通用功能
+  /inbox:
+    delete:
+      consumes:
+      - application/json
+      description: 删除所有收件箱消息
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 清空失败
+          schema:
+            $ref: '#/definitions/handler.Response'
+      summary: 清空收件箱
+      tags:
+      - 收件箱
+    get:
+      consumes:
+      - application/json
+      description: 根据分页条件获取系统收件箱
+      parameters:
+      - description: 页码
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量
+        in: query
+        name: pageSize
+        type: integer
+      - description: 搜索关键词
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取失败
+          schema:
+            $ref: '#/definitions/handler.Response'
+      summary: 获取收件箱列表
+      tags:
+      - 收件箱
+  /inbox/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: 根据 ID 删除收件箱消息
+      parameters:
+      - description: 收件箱ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 删除失败
+          schema:
+            $ref: '#/definitions/handler.Response'
+      summary: 删除收件箱消息
+      tags:
+      - 收件箱
+  /inbox/{id}/read:
+    put:
+      consumes:
+      - application/json
+      description: 根据 ID 将消息标记为已读
+      parameters:
+      - description: 收件箱ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 标记失败
+          schema:
+            $ref: '#/definitions/handler.Response'
+      summary: 标记消息为已读
+      tags:
+      - 收件箱
+  /inbox/unread:
+    get:
+      consumes:
+      - application/json
+      description: 获取所有未读收件箱消息
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取失败
+          schema:
+            $ref: '#/definitions/handler.Response'
+      summary: 获取未读消息
+      tags:
+      - 收件箱
   /login:
     post:
       consumes:

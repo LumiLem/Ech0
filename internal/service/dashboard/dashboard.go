@@ -48,7 +48,7 @@ func (s *DashboardService) WSSubsribeMetrics(w http.ResponseWriter, r *http.Requ
 	go func() {
 		ticker := time.NewTicker(5 * time.Second)
 		defer ticker.Stop()
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 
 		for {
 			rawMetrics := s.monitor.GetMetrics()

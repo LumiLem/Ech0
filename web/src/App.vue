@@ -5,9 +5,9 @@ import { watch } from 'vue'
 import { useSettingStore } from '@/stores/setting'
 import { storeToRefs } from 'pinia'
 import { Toaster } from 'vue-sonner'
+import { getApiUrl } from './service/request/shared'
 import 'vue-sonner/style.css'
 import BaseDialog from './components/common/BaseDialog.vue'
-import { getApiUrl } from '@/service/request/shared'
 
 import { useBaseDialog } from '@/composables/useBaseDialog'
 
@@ -17,10 +17,41 @@ const dialogRef = ref()
 const settingStore = useSettingStore()
 const { SystemSetting } = storeToRefs(settingStore)
 
+const DEFAULT_FAVICON = '/favicon.ico'
+const API_URL = getApiUrl()
+
+const updateFavicon = (logo?: string) => {
+  const head = document.head
+  if (!head) return
+
+  const href = logo?.trim() ? API_URL + logo : DEFAULT_FAVICON
+  const iconLinks = head.querySelectorAll<HTMLLinkElement>('link[rel*="icon"]')
+
+  if (iconLinks.length > 0) {
+    iconLinks.forEach((link) => {
+      link.href = href
+    })
+    return
+  }
+
+  const newFavicon = document.createElement('link')
+  newFavicon.rel = 'icon'
+  newFavicon.href = href
+  head.appendChild(newFavicon)
+}
+
 watch(
   () => SystemSetting.value.site_title,
   (title) => {
     if (title) document.title = title
+  },
+  { immediate: true },
+)
+
+watch(
+  () => SystemSetting.value.server_logo,
+  (logo) => {
+    updateFavicon(logo)
   },
   { immediate: true },
 )
@@ -41,37 +72,7 @@ const injectCustomContent = () => {
   }
 }
 
-onMounted(async () => {
-  // 获取系统设置
-  await settingStore.getSystemSetting()
-
-  const apiUrl = getApiUrl()
-
-  // 初始设置 favicon
-  const logo = SystemSetting.value.logo || '/favicon.svg'
-  const fullLogoUrl = logo.startsWith('http') ? logo : `${apiUrl}${logo}`
-
-  // 更新所有 favicon 相关的 link 标签
-  const links = document.querySelectorAll("link[rel~='icon']")
-  links.forEach((link) => {
-    ;(link as HTMLLinkElement).href = fullLogoUrl
-  })
-
-  // 监听 logo 变化
-  watch(
-    () => SystemSetting.value.logo,
-    (newLogo) => {
-      const logoUrl = newLogo || '/favicon.svg'
-      const fullLogoUrl = logoUrl.startsWith('http') ? logoUrl : `${apiUrl}${logoUrl}`
-
-      // 更新所有 favicon 相关的 link 标签
-      const links = document.querySelectorAll("link[rel~='icon']")
-      links.forEach((link) => {
-        ;(link as HTMLLinkElement).href = fullLogoUrl
-      })
-    },
-  )
-
+onMounted(() => {
   // 注入自定义CSS 和 JS
   watch(
     () => SystemSetting.value.custom_css || SystemSetting.value.custom_js,

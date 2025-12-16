@@ -10,8 +10,14 @@ require (
 	github.com/charmbracelet/log v0.4.2
 	github.com/charmbracelet/ssh v0.0.0-20250826160808-ebfa259c7309
 	github.com/charmbracelet/wish v1.4.7
+	github.com/cloudwego/eino v0.6.1
+	github.com/cloudwego/eino-ext/components/model/claude v0.1.10
+	github.com/cloudwego/eino-ext/components/model/deepseek v0.0.0-20251128213542-a865ed3eb1b4
+	github.com/cloudwego/eino-ext/components/model/gemini v0.1.15
+	github.com/cloudwego/eino-ext/components/model/ollama v0.1.6
+	github.com/cloudwego/eino-ext/components/model/openai v0.1.5
+	github.com/cloudwego/eino-ext/components/model/qwen v0.1.2
 	github.com/dgraph-io/ristretto/v2 v2.3.0
-	github.com/disintegration/imaging v1.6.2
 	github.com/gin-gonic/gin v1.11.0
 	github.com/go-co-op/gocron/v2 v2.17.0
 	github.com/golang-jwt/jwt/v5 v5.3.0
@@ -31,7 +37,9 @@ require (
 	github.com/swaggo/swag v1.16.6
 	go.uber.org/zap v1.27.0
 	golang.org/x/net v0.46.0
+	golang.org/x/sync v0.17.0
 	golang.org/x/text v0.30.0
+	google.golang.org/genai v1.36.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.31.0
@@ -78,13 +86,6 @@ require (
 	github.com/charmbracelet/x/termios v0.1.1 // indirect
 	github.com/clipperhouse/uax29/v2 v2.2.0 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect
-	github.com/cloudwego/eino v0.6.1 // indirect
-	github.com/cloudwego/eino-ext/components/model/claude v0.1.10 // indirect
-	github.com/cloudwego/eino-ext/components/model/deepseek v0.0.0-20251128213542-a865ed3eb1b4 // indirect
-	github.com/cloudwego/eino-ext/components/model/gemini v0.1.15 // indirect
-	github.com/cloudwego/eino-ext/components/model/ollama v0.1.6 // indirect
-	github.com/cloudwego/eino-ext/components/model/openai v0.1.5 // indirect
-	github.com/cloudwego/eino-ext/components/model/qwen v0.1.2 // indirect
 	github.com/cloudwego/eino-ext/libs/acl/openai v0.1.2 // indirect
 	github.com/cohesion-org/deepseek-go v1.3.2 // indirect
 	github.com/creack/pty v1.1.24 // indirect
@@ -183,12 +184,9 @@ require (
 	golang.org/x/arch v0.22.0 // indirect
 	golang.org/x/crypto v0.43.0 // indirect
 	golang.org/x/exp v0.0.0-20250819193227-8b4c13bb791b // indirect
-	golang.org/x/image v0.32.0 // indirect
 	golang.org/x/mod v0.29.0 // indirect
-	golang.org/x/sync v0.17.0 // indirect
 	golang.org/x/sys v0.37.0 // indirect
 	golang.org/x/tools v0.38.0 // indirect
-	google.golang.org/genai v1.36.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240903143218-8af14fe29dc1 // indirect
 	google.golang.org/grpc v1.66.2 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect

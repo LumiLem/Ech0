@@ -204,7 +204,7 @@ func DoTui() {
 			} else {
 				// 获取备份文件路径
 				var path string
-				huh.NewInput().
+				_ = huh.NewInput().
 					Title("请输入备份文件路径").
 					Value(&path).
 					Run()

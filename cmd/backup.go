@@ -22,7 +22,7 @@ var restoreCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		// 获取待恢复的备份文件路径
 		if len(args) < 1 {
-			cmd.Help()
+			_ = cmd.Help()
 			return
 		}
 

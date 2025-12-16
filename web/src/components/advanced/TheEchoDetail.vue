@@ -273,7 +273,7 @@ const userAvatar = computed(() => {
   // 否则使用 Echo 缓存中的数据（包括未登录或其他用户的情况）
   const avatar = props.echo.user?.avatar
   if (!avatar || avatar.length === 0) {
-    return '/favicon.svg'
+    return '/Ech0.svg'
   }
   return avatar.startsWith('http') ? avatar : `${apiUrl}${avatar}`
 })
@@ -291,7 +291,7 @@ const displayUsername = computed(() => {
 
 const handleImageError = (event: Event) => {
   const img = event.target as HTMLImageElement
-  img.src = '/favicon.svg'
+  img.src = '/Ech0.svg'
 }
 
 // 时间显示切换功能

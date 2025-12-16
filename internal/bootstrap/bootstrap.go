@@ -25,12 +25,18 @@ func init() {
 
 	// 确保至少有默认值
 	if os.Getenv("HOST_PROC") == "" {
-		os.Setenv("HOST_PROC", "/proc")
+		if err := os.Setenv("HOST_PROC", "/proc"); err != nil {
+			fmt.Printf("[bootstrap] failed to set HOST_PROC: %v\n", err)
+		}
 	}
 	if os.Getenv("HOST_SYS") == "" {
-		os.Setenv("HOST_SYS", "/sys")
+		if err := os.Setenv("HOST_SYS", "/sys"); err != nil {
+			fmt.Printf("[bootstrap] failed to set HOST_SYS: %v\n", err)
+		}
 	}
 	if os.Getenv("HOST_ROOT") == "" {
-		os.Setenv("HOST_ROOT", "/")
+		if err := os.Setenv("HOST_ROOT", "/"); err != nil {
+			fmt.Printf("[bootstrap] failed to set HOST_ROOT: %v\n", err)
+		}
 	}
 }

@@ -6,9 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
-	"time"
 
 	echoModel "github.com/lin-snow/ech0/internal/model/echo"
 	httpUtil "github.com/lin-snow/ech0/internal/util/http"
@@ -219,42 +217,15 @@ func shouldIncludeFile(info os.FileInfo, options ZipOptions) bool {
 //	return nil
 //}
 
-// addFileToZip 将单个文件添加到 ZIP
-func addFileToZip(zipWriter *zip.Writer, filename, archiveName string) error {
-	file, err := os.Open(filename)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	info, err := file.Stat()
-	if err != nil {
-		return err
-	}
-
-	header := &zip.FileHeader{
-		Name:     filepath.ToSlash(archiveName),
-		Method:   zip.Deflate,
-		Modified: info.ModTime(),
-	}
-	header.SetMode(info.Mode())
-
-	writer, err := zipWriter.CreateHeader(header)
-	if err != nil {
-		return err
-	}
-
-	_, err = io.Copy(writer, file)
-	return err
-}
-
 // UnzipFile 解压 ZIP 文件到指定目录
 func UnzipFile(src, dest string) error {
 	reader, err := zip.OpenReader(src)
 	if err != nil {
 		return fmt.Errorf("打开 ZIP 文件失败: %w", err)
 	}
-	defer reader.Close()
+	defer func() {
+		_ = reader.Close()
+	}()
 
 	// 确保目标目录存在
 	if err := os.MkdirAll(dest, 0o755); err != nil {
@@ -293,13 +264,17 @@ func extractFile(file *zip.File, destDir string) error {
 	if err != nil {
 		return err
 	}
-	defer fileReader.Close()
+	defer func() {
+		_ = fileReader.Close()
+	}()
 
 	targetFile, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, file.FileInfo().Mode())
 	if err != nil {
 		return err
 	}
-	defer targetFile.Close()
+	defer func() {
+		_ = targetFile.Close()
+	}()
 
 	_, err = io.Copy(targetFile, fileReader)
 	return err
@@ -420,7 +395,9 @@ func copyFile(src, dest string, perm os.FileMode) error {
 	if err != nil {
 		return fmt.Errorf("打开源文件 %s 失败: %w", src, err)
 	}
-	defer in.Close()
+	defer func() {
+		_ = in.Close()
+	}()
 
 	out, err := os.OpenFile(dest, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, perm)
 	if err != nil {
@@ -435,35 +412,6 @@ func copyFile(src, dest string, perm os.FileMode) error {
 	}
 
 	return nil
-}
-
-func removeAllWithRetry(path string, retries int, delay time.Duration) error {
-	for attempt := 0; attempt <= retries; attempt++ {
-		if err := os.RemoveAll(path); err != nil {
-			if !shouldRetrySharingViolation(err) || attempt == retries {
-				return err
-			}
-			time.Sleep(delay)
-			continue
-		}
-		return nil
-	}
-	return nil
-}
-
-func shouldRetrySharingViolation(err error) bool {
-	if runtime.GOOS != "windows" {
-		return false
-	}
-	if pathErr, ok := err.(*os.PathError); ok {
-		if pathErr.Err != nil && strings.Contains(strings.ToLower(pathErr.Err.Error()), "used by another process") {
-			return true
-		}
-	}
-	if err != nil && strings.Contains(strings.ToLower(err.Error()), "used by another process") {
-		return true
-	}
-	return false
 }
 
 // cleanBackupDir 清理备份目录

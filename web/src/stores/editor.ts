@@ -6,6 +6,7 @@ import { Mode, ExtensionType, ImageSource, ImageLayout } from '@/enums/enums'
 import { useEchoStore } from '@/stores/echo'
 import { useTodoStore } from '@/stores/todo'
 import { localStg } from '@/utils/storage'
+import { getImageSize } from '@/utils/other'
 
 export const useEditorStore = defineStore('editorStore', () => {
   const echoStore = useEchoStore()
@@ -141,13 +142,22 @@ export const useEditorStore = defineStore('editorStore', () => {
   // 媒体模式功能函数
   //===============================================================
   // 添加更多媒体
-  const handleAddMoreMedia = () => {
+  const handleAddMoreMedia = async () => {
+    let width: number | undefined = mediaToAdd.value.width
+    let height: number | undefined = mediaToAdd.value.height
+    if (width === undefined || height === undefined) {
+      const size = await getImageSize(mediaToAdd.value.media_url)
+      width = size.width
+      height = size.height
+    }
     mediaListToAdd.value.push({
       media_url: mediaToAdd.value.media_url,
       media_type: mediaToAdd.value.media_type,
       media_source: mediaToAdd.value.media_source,
       object_key: mediaToAdd.value.object_key ? mediaToAdd.value.object_key : '',
       live_pair_id: mediaToAdd.value.live_pair_id, // 传递实况照片配对ID
+      width,
+      height,
     })
 
     mediaToAdd.value = {
@@ -160,8 +170,8 @@ export const useEditorStore = defineStore('editorStore', () => {
     }
   }
 
-  const handleUppyUploaded = (files: App.Api.Ech0.MediaToAdd[]) => {
-    files.forEach((file) => {
+  const handleUppyUploaded = async (files: App.Api.Ech0.MediaToAdd[]) => {
+    for (const file of files) {
       mediaToAdd.value = {
         media_url: file.media_url,
         media_type: file.media_type,
@@ -171,11 +181,11 @@ export const useEditorStore = defineStore('editorStore', () => {
         height: file.height,
         live_pair_id: file.live_pair_id, // 传递实况照片配对ID
       }
-      handleAddMoreMedia()
-    })
+      await handleAddMoreMedia()
+    }
 
     if (isUpdateMode.value && echoStore.echoToUpdate) {
-      handleAddOrUpdateEcho(true) // 仅同步媒体
+      await handleAddOrUpdateEcho(true) // 仅同步媒体
     }
   }
 

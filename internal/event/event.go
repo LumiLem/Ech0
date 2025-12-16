@@ -85,9 +85,10 @@ func NewEvent(eventType EventType, payload EventPayload, meta ...map[string]any)
 
 // IEventBus 事件总线接口
 type IEventBus interface {
-	Publish(ctx context.Context, event *Event) error               // 发布事件
-	Subscribe(handler EventHandler, eventType EventType) error     // 订阅特定事件
-	SubscribeAll(handler EventHandler, exclude ...EventType) error // 订阅所有事件
+	Publish(ctx context.Context, event *Event) error                // 发布事件
+	Subscribe(handler EventHandler, eventType EventType) error      // 订阅特定事件
+	Subscribes(handler EventHandler, eventTypes ...EventType) error // 订阅多个特定事件
+	SubscribeAll(handler EventHandler, exclude ...EventType) error  // 订阅所有事件
 }
 
 // EventHandler 事件处理函数类型
@@ -162,6 +163,17 @@ func (eb *EventBus) Subscribe(handler EventHandler, eventType EventType) error {
 	defer eb.mu.Unlock()
 
 	eb.subs[eventType] = append(eb.subs[eventType], handler)
+	return nil
+}
+
+// Subscribes 订阅多个指定事件
+func (eb *EventBus) Subscribes(handler EventHandler, eventTypes ...EventType) error {
+	eb.mu.Lock()
+	defer eb.mu.Unlock()
+
+	for _, et := range eventTypes {
+		eb.subs[et] = append(eb.subs[et], handler)
+	}
 	return nil
 }
 

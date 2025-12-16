@@ -9,6 +9,7 @@ import (
 	dashboardHandler "github.com/lin-snow/ech0/internal/handler/dashboard"
 	echoHandler "github.com/lin-snow/ech0/internal/handler/echo"
 	fediverseHandler "github.com/lin-snow/ech0/internal/handler/fediverse"
+	inboxHandler "github.com/lin-snow/ech0/internal/handler/inbox"
 	settingHandler "github.com/lin-snow/ech0/internal/handler/setting"
 	todoHandler "github.com/lin-snow/ech0/internal/handler/todo"
 	userHandler "github.com/lin-snow/ech0/internal/handler/user"
@@ -23,6 +24,7 @@ type Handlers struct {
 	EchoHandler      *echoHandler.EchoHandler
 	CommonHandler    *commonHandler.CommonHandler
 	SettingHandler   *settingHandler.SettingHandler
+	InboxHandler     *inboxHandler.InboxHandler
 	TodoHandler      *todoHandler.TodoHandler
 	ConnectHandler   *connectHandler.ConnectHandler
 	BackupHandler    *backupHandler.BackupHandler
@@ -38,6 +40,7 @@ func NewHandlers(
 	echoHandler *echoHandler.EchoHandler,
 	commonHandler *commonHandler.CommonHandler,
 	settingHandler *settingHandler.SettingHandler,
+	inboxHandler *inboxHandler.InboxHandler,
 	todoHandler *todoHandler.TodoHandler,
 	connectHandler *connectHandler.ConnectHandler,
 	backupHandler *backupHandler.BackupHandler,
@@ -51,6 +54,7 @@ func NewHandlers(
 		EchoHandler:      echoHandler,
 		CommonHandler:    commonHandler,
 		SettingHandler:   settingHandler,
+		InboxHandler:     inboxHandler,
 		TodoHandler:      todoHandler,
 		ConnectHandler:   connectHandler,
 		BackupHandler:    backupHandler,

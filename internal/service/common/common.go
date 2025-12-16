@@ -32,9 +32,12 @@ import (
 	"github.com/lin-snow/ech0/internal/transaction"
 	fileUtil "github.com/lin-snow/ech0/internal/util/file"
 	httpUtil "github.com/lin-snow/ech0/internal/util/http"
+	imgUtil "github.com/lin-snow/ech0/internal/util/img"
 	jsonUtil "github.com/lin-snow/ech0/internal/util/json"
+	logUtil "github.com/lin-snow/ech0/internal/util/log"
 	mdUtil "github.com/lin-snow/ech0/internal/util/md"
 	storageUtil "github.com/lin-snow/ech0/internal/util/storage"
+	"go.uber.org/zap"
 )
 
 type CommonService struct {
@@ -68,19 +71,19 @@ func (commonService *CommonService) CommonGetUserByUserId(userId uint) (userMode
 	return commonService.commonRepository.GetUserByUserId(userId)
 }
 
-func (commonService *CommonService) UploadImage(userId uint, file *multipart.FileHeader) (string, error) {
+func (commonService *CommonService) UploadImage(userId uint, file *multipart.FileHeader, source string) (commonModel.ImageDto, error) {
 	user, err := commonService.commonRepository.GetUserByUserId(userId)
 	if err != nil {
-		return "", err
+		return commonModel.ImageDto{}, err
 	}
 	if !user.IsAdmin {
-		return "", errors.New(commonModel.NO_PERMISSION_DENIED)
+		return commonModel.ImageDto{}, errors.New(commonModel.NO_PERMISSION_DENIED)
 	}
 
 	// 检查文件类型是否合法
 	contentType := file.Header.Get("Content-Type")
 	if !storageUtil.IsAllowedType(contentType, config.Config.Upload.AllowedTypes) {
-		return "", errors.New(commonModel.FILE_TYPE_NOT_ALLOWED)
+		return commonModel.ImageDto{}, errors.New(commonModel.FILE_TYPE_NOT_ALLOWED)
 	}
 
 	// 根据Content-Type检测文件类型并选择对应的maxSize
@@ -94,23 +97,29 @@ func (commonService *CommonService) UploadImage(userId uint, file *multipart.Fil
 		fileType = commonModel.VideoType
 		maxSize = int64(config.Config.Upload.VideoMaxSize)
 	} else {
-		return "", errors.New(commonModel.FILE_TYPE_NOT_ALLOWED)
+		return commonModel.ImageDto{}, errors.New(commonModel.FILE_TYPE_NOT_ALLOWED)
 	}
 
 	// 检查文件大小是否合法
 	if file.Size > maxSize {
-		return "", errors.New(commonModel.FILE_SIZE_EXCEED_LIMIT)
+		return commonModel.ImageDto{}, errors.New(commonModel.FILE_SIZE_EXCEED_LIMIT)
 	}
 
 	// 调用存储函数存储媒体文件
 	mediaUrl, err := storageUtil.UploadFile(file, fileType, commonModel.LOCAL_FILE, user.ID)
 	if err != nil {
-		return "", err
+		return commonModel.ImageDto{}, err
+	}
+
+	// 获取图片尺寸
+	width, height, err := imgUtil.GetImageSizeFromFile(file)
+	if err != nil {
+		return commonModel.ImageDto{}, err
 	}
 
 	// 触发媒体上传事件
 	user.Password = "" // 清除密码字段，避免泄露
-	commonService.eventBus.Publish(context.Background(), event.NewEvent(
+	if err := commonService.eventBus.Publish(context.Background(), event.NewEvent(
 		event.EventTypeResourceUploaded,
 		event.EventPayload{
 			event.EventPayloadUser: user,
@@ -119,9 +128,16 @@ func (commonService *CommonService) UploadImage(userId uint, file *multipart.Fil
 			event.EventPayloadSize: file.Size,
 			event.EventPayloadType: fileType,
 		},
-	))
+	)); err != nil {
+		logUtil.GetLogger().Error("Failed to publish resource uploaded event", zap.String("error", err.Error()))
+	}
 
-	return mediaUrl, nil
+	return commonModel.ImageDto{
+		URL:    mediaUrl,
+		SOURCE: source,
+		Width:  width,
+		Height: height,
+	}, nil
 }
 
 func (commonService *CommonService) DeleteImage(userid uint, url, source, object_key string) error {
@@ -294,16 +310,16 @@ func (commonService *CommonService) GetStatus() (commonModel.Status, error) {
 	value, err := commonService.keyvalueRepository.GetKeyValue("system_settings")
 	if err != nil || value == nil {
 		// 如果获取失败，使用空字符串作为默认值
-		setting.Logo = ""
+		setting.ServerLogo = ""
 	} else {
 		// GetKeyValue返回的是JSON字符串，需要反序列化
 		if jsonStr, ok := value.(string); ok {
 			if err := json.Unmarshal([]byte(jsonStr), &setting); err != nil {
 				// 反序列化失败，使用空字符串
-				setting.Logo = ""
+				setting.ServerLogo = ""
 			}
 		} else {
-			setting.Logo = ""
+			setting.ServerLogo = ""
 		}
 	}
 
@@ -330,7 +346,7 @@ func (commonService *CommonService) GetStatus() (commonModel.Status, error) {
 
 	status.SysAdminID = sysuser.ID     // 管理员ID
 	status.Username = sysuser.Username // 管理员用户名
-	status.Logo = setting.Logo         // 站点Logo（修改：从管理员头像改为站点Logo）
+	status.Logo = setting.ServerLogo   // 站点Logo（修改：从管理员头像改为站点Logo）
 	status.Users = users               // 所有用户状态
 	status.TotalEchos = len(echos)     // Echo总数
 
@@ -449,7 +465,7 @@ func (commonService *CommonService) GenerateRSS(ctx *gin.Context) (string, error
 			Href: fmt.Sprintf("%s://%s/", schema, host),
 		},
 		Image: &feeds.Image{
-			Url: fmt.Sprintf("%s://%s/favicon.ico", schema, host),
+			Url: fmt.Sprintf("%s://%s/Ech0.svg", schema, host),
 		},
 		Description: "Ech0",
 		Author: &feeds.Author{
@@ -735,9 +751,11 @@ func (commonService *CommonService) GetS3PresignURL(
 		CreatedAt:      now,
 		LastAccessedAt: now,
 	}
-	commonService.txManager.Run(func(ctx context.Context) error {
+	if err := commonService.txManager.Run(func(ctx context.Context) error {
 		return commonService.commonRepository.SaveTempFile(ctx, tempFile)
-	})
+	}); err != nil {
+		logUtil.GetLogger().Error("Failed to save temp file", zap.String("error", err.Error()))
+	}
 
 	return result, nil
 }
@@ -861,7 +879,7 @@ func (commonService *CommonService) CleanupTempFiles() error {
 			}
 
 			// 从数据库中删除记录(开启事务)
-			commonService.txManager.Run(func(ctx context.Context) error {
+			_ = commonService.txManager.Run(func(ctx context.Context) error {
 				return commonService.commonRepository.DeleteTempFilePermanently(ctx, file.ID)
 			})
 		}

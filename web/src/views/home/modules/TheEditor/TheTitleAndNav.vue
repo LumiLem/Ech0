@@ -71,9 +71,9 @@ const apiUrl = getApiUrl()
 
 // 站点Logo（未登录时显示）
 const siteLogo = computed(() => {
-  const logo = SystemSetting.value.logo
+  const logo = SystemSetting.value.server_logo
   if (!logo || logo.length === 0) {
-    return '/favicon.svg'
+    return '/Ech0.svg'
   }
   return logo.startsWith('http') ? logo : `${apiUrl}${logo}`
 })
@@ -82,24 +82,20 @@ const siteLogo = computed(() => {
 const userAvatar = computed(() => {
   const avatar = user.value?.avatar
   if (!avatar || avatar.length === 0) {
-    return '/favicon.svg'
+    return '/Ech0.svg'
   }
   return avatar.startsWith('http') ? avatar : `${apiUrl}${avatar}`
 })
 
 const handleImageError = (event: Event) => {
   const img = event.target as HTMLImageElement
-  img.src = '/favicon.svg'
-}
-
-const modeTextMap = { light: '浅色', dark: '深色', auto: '自动' }
-
-const getModeText = () => {
-  return modeTextMap[themeStore.mode]
+  img.src = '/Ech0.svg'
 }
 
 const handleHello = () => {
   themeStore.toggleTheme()
+  const modeText =
+    themeStore.mode === 'system' ? 'Auto' : themeStore.mode === 'light' ? 'Light' : 'Dark'
 
   const hello = ref<App.Api.Ech0.HelloEch0>()
 
@@ -107,7 +103,7 @@ const handleHello = () => {
     if (res.code === 1) {
       hello.value = res.data
       theToast.success('你好呀！ 👋', {
-        description: `当前版本：v${hello.value.version} | ${getModeText()}`,
+        description: `当前版本：v${hello.value.version} | ${modeText}`,
         duration: 2000,
         action: {
           label: 'Github',

@@ -23,6 +23,8 @@ import (
 	"github.com/lin-snow/ech0/internal/transaction"
 	cryptoUtil "github.com/lin-snow/ech0/internal/util/crypto"
 	jwtUtil "github.com/lin-snow/ech0/internal/util/jwt"
+	logUtil "github.com/lin-snow/ech0/internal/util/log"
+	"go.uber.org/zap"
 )
 
 // OAuthUserProfile 统一的OAuth用户信息结构
@@ -160,7 +162,7 @@ func (userService *UserService) Register(registerDto *authModel.RegisterDto) err
 
 	// 发布用户注册事件
 	newUser.Password = "" // 不包含密码信息
-	userService.eventBus.Publish(
+	if err := userService.eventBus.Publish(
 		context.Background(),
 		event.NewEvent(
 			event.EventTypeUserCreated,
@@ -168,7 +170,9 @@ func (userService *UserService) Register(registerDto *authModel.RegisterDto) err
 				event.EventPayloadUser: newUser,
 			},
 		),
-	)
+	); err != nil {
+		logUtil.GetLogger().Error("Failed to publish user created event", zap.String("error", err.Error()))
+	}
 
 	return nil
 }
@@ -226,7 +230,7 @@ func (userService *UserService) UpdateUser(userid uint, userdto model.UserInfoDt
 
 	// 发布用户更新事件
 	user.Password = "" // 不包含密码信息
-	userService.eventBus.Publish(
+	if err := userService.eventBus.Publish(
 		context.Background(),
 		event.NewEvent(
 			event.EventTypeUserUpdated,
@@ -234,7 +238,9 @@ func (userService *UserService) UpdateUser(userid uint, userdto model.UserInfoDt
 				event.EventPayloadUser: user,
 			},
 		),
-	)
+	); err != nil {
+		logUtil.GetLogger().Error("Failed to publish user updated event", zap.String("error", err.Error()))
+	}
 
 	return nil
 }
@@ -286,7 +292,7 @@ func (userService *UserService) UpdateUserAdmin(userid uint, id uint) error {
 
 	// 发布用户更新事件
 	user.Password = "" // 不包含密码信息
-	userService.eventBus.Publish(
+	if err := userService.eventBus.Publish(
 		context.Background(),
 		event.NewEvent(
 			event.EventTypeUserUpdated,
@@ -294,7 +300,9 @@ func (userService *UserService) UpdateUserAdmin(userid uint, id uint) error {
 				event.EventPayloadUser: user,
 			},
 		),
-	)
+	); err != nil {
+		logUtil.GetLogger().Error("Failed to publish user updated event", zap.String("error", err.Error()))
+	}
 
 	return nil
 }
@@ -1202,7 +1210,9 @@ func exchangeGithubCodeForToken(
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	// 读取响应
 	body, _ := io.ReadAll(resp.Body)
@@ -1237,7 +1247,7 @@ func fetchGitHubUserInfo(setting *settingModel.OAuth2Setting, accessToken string
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// 读取响应
 	body, _ := io.ReadAll(resp.Body)
@@ -1283,7 +1293,7 @@ func exchangeGoogleCodeForToken(
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// 读取响应
 	body, _ := io.ReadAll(resp.Body)
@@ -1321,7 +1331,7 @@ func fetchGoogleUserInfo(setting *settingModel.OAuth2Setting, accessToken string
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// 读取响应
 	body, _ := io.ReadAll(resp.Body)
@@ -1576,7 +1586,7 @@ func exchangeCustomCodeForToken(setting *settingModel.OAuth2Setting, code string
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// 读取响应
 	body, _ := io.ReadAll(resp.Body)
@@ -1597,7 +1607,7 @@ func exchangeCustomCodeForToken(setting *settingModel.OAuth2Setting, code string
 		}
 	}
 
-	return "", errors.New("Custom token 响应缺少 access_token")
+	return "", errors.New("custom token 响应缺少 access_token")
 }
 
 // fetchCustomUserInfo 获取自定义OAuth用户信息
@@ -1621,7 +1631,7 @@ func fetchCustomUserInfo(setting *settingModel.OAuth2Setting, accessToken string
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// 读取响应
 	body, _ := io.ReadAll(resp.Body)
@@ -1644,7 +1654,7 @@ func fetchCustomUserInfo(setting *settingModel.OAuth2Setting, accessToken string
 		}
 	}
 
-	return "", errors.New("Custom 用户信息缺少唯一标识字段 (id/sub/user_id/uid)")
+	return "", errors.New("custom 用户信息缺少唯一标识字段 (id/sub/user_id/uid)")
 }
 
 // GetOAuthInfo 获取用户的OAuth绑定信息

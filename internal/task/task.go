@@ -70,7 +70,9 @@ func (t *Tasker) Start() {
 }
 
 func (t *Tasker) Stop() {
-	t.scheduler.Shutdown()
+	if err := t.scheduler.Shutdown(); err != nil {
+		logUtil.GetLogger().Error("Failed to shutdown scheduler", zap.String("error", err.Error()))
+	}
 }
 
 // CleanupTempFilesTask 清理过期的临时文件任务
@@ -108,14 +110,16 @@ func (t *Tasker) DeadLetterConsumeTask() {
 				// 遍历死信任务，重新发送事件
 				for _, dl := range deadLetters {
 					// 发布事件到事件总线，触发重试
-					t.eventBus.Publish(context.Background(),
+					if err := t.eventBus.Publish(context.Background(),
 						event.NewEvent(
 							event.EventTypeDeadLetterRetried,
 							event.EventPayload{
 								event.EventPayloadDeadLetter: dl,
 							},
 						),
-					)
+					); err != nil {
+						logUtil.GetLogger().Error("Failed to publish dead letter retried event", zap.String("error", err.Error()))
+					}
 				}
 			},
 		),
@@ -150,7 +154,7 @@ func (t *Tasker) ScheduleBackupTask(cronExpression string) {
 				}
 
 				// 发布备份完成事件
-				t.eventBus.Publish(
+				if err := t.eventBus.Publish(
 					context.Background(),
 					event.NewEvent(
 						event.EventTypeSystemBackup,
@@ -158,7 +162,9 @@ func (t *Tasker) ScheduleBackupTask(cronExpression string) {
 							event.EventPayloadInfo: "System scheduled backup completed",
 						},
 					),
-				)
+				); err != nil {
+					logUtil.GetLogger().Error("Failed to publish backup completed event", zap.String("error", err.Error()))
+				}
 			},
 		),
 		gocron.WithTags("BackupSchedule"),

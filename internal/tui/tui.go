@@ -95,7 +95,9 @@ func PrintCLIBanner() {
 // PrintCLIInfo 打印CLI信息
 func PrintCLIInfo(title, msg string) {
 	// 使用 lipgloss 渲染 CLI 信息
-	fmt.Fprintln(os.Stdout, infoStyle.Render(titleStyle.Render(title)+": "+highlight.Render(msg)))
+	if _, err := fmt.Fprintln(os.Stdout, infoStyle.Render(titleStyle.Render(title)+": "+highlight.Render(msg))); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to print cli info: %v\n", err)
+	}
 }
 
 // CLIInfoItem 定义了一个CLI信息项，包含标题和消息
@@ -125,7 +127,9 @@ func GetCLIPrintWithBox(items ...CLIInfoItem) string {
 
 // PrintCLIWithBox 打印带边框的CLI信息
 func PrintCLIWithBox(items ...CLIInfoItem) {
-	fmt.Fprintln(os.Stdout, GetCLIPrintWithBox(items...))
+	if _, err := fmt.Fprintln(os.Stdout, GetCLIPrintWithBox(items...)); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to print cli box: %v\n", err)
+	}
 }
 
 // ClearScreen 清屏函数，根据操作系统执行不同的清屏命令
@@ -137,7 +141,9 @@ func ClearScreen() {
 		cmd = exec.Command("clear") // Linux/macOS 清屏命令
 	}
 	cmd.Stdout = os.Stdout
-	cmd.Run()
+	if err := cmd.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to clear screen: %v\n", err)
+	}
 }
 
 // GetEch0Info 获取Ech0信息
@@ -145,7 +151,7 @@ func GetEch0Info() string {
 	content := lipgloss.JoinVertical(lipgloss.Left,
 		infoStyle.Render("📦 "+titleStyle.Render("Version")+": "+highlight.Render(commonModel.Version)),
 		infoStyle.Render("🧙 "+titleStyle.Render("Author")+": "+highlight.Render("L1nSn0w")),
-		infoStyle.Render("👉 "+titleStyle.Render("Website")+": "+highlight.Render("https://echo.soopy.cn/")),
+		infoStyle.Render("👉 "+titleStyle.Render("Website")+": "+highlight.Render("https://ech0.app/")),
 		infoStyle.Render("👉 "+titleStyle.Render("GitHub")+": "+highlight.Render("https://github.com/lin-snow/Ech0")),
 	)
 

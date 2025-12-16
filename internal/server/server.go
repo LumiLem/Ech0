@@ -93,6 +93,12 @@ func (s *Server) Init() {
 		cacheFactory,
 		transactionManagerFactory,
 	)
+	if err != nil {
+		errUtil.HandlePanicError(&commonModel.ServerError{
+			Msg: commonModel.INIT_EVENT_REGISTRAR_PANIC,
+			Err: err,
+		})
+	}
 }
 
 // Start 异步启动服务器
@@ -114,15 +120,17 @@ func (s *Server) Start() {
 			})
 		}
 	}()
-	// log.Println("🚀 Ech0 Server已启动")
 
 	// 启动任务器
 	go s.tasker.Start()
-	// log.Println("🤖 任务器已启动")
 
 	// 注册事件
-	go s.eventRegistrar.Register()
-	// log.Println("🔮 事件注册器已启动")
+	if err := s.eventRegistrar.Register(); err != nil {
+		errUtil.HandlePanicError(&commonModel.ServerError{
+			Msg: commonModel.INIT_EVENT_REGISTRAR_PANIC,
+			Err: err,
+		})
+	}
 }
 
 // Stop 优雅停止服务器

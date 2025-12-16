@@ -210,9 +210,17 @@ export const extractAndCleanMusicURL = (input: string): string | null => {
 }
 
 // 获取图片尺寸
-export async function getImageSize(file: File): Promise<{ width: number; height: number }> {
-  const bitmap = await createImageBitmap(file)
-  return { width: bitmap.width, height: bitmap.height }
+export function getImageSize(imgUrl: string): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      resolve({ width: img.width, height: img.height })
+    }
+    img.onerror = (err) => {
+      reject(err)
+    }
+    img.src = imgUrl
+  })
 }
 
 // 获取 HubEcho 的媒体链接（支持图片和视频）

@@ -39,6 +39,15 @@ const (
 	GET_WEBSITE_TITLE_SUCCESS  = "获取网站标题成功"
 )
 
+// Inbox 成功相关常量
+const (
+	GET_INBOX_LIST_SUCCESS   = "获取收件箱成功"
+	GET_UNREAD_INBOX_SUCCESS = "获取未读消息成功"
+	MARK_INBOX_READ_SUCCESS  = "标记消息已读成功"
+	DELETE_INBOX_SUCCESS     = "删除收件箱消息成功"
+	CLEAR_INBOX_SUCCESS      = "清空收件箱成功"
+)
+
 // Setting 成功相关常量
 const (
 	GET_SETTINGS_SUCCESS              = "获取设置成功！"

@@ -15,7 +15,7 @@ export async function initStores() {
 
   themeStore.init()
   await userStore.init()
-  settingStore.init()
+  await settingStore.init()
   todoStore.init()
   editorStore.init()
   echoStore.init()

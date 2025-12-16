@@ -63,7 +63,7 @@ func (webHandler *WebHandler) Templates() gin.HandlerFunc {
 			gzPath := fullPath + ".gz"
 			gzFile, err := fileServer.Open(gzPath)
 			if err == nil {
-				defer gzFile.Close()
+				defer func() { _ = gzFile.Close() }()
 				stat, _ := gzFile.Stat()
 				ctx.Header("Content-Encoding", "gzip")
 				ctx.Header("Content-Type", getMimeType(fullPath))

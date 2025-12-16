@@ -42,6 +42,7 @@ upload:
 
 setting:
   sitetitle: "Ech0"
+  serverlogo: "/Ech0.svg"
   servername: "Ech0"
   serverurl: "https://ech0.example.com"
   allowregister: true

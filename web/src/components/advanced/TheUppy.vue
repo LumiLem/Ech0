@@ -427,12 +427,16 @@ const initUppy = () => {
 
     // 分两种情况: Local 或者 S3
     if (memorySource.value === ImageSource.LOCAL) {
-      const fileUrl = String(response.body?.data)
+      const res = response.body as unknown as App.Api.Response<App.Api.File.ImageDto>
+      const fileUrl = String(res.data.url)
+      const { width, height } = res.data
       const item: App.Api.Ech0.MediaToAdd = {
         media_url: fileUrl,
         media_type: mediaType,
         media_source: ImageSource.LOCAL,
         object_key: '',
+        width: width,
+        height: height,
         live_pair_id: pairId, // 应用预检测的 pairId
       }
       files.value.push(item)
@@ -441,19 +445,19 @@ const initUppy = () => {
       }
     } else if (memorySource.value === ImageSource.S3) {
       const uploadedFile = tempFiles.value.get(file?.name || '') || ''
-      if (uploadedFile) {
-        const item: App.Api.Ech0.MediaToAdd = {
-          media_url: uploadedFile.url,
-          media_type: mediaType,
-          media_source: ImageSource.S3,
-          object_key: uploadedFile.objectKey,
-          live_pair_id: pairId, // 应用预检测的 pairId
-        }
-        files.value.push(item)
+      if (!uploadedFile) return
+
+      const item: App.Api.Ech0.MediaToAdd = {
+        media_url: uploadedFile.url,
+        media_type: mediaType,
+        media_source: ImageSource.S3,
+        object_key: uploadedFile.objectKey,
+        live_pair_id: pairId, // 应用预检测的 pairId
+      }
+      files.value.push(item)
         if (pairId) {
           console.log('上传成功，应用 pairId:', originalName, '->', uploadedFile.url, 'pairId:', pairId)
         }
-      }
     }
   })
   // 全部文件上传完成后，发射事件到父组件

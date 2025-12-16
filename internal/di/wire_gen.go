@@ -11,38 +11,41 @@ import (
 	"github.com/lin-snow/ech0/internal/cache"
 	"github.com/lin-snow/ech0/internal/event"
 	"github.com/lin-snow/ech0/internal/fediverse"
-	handler11 "github.com/lin-snow/ech0/internal/handler/agent"
-	handler8 "github.com/lin-snow/ech0/internal/handler/backup"
+	handler12 "github.com/lin-snow/ech0/internal/handler/agent"
+	handler9 "github.com/lin-snow/ech0/internal/handler/backup"
 	handler4 "github.com/lin-snow/ech0/internal/handler/common"
-	handler7 "github.com/lin-snow/ech0/internal/handler/connect"
-	handler10 "github.com/lin-snow/ech0/internal/handler/dashboard"
+	handler8 "github.com/lin-snow/ech0/internal/handler/connect"
+	handler11 "github.com/lin-snow/ech0/internal/handler/dashboard"
 	handler3 "github.com/lin-snow/ech0/internal/handler/echo"
-	handler9 "github.com/lin-snow/ech0/internal/handler/fediverse"
+	handler10 "github.com/lin-snow/ech0/internal/handler/fediverse"
+	handler6 "github.com/lin-snow/ech0/internal/handler/inbox"
 	handler5 "github.com/lin-snow/ech0/internal/handler/setting"
-	handler6 "github.com/lin-snow/ech0/internal/handler/todo"
+	handler7 "github.com/lin-snow/ech0/internal/handler/todo"
 	handler2 "github.com/lin-snow/ech0/internal/handler/user"
 	"github.com/lin-snow/ech0/internal/handler/web"
 	"github.com/lin-snow/ech0/internal/metric"
 	"github.com/lin-snow/ech0/internal/monitor"
 	repository2 "github.com/lin-snow/ech0/internal/repository/common"
-	repository8 "github.com/lin-snow/ech0/internal/repository/connect"
+	repository9 "github.com/lin-snow/ech0/internal/repository/connect"
 	repository3 "github.com/lin-snow/ech0/internal/repository/echo"
 	repository6 "github.com/lin-snow/ech0/internal/repository/fediverse"
+	repository7 "github.com/lin-snow/ech0/internal/repository/inbox"
 	"github.com/lin-snow/ech0/internal/repository/keyvalue"
-	repository9 "github.com/lin-snow/ech0/internal/repository/queue"
+	repository10 "github.com/lin-snow/ech0/internal/repository/queue"
 	repository4 "github.com/lin-snow/ech0/internal/repository/setting"
-	repository7 "github.com/lin-snow/ech0/internal/repository/todo"
+	repository8 "github.com/lin-snow/ech0/internal/repository/todo"
 	"github.com/lin-snow/ech0/internal/repository/user"
 	repository5 "github.com/lin-snow/ech0/internal/repository/webhook"
-	service10 "github.com/lin-snow/ech0/internal/service/agent"
-	service8 "github.com/lin-snow/ech0/internal/service/backup"
+	service11 "github.com/lin-snow/ech0/internal/service/agent"
+	service9 "github.com/lin-snow/ech0/internal/service/backup"
 	"github.com/lin-snow/ech0/internal/service/common"
-	service7 "github.com/lin-snow/ech0/internal/service/connect"
-	service9 "github.com/lin-snow/ech0/internal/service/dashboard"
+	service8 "github.com/lin-snow/ech0/internal/service/connect"
+	service10 "github.com/lin-snow/ech0/internal/service/dashboard"
 	service5 "github.com/lin-snow/ech0/internal/service/echo"
 	service4 "github.com/lin-snow/ech0/internal/service/fediverse"
+	service6 "github.com/lin-snow/ech0/internal/service/inbox"
 	service2 "github.com/lin-snow/ech0/internal/service/setting"
-	service6 "github.com/lin-snow/ech0/internal/service/todo"
+	service7 "github.com/lin-snow/ech0/internal/service/todo"
 	service3 "github.com/lin-snow/ech0/internal/service/user"
 	"github.com/lin-snow/ech0/internal/task"
 	"github.com/lin-snow/ech0/internal/transaction"
@@ -73,22 +76,25 @@ func BuildHandlers(dbProvider func() *gorm.DB, cacheFactory *cache.CacheFactory,
 	echoHandler := handler3.NewEchoHandler(echoServiceInterface)
 	commonHandler := handler4.NewCommonHandler(commonServiceInterface)
 	settingHandler := handler5.NewSettingHandler(settingServiceInterface)
-	todoRepositoryInterface := repository7.NewTodoRepository(dbProvider, iCache)
-	todoServiceInterface := service6.NewTodoService(transactionManager, todoRepositoryInterface, commonServiceInterface)
-	todoHandler := handler6.NewTodoHandler(todoServiceInterface)
-	connectRepositoryInterface := repository8.NewConnectRepository(dbProvider)
-	connectServiceInterface := service7.NewConnectService(transactionManager, connectRepositoryInterface, echoRepositoryInterface, commonServiceInterface, settingServiceInterface)
-	connectHandler := handler7.NewConnectHandler(connectServiceInterface)
-	backupServiceInterface := service8.NewBackupService(commonServiceInterface, ebProvider)
-	backupHandler := handler8.NewBackupHandler(backupServiceInterface)
-	fediverseHandler := handler9.NewFediverseHandler(fediverseServiceInterface)
+	inboxRepositoryInterface := repository7.NewInboxRepository(dbProvider)
+	inboxServiceInterface := service6.NewInboxService(transactionManager, commonServiceInterface, inboxRepositoryInterface)
+	inboxHandler := handler6.NewInboxHandler(inboxServiceInterface)
+	todoRepositoryInterface := repository8.NewTodoRepository(dbProvider, iCache)
+	todoServiceInterface := service7.NewTodoService(transactionManager, todoRepositoryInterface, commonServiceInterface)
+	todoHandler := handler7.NewTodoHandler(todoServiceInterface)
+	connectRepositoryInterface := repository9.NewConnectRepository(dbProvider)
+	connectServiceInterface := service8.NewConnectService(transactionManager, connectRepositoryInterface, echoRepositoryInterface, commonServiceInterface, settingServiceInterface)
+	connectHandler := handler8.NewConnectHandler(connectServiceInterface)
+	backupServiceInterface := service9.NewBackupService(commonServiceInterface, ebProvider)
+	backupHandler := handler9.NewBackupHandler(backupServiceInterface)
+	fediverseHandler := handler10.NewFediverseHandler(fediverseServiceInterface)
 	metricCollector := metric.NewSystemCollector()
 	monitorMonitor := monitor.NewMonitor(metricCollector)
-	dashboardServiceInterface := service9.NewDashboardService(monitorMonitor, commonServiceInterface)
-	dashboardHandler := handler10.NewDashboardHandler(dashboardServiceInterface)
-	agentServiceInterface := service10.NewAgentService(settingServiceInterface, echoServiceInterface, todoServiceInterface, keyValueRepositoryInterface)
-	agentHandler := handler11.NewAgentHandler(agentServiceInterface)
-	handlers := NewHandlers(webHandler, userHandler, echoHandler, commonHandler, settingHandler, todoHandler, connectHandler, backupHandler, fediverseHandler, dashboardHandler, agentHandler)
+	dashboardServiceInterface := service10.NewDashboardService(monitorMonitor, commonServiceInterface)
+	dashboardHandler := handler11.NewDashboardHandler(dashboardServiceInterface)
+	agentServiceInterface := service11.NewAgentService(settingServiceInterface, echoServiceInterface, todoServiceInterface, keyValueRepositoryInterface)
+	agentHandler := handler12.NewAgentHandler(agentServiceInterface)
+	handlers := NewHandlers(webHandler, userHandler, echoHandler, commonHandler, settingHandler, inboxHandler, todoHandler, connectHandler, backupHandler, fediverseHandler, dashboardHandler, agentHandler)
 	return handlers, nil
 }
 
@@ -102,14 +108,14 @@ func BuildTasker(dbProvider func() *gorm.DB, cacheFactory *cache.CacheFactory, t
 	settingRepositoryInterface := repository4.NewSettingRepository(dbProvider)
 	webhookRepositoryInterface := repository5.NewWebhookRepository(dbProvider)
 	settingServiceInterface := service2.NewSettingService(transactionManager, commonServiceInterface, keyValueRepositoryInterface, settingRepositoryInterface, webhookRepositoryInterface, ebProvider)
-	queueRepositoryInterface := repository9.NewQueueRepository(dbProvider)
+	queueRepositoryInterface := repository10.NewQueueRepository(dbProvider)
 	tasker := task.NewTasker(commonServiceInterface, settingServiceInterface, ebProvider, queueRepositoryInterface)
 	return tasker, nil
 }
 
 func BuildEventRegistrar(dbProvider func() *gorm.DB, ebProvider func() event.IEventBus, cacheFactory *cache.CacheFactory, tmFactory *transaction.TransactionManagerFactory) (*event.EventRegistrar, error) {
 	webhookRepositoryInterface := repository5.NewWebhookRepository(dbProvider)
-	queueRepositoryInterface := repository9.NewQueueRepository(dbProvider)
+	queueRepositoryInterface := repository10.NewQueueRepository(dbProvider)
 	transactionManager := ProvideTransactionManager(tmFactory)
 	webhookDispatcher := event.NewWebhookDispatcher(ebProvider, webhookRepositoryInterface, queueRepositoryInterface, transactionManager)
 	fediverseRepositoryInterface := repository6.NewFediverseRepository(dbProvider)
@@ -121,7 +127,10 @@ func BuildEventRegistrar(dbProvider func() *gorm.DB, ebProvider func() event.IEv
 	fediverseAgent := event.NewFediverseAgent(fediverseCore, queueRepositoryInterface, transactionManager)
 	deadLetterResolver := event.NewDeadLetterResolver(queueRepositoryInterface, webhookDispatcher, fediverseAgent)
 	backupScheduler := event.NewBackupScheduler()
-	eventHandlers := event.NewEventHandlers(webhookDispatcher, deadLetterResolver, fediverseAgent, backupScheduler)
+	todoRepositoryInterface := repository8.NewTodoRepository(dbProvider, iCache)
+	inboxRepositoryInterface := repository7.NewInboxRepository(dbProvider)
+	agentProcessor := event.NewAgentProcessor(echoRepositoryInterface, todoRepositoryInterface, userRepositoryInterface, keyValueRepositoryInterface, inboxRepositoryInterface)
+	eventHandlers := event.NewEventHandlers(webhookDispatcher, deadLetterResolver, fediverseAgent, backupScheduler, agentProcessor)
 	eventRegistrar := event.NewEventRegistry(ebProvider, eventHandlers)
 	return eventRegistrar, nil
 }
@@ -157,37 +166,40 @@ var KeyValueSet = wire.NewSet(keyvalue.NewKeyValueRepository)
 var SettingSet = wire.NewSet(repository4.NewSettingRepository, service2.NewSettingService, handler5.NewSettingHandler)
 
 // TodoSet 包含了构建 TodoHandler 所需的所有 Provider
-var TodoSet = wire.NewSet(repository7.NewTodoRepository, service6.NewTodoService, handler6.NewTodoHandler)
+var TodoSet = wire.NewSet(repository8.NewTodoRepository, service7.NewTodoService, handler7.NewTodoHandler)
 
 // ConnectSet 包含了构建 ConnectHandler 所需的所有 Provider
-var ConnectSet = wire.NewSet(repository8.NewConnectRepository, service7.NewConnectService, handler7.NewConnectHandler)
+var ConnectSet = wire.NewSet(repository9.NewConnectRepository, service8.NewConnectService, handler8.NewConnectHandler)
 
 // BackupSet 包含了构建 BackupHandler 所需的所有 Provider
-var BackupSet = wire.NewSet(handler8.NewBackupHandler, service8.NewBackupService)
+var BackupSet = wire.NewSet(handler9.NewBackupHandler, service9.NewBackupService)
 
 // DashboardSet 包含了构建 DashboardHandler 所需的所有 Provider
-var DashboardSet = wire.NewSet(service9.NewDashboardService, handler10.NewDashboardHandler)
+var DashboardSet = wire.NewSet(service10.NewDashboardService, handler11.NewDashboardHandler)
 
 // AgentSet 包含了构建 AgentHandler 所需的所有 Provider
-var AgentSet = wire.NewSet(service10.NewAgentService, handler11.NewAgentHandler)
+var AgentSet = wire.NewSet(service11.NewAgentService, handler12.NewAgentHandler)
 
 // WebhookSet 包含了构建 WebhookDispatcher 所需的所有 Provider
 var WebhookSet = wire.NewSet(repository5.NewWebhookRepository)
+
+// InboxSet 包含了构建 InboxRepository 所需的所有 Provider
+var InboxSet = wire.NewSet(repository7.NewInboxRepository, service6.NewInboxService, handler6.NewInboxHandler)
 
 // TaskSet 包含了构建 Tasker 所需的所有 Provider
 var TaskSet = wire.NewSet(task.NewTasker)
 
 // QueueSet 包含了构建 Queue 所需的所有 Provider
-var QueueSet = wire.NewSet(repository9.NewQueueRepository)
+var QueueSet = wire.NewSet(repository10.NewQueueRepository)
 
 // FediverseCoreSet 包含了构建 FediverseCore 所需的所有 Provider
 var FediverseCoreSet = wire.NewSet(fediverse.NewFediverseCore)
 
 // FediverseSet 包含了构建 Fediverse 所需的所有 Provider
-var FediverseSet = wire.NewSet(repository6.NewFediverseRepository, service4.NewFediverseService, handler9.NewFediverseHandler, event.NewFediverseAgent)
+var FediverseSet = wire.NewSet(repository6.NewFediverseRepository, service4.NewFediverseService, handler10.NewFediverseHandler, event.NewFediverseAgent)
 
 // EventSet 包含了构建 Event 相关所需的所有 Provider
-var EventSet = wire.NewSet(event.NewWebhookDispatcher, event.NewBackupScheduler, event.NewDeadLetterResolver, event.NewEventHandlers, event.NewEventRegistry)
+var EventSet = wire.NewSet(event.NewWebhookDispatcher, event.NewBackupScheduler, event.NewDeadLetterResolver, event.NewAgentProcessor, event.NewEventHandlers, event.NewEventRegistry)
 
 // MetricSet 包含了构建 Metric 相关所需的所有 Provider
 var MetricSet = wire.NewSet(metric.NewSystemCollector)

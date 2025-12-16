@@ -1,52 +1,60 @@
 import { defineStore } from 'pinia'
-import { ref, computed, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { localStg } from '@/utils/storage'
 
-type ThemeMode = 'light' | 'dark' | 'auto'
+export type ThemeMode = 'system' | 'light' | 'dark'
 type ThemeType = 'light' | 'dark'
 
 export const useThemeStore = defineStore('themeStore', () => {
-  const savedMode = localStg.getItem('themeMode')
+  const savedThemeMode = localStg.getItem('themeMode')
+  const savedTheme = localStg.getItem('theme')
+
+  // 初始化 themeMode
   const mode = ref<ThemeMode>(
-    savedMode === 'light' || savedMode === 'dark' || savedMode === 'auto' ? savedMode : 'auto',
+    savedThemeMode === 'system' || savedThemeMode === 'light' || savedThemeMode === 'dark'
+      ? savedThemeMode
+      : 'system',
   )
-
-  const systemTheme = ref<ThemeType>(
-    window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
-      ? 'dark'
-      : 'light',
+  const theme = ref<ThemeType>(
+    savedTheme === 'light' || savedTheme === 'dark' ? savedTheme : 'light',
   )
-
-  const theme = computed<ThemeType>(() => {
-    return mode.value === 'auto' ? systemTheme.value : mode.value
-  })
 
   const toggleTheme = () => {
-    if (mode.value === 'light') {
-      mode.value = 'dark'
-    } else if (mode.value === 'dark') {
-      mode.value = 'auto'
-    } else {
+    if (mode.value === 'system') {
       mode.value = 'light'
+    } else if (mode.value === 'light') {
+      mode.value = 'dark'
+    } else {
+      mode.value = 'system'
     }
+
+    applyTheme()
     localStg.setItem('themeMode', mode.value)
   }
 
-  const applyTheme = (t: ThemeType) => {
+  const applyTheme = () => {
+    switch (mode.value) {
+      case 'system':
+        theme.value = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+        break
+      case 'light':
+        theme.value = 'light'
+        break
+      case 'dark':
+        theme.value = 'dark'
+        break
+    }
+
     document.documentElement.classList.remove('light', 'dark')
-    document.documentElement.classList.add(t)
+    document.documentElement.classList.add(theme.value)
+    localStg.setItem('theme', theme.value)
   }
 
   const init = () => {
-    applyTheme(theme.value)
+    applyTheme()
+    // 监听系统主题变化
     watch(theme, applyTheme)
-
-    if (window.matchMedia) {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-      mediaQuery.addEventListener('change', (e) => {
-        systemTheme.value = e.matches ? 'dark' : 'light'
-      })
-    }
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme)
   }
 
   return {

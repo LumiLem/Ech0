@@ -36,7 +36,8 @@ func SSHStart() {
 		),
 	)
 	if err != nil {
-		// log.Error("Could not start server", "error", err)
+		fmt.Printf("Could not start ssh server: %v\n", err)
+		return
 	}
 
 	// done := make(chan os.Signal, 1)
@@ -44,9 +45,8 @@ func SSHStart() {
 	// log.Info("Starting SSH server", "host", host, "port", port)
 	go func() {
 		fmt.Println("🚀 Ech0 SSH已启动，监听端口", port)
-		if err = SSHServer.ListenAndServe(); err != nil && !errors.Is(err, ssh.ErrServerClosed) {
-			// log.Error("Could not start server", "error", err)
-			// done <- nil
+		if serveErr := SSHServer.ListenAndServe(); serveErr != nil && !errors.Is(serveErr, ssh.ErrServerClosed) {
+			fmt.Printf("ssh server run failed: %v\n", serveErr)
 		}
 	}()
 
@@ -75,7 +75,9 @@ func SSHStop() error {
 	// After the timeout, it shuts down anyway.
 	if err := SSHServer.Shutdown(ctx); err != nil && !errors.Is(err, ssh.ErrServerClosed) {
 		// 强制关闭服务器
-		SSHServer.Close()
+		if closeErr := SSHServer.Close(); closeErr != nil {
+			fmt.Printf("force close ssh server failed: %v\n", closeErr)
+		}
 
 		return err
 	}

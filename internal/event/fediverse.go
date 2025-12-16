@@ -14,6 +14,7 @@ import (
 	queueRepository "github.com/lin-snow/ech0/internal/repository/queue"
 	"github.com/lin-snow/ech0/internal/transaction"
 	logUtil "github.com/lin-snow/ech0/internal/util/log"
+	"go.uber.org/zap"
 )
 
 type PushEchoReplayPayload struct {
@@ -46,7 +47,10 @@ func (fa *FediverseAgent) Handle(ctx context.Context, e *Event) error {
 	// 处理事件，与联邦宇宙交互
 	switch e.Type {
 	case EventTypeEchoCreated:
-		fa.HandleCreateEchoEvent(ctx, e) // 创建 Echo 事件
+		if err := fa.HandleCreateEchoEvent(ctx, e); err != nil {
+			logUtil.GetLogger().Error("Failed to handle create echo event", zap.String("error", err.Error()))
+			return nil
+		}
 
 	default:
 		return nil // 忽略其他事件
@@ -107,9 +111,11 @@ func (fa *FediverseAgent) HandleCreateEchoEvent(ctx context.Context, e *Event) e
 				deadLetter.UpdatedAt = time.Now()
 				deadLetter.Status = queueModel.DeadLetterStatusPending // 初始状态为待处理
 
-				fa.txManager.Run(func(ctx context.Context) error {
+				if err := fa.txManager.Run(func(ctx context.Context) error {
 					return fa.queueRepo.SaveDeadLetter(ctx, &deadLetter)
-				})
+				}); err != nil {
+					logUtil.GetLogger().Error("Failed to save dead letter", zap.String("error", err.Error()))
+				}
 			}
 			return nil
 		})

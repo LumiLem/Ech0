@@ -122,13 +122,18 @@
 
       <!-- 操作按钮 -->
       <div ref="menuRef" class="relative flex items-center justify-center gap-2 h-auto">
+        <!-- 跳转 -->
+        <a :href="`${server_url}/echo/${echo_id}`" target="_blank" title="跳转至该 Echo">
+          <LinkTo class="w-4 h-4" />
+        </a>
+
         <!-- 点赞 -->
         <div class="flex items-center justify-end" title="点赞">
           <div class="flex items-center gap-1">
             <!-- 点赞按钮   -->
             <button
+              @click="handleLikeEcho()"
               title="点赞"
-              disabled="true"
               :class="[
                 'transform transition-transform duration-150',
                 isLikeAnimating ? 'scale-160' : 'scale-100',
@@ -140,7 +145,7 @@
             <!-- 点赞数量   -->
             <span class="text-sm text-[var(--text-color-400)]">
               <!-- 如果点赞数不超过99，则显示数字，否则显示99+ -->
-              {{ props.echo.fav_count > 99 ? '99+' : props.echo.fav_count }}
+              {{ fav_count > 99 ? '99+' : fav_count }}
             </span>
           </div>
         </div>
@@ -154,6 +159,7 @@ import TheGithubCard from './TheGithubCard.vue'
 import TheVideoCard from './TheVideoCard.vue'
 import Verified from '../icons/verified.vue'
 import GrayLike from '../icons/graylike.vue'
+import LinkTo from '../icons/linkto.vue'
 import TheAPlayerCard from './TheAPlayerCard.vue'
 import TheWebsiteCard from './TheWebsiteCard.vue'
 import TheImageGallery from './TheImageGallery.vue'
@@ -163,6 +169,9 @@ import { onMounted, computed, ref } from 'vue'
 import { ExtensionType, ImageLayout } from '@/enums/enums'
 import { formatDate } from '@/utils/other'
 import { useThemeStore } from '@/stores/theme'
+import { useFetch } from '@vueuse/core'
+import { theToast } from '@/utils/toast'
+import { localStg } from '@/utils/storage'
 
 type Echo = App.Api.Hub.Echo
 
@@ -183,7 +192,41 @@ const previewOptions = {
   autoFoldThreshold: 15,
 }
 
+const fav_count = ref<number>(props.echo.fav_count)
+const server_url = props.echo.server_url
+const echo_id = props.echo.id
 const isLikeAnimating = ref(false)
+const LIKE_LIST_KEY = server_url + '_liked_echo_ids'
+
+const handleLikeEcho = async () => {
+  isLikeAnimating.value = true
+  setTimeout(() => {
+    isLikeAnimating.value = false
+  }, 250)
+
+  // 如果已经点赞过，不再重复点赞
+  const likedEchoIds: number[] = localStg.getItem(LIKE_LIST_KEY) || []
+  if (likedEchoIds.includes(echo_id)) {
+    theToast.info('你已经点赞过')
+    return
+  }
+
+  // 调用后端接口，点赞
+  const { error, data } = await useFetch<App.Api.Response<null>>(
+    `${server_url}/api/echo/like/${echo_id}`,
+  )
+    .put()
+    .json()
+
+  if (error.value || data.value?.code !== 1) {
+    theToast.error('点赞失败')
+  } else {
+    fav_count.value += 1
+    likedEchoIds.push(echo_id)
+    localStg.setItem(LIKE_LIST_KEY, likedEchoIds)
+    theToast.success('点赞成功')
+  }
+}
 
 // 用户头像（优先使用user.avatar，如果不存在则使用logo作为fallback）
 const userAvatar = computed(() => {
