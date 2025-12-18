@@ -45,10 +45,10 @@
         </div>
         <!-- Ech0 Hub -->
         <div class="relative">
-          <a v-if="isInAppBrowser" href="/hub" title="Ech0 Hub" @click="handleHubClick">
+          <a v-if="isInAppBrowser" href="/hub" :title="hubUpdateTooltip || 'Ech0 Hub'" @click="handleHubClick">
             <HubIcon class="w-8 h-8 text-[var(--text-color-400)]" />
           </a>
-          <RouterLink v-else to="/hub" title="Ech0 Hub" @click="handleHubClick">
+          <RouterLink v-else to="/hub" :title="hubUpdateTooltip || 'Ech0 Hub'" @click="handleHubClick">
             <HubIcon class="w-8 h-8 text-[var(--text-color-400)]" />
           </RouterLink>
           <!-- 更新提示红点 -->
@@ -58,6 +58,17 @@
           >
             {{ hubUpdateCount > 99 ? '99+' : hubUpdateCount }}
           </div>
+          <!-- 移动端详情气泡 (短暂显示) -->
+          <Transition name="hint">
+            <div
+              v-if="showMobileHint && hubUpdateCount > 0"
+              class="absolute top-10 left-1/2 -translate-x-1/2 bg-gray-800/95 backdrop-blur-sm text-white text-[11px] px-3 py-1.5 rounded-lg shadow-2xl whitespace-nowrap z-50 pointer-events-none md:hidden border border-white/10"
+            >
+              {{ hubUpdateTooltip }}
+              <!-- 小三角 (水平居中对齐图标) -->
+              <div class="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-800 rotate-45 border-t border-l border-white/10"></div>
+            </div>
+          </Transition>
         </div>
         <!-- Ech0 Widget -->
         <div class="block xl:hidden">
@@ -92,7 +103,10 @@ import { useEchoStore } from '@/stores/echo'
 import { useTodoStore } from '@/stores/todo'
 import { useConnectStore } from '@/stores/connect'
 import { storeToRefs } from 'pinia'
-import { ref, onMounted, computed } from 'vue'
+import { useWindowFocus } from '@vueuse/core'
+import { ref, onMounted, computed, watch, onBeforeUnmount } from 'vue'
+
+const isFocused = useWindowFocus()
 import Close from '@/components/icons/close.vue'
 import Filter from '@/components/icons/filter.vue'
 import Widget from '@/components/icons/widget.vue'
@@ -104,6 +118,13 @@ const isInAppBrowser = ref(false)
 onMounted(() => {
   const ua = navigator.userAgent.toLowerCase()
   isInAppBrowser.value = ua.includes('qq') || ua.includes('micromessenger') || ua.includes('weibo')
+  
+  // 开始轮询 Hub 更新
+  startPolling()
+})
+
+onBeforeUnmount(() => {
+  stopPolling()
 })
 
 const echoStore = useEchoStore()
@@ -113,7 +134,27 @@ const { refreshForSearch, getEchosByPage } = echoStore
 const { clearHubUpdates } = connectStore
 const { searchingMode, filteredTag, isFilteringMode, filteredDate, filteredYearMonth, isDateFilteringMode } = storeToRefs(echoStore)
 const { todos } = storeToRefs(todoStore)
-const { hubUpdateCount } = storeToRefs(connectStore)
+const { hubUpdateCount, hubUpdateTooltip } = storeToRefs(connectStore)
+const { startPolling, stopPolling, getConnectInfo } = connectStore
+
+// 监听窗口焦点，切回来时尝试刷新（受缓存策略保护）
+watch(isFocused, (focused) => {
+  if (focused) {
+    getConnectInfo()
+  }
+})
+
+const showMobileHint = ref(false)
+
+// 监听更新数量变化，显示移动端提示
+watch(hubUpdateCount, (newCount) => {
+  if (newCount > 0) {
+    showMobileHint.value = true
+    setTimeout(() => {
+      showMobileHint.value = false
+    }, 5000) // 5秒后消失
+  }
+}, { immediate: true })
 
 const searchContent = ref<string>('')
 
@@ -171,3 +212,16 @@ const handleCancelFilter = () => {
   echoStore.refreshEchosForFilter()
 }
 </script>
+
+<style scoped>
+.hint-enter-active,
+.hint-leave-active {
+  transition: all 0.3s ease;
+}
+
+.hint-enter-from,
+.hint-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+</style>

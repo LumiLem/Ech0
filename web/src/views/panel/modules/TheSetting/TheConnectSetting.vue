@@ -106,7 +106,7 @@ import { useBaseDialog } from '@/composables/useBaseDialog'
 const { openConfirm } = useBaseDialog()
 
 const connectStore = useConnectStore()
-const { getConnect } = connectStore
+const { getConnect, getConnectInfo } = connectStore
 const { connects } = storeToRefs(connectStore)
 const connectsEdit = ref<boolean>(false)
 const connectUrl = ref<string>('')
@@ -121,6 +121,7 @@ const handleAddConnect = async () => {
       theToast.success(res.msg)
       connectUrl.value = ''
       getConnect()
+      getConnectInfo(true)
     }
   })
 }
@@ -135,6 +136,7 @@ const handleDisconnect = async (connect_id: number) => {
         if (res.code === 1) {
           theToast.success(res.msg)
           getConnect()
+          getConnectInfo(true)
         }
       })
     },
