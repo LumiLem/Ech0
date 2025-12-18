@@ -1,96 +1,101 @@
 /**
  * Fancybox 实况照片全局样式
- * 因为 Fancybox 内容渲染在 body 下，需要全局样式
  */
 
-/* Fancybox 实况照片容器样式 */
+/* 1. Fancybox 容器适配 */
+.fancybox__slide.has-livephoto {
+  --f-html-bg: transparent;
+  --f-html-color: inherit;
+  --f-carousel-slide-padding: 64px 24px 24px;
+}
+
+.has-livephoto .fancybox__content,
+.has-livephoto .f-html {
+  background: transparent !important;
+  background-color: transparent !important;
+  padding: 0 !important;
+  border-radius: 8px !important;
+  overflow: visible !important;
+  box-shadow: none !important;
+}
+
+/* 2. 实况照片媒体容器 */
 .fancybox-livephoto-container {
   position: relative;
-  display: inline-block;
-  border-radius: 8px;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
   margin: 0 auto;
-  background: transparent;
+  background: transparent !important;
 }
 
 .fancybox-livephoto-container .livephoto-content {
   position: relative;
-  display: block;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  border-radius: 8px;
-  background: transparent;
-  transition: transform 0.5s ease;
-}
-
-.fancybox-livephoto-container .livephoto-content img,
-.fancybox-livephoto-container .livephoto-content video {
-  display: block;
+  display: inline-grid;
+  grid-template-areas: "media-stack";
+  vertical-align: middle;
   width: auto;
   height: auto;
   max-width: 100%;
-  max-height: 85vh;
-  object-fit: contain;
+  max-height: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  background: transparent;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: scale(1);
 }
 
+/* 3. 图片与视频布局 */
+.fancybox-livephoto-container .livephoto-content img,
 .fancybox-livephoto-container .livephoto-content video {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  grid-area: media-stack;
+  display: block;
+  max-width: 100%;
+  max-height: 80vh;
+  width: auto;
+  height: auto;
   object-fit: contain;
-  opacity: 0;
-  transition: opacity 0.5s ease, transform 0.5s ease;
-  /* 禁用浏览器视频控件和画中画 */
-  pointer-events: none;
-}
-
-/* 隐藏视频的浏览器默认控件（包括画中画按钮） */
-.fancybox-livephoto-container .livephoto-content video::-webkit-media-controls {
-  display: none !important;
-}
-
-.fancybox-livephoto-container .livephoto-content video::-webkit-media-controls-enclosure {
-  display: none !important;
-}
-
-.fancybox-livephoto-container .livephoto-content video::-webkit-media-controls-panel {
-  display: none !important;
-}
-
-.fancybox-livephoto-container .livephoto-content video::-webkit-media-controls-picture-in-picture-button {
-  display: none !important;
-}
-
-/* 播放状态：显示视频 */
-.fancybox-livephoto-container.zoom .livephoto-content video {
-  opacity: 1;
+  border-radius: 8px;
 }
 
 .fancybox-livephoto-container .livephoto-content img {
   position: relative;
   z-index: 1;
-  transition: opacity 0.5s ease, transform 0.5s ease;
+  transition: opacity 0.5s ease;
   user-select: none;
   -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  -webkit-touch-callout: none;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: none;
-  -webkit-user-drag: none;
-  -khtml-user-drag: none;
-  -moz-user-drag: none;
-  -o-user-drag: none;
   pointer-events: none;
 }
 
-/* 播放状态：zoom class */
-/* 对 livephoto-content 整体应用 scale，这样图片和视频会一起放大，保持一致 */
+.fancybox-livephoto-container .livephoto-content video {
+  width: 100% !important;
+  height: 100% !important;
+  opacity: 0;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* 隐藏视频原生控件 */
+.fancybox-livephoto-container .livephoto-content video::-webkit-media-controls,
+.fancybox-livephoto-container .livephoto-content video::-webkit-media-controls-enclosure,
+.fancybox-livephoto-container .livephoto-content video::-webkit-media-controls-panel,
+.fancybox-livephoto-container .livephoto-content video::-webkit-media-controls-picture-in-picture-button {
+  display: none !important;
+}
+
+/* 4. 播放状态交互 */
 .fancybox-livephoto-container.zoom .livephoto-content {
   transform: scale(1.03);
-  transition: transform 0.5s ease;
+}
+
+.fancybox-livephoto-container.zoom .livephoto-content video {
+  opacity: 1;
 }
 
 .fancybox-livephoto-container.zoom .livephoto-content img {
@@ -105,12 +110,13 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
 }
 
-/* 实况照片控制容器 */
+/* 5. 实况照片控制 UI */
 .fancybox-livephoto-container .livephoto-content .livephoto-control-wrapper {
   position: absolute;
   left: 8px;
@@ -118,7 +124,6 @@
   z-index: 10;
 }
 
-/* 实况图标 */
 .fancybox-livephoto-container .livephoto-content .livephoto-icon {
   display: flex;
   align-items: center;
@@ -131,116 +136,9 @@
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  -webkit-touch-callout: none;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-  -webkit-user-drag: none;
   pointer-events: auto;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   width: fit-content;
-}
-
-/* PC端悬停时图标容器变长 */
-@media (min-width: 769px) {
-  .livephoto-control-wrapper.show-chevron .livephoto-icon {
-    padding-right: 12px;
-  }
-}
-
-/* 下拉箭头 - 默认隐藏 */
-.livephoto-chevron {
-  opacity: 0;
-  width: 0;
-  margin-left: -4px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  color: #fff;
-  flex-shrink: 0;
-  cursor: pointer;
-}
-
-/* PC端悬停显示箭头 */
-@media (min-width: 769px) {
-  .livephoto-control-wrapper.show-chevron .livephoto-chevron {
-    opacity: 1;
-    width: 12px;
-    margin-left: 4px;
-  }
-}
-
-/* 移动端箭头常驻 */
-@media (max-width: 768px) {
-  .livephoto-chevron {
-    opacity: 1;
-    width: 12px;
-    margin-left: 4px;
-  }
-  
-  .fancybox-livephoto-container .livephoto-content .livephoto-icon {
-    padding-right: 12px;
-  }
-}
-
-/* 下拉菜单 */
-.livephoto-dropdown {
-  position: absolute;
-  top: 30px;
-  left: 0;
-  background: rgba(40, 40, 40, 0.85);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-radius: 14px;
-  padding: 0;
-  opacity: 0;
-  visibility: hidden;
-  transform: scale(0.9);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  pointer-events: none;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-  transform-origin: top left;
-}
-
-/* 显示下拉菜单 */
-.livephoto-control-wrapper.show-dropdown .livephoto-dropdown {
-  opacity: 1;
-  visibility: visible;
-  transform: scale(1);
-  pointer-events: auto;
-}
-
-/* 下拉菜单项 */
-.livephoto-dropdown-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  border-radius: 14px;
-  cursor: pointer;
-  transition: background 0.2s ease;
-  color: #fff;
-  touch-action: manipulation;
-  gap: 8px;
-}
-
-.livephoto-dropdown-item:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.livephoto-dropdown-item:active {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-.dropdown-text {
-  font-size: 14px;
-  white-space: nowrap;
-  font-weight: 500;
-}
-
-.dropdown-icon {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
 }
 
 .fancybox-livephoto-container .livephoto-content .livephoto-icon:hover {
@@ -262,34 +160,114 @@
   white-space: nowrap;
 }
 
-/* 移动端优化 - 只调整图标样式，不限制图片/视频大小 */
+/* 下拉菜单与交互 */
+.livephoto-chevron {
+  opacity: 0;
+  width: 0;
+  margin-left: -4px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+@media (min-width: 769px) {
+  .livephoto-control-wrapper.show-chevron .livephoto-icon {
+    padding-right: 12px;
+  }
+
+  .livephoto-control-wrapper.show-chevron .livephoto-chevron {
+    opacity: 1;
+    width: 12px;
+    margin-left: 4px;
+  }
+}
+
+@media (max-width: 768px) {
+  .livephoto-chevron {
+    opacity: 1;
+    width: 12px;
+    margin-left: 4px;
+  }
+
+  .fancybox-livephoto-container .livephoto-content .livephoto-icon {
+    padding-right: 12px;
+  }
+}
+
+.livephoto-dropdown {
+  position: absolute;
+  top: 30px;
+  left: 0;
+  background: rgba(40, 40, 40, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 14px;
+  padding: 0;
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(0.9);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  transform-origin: top left;
+}
+
+.livephoto-control-wrapper.show-dropdown .livephoto-dropdown {
+  opacity: 1;
+  visibility: visible;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+.livephoto-dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  color: #fff;
+  gap: 8px;
+}
+
+.livephoto-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dropdown-text {
+  font-size: 14px;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.dropdown-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* 6. 移动端响应式图标 */
 @media (max-width: 768px) {
   .fancybox-livephoto-container .livephoto-content .livephoto-icon {
     padding: 4px 8px;
   }
-  
-  .fancybox-livephoto-container .livephoto-content .livephoto-label {
-    display: inline;
-    font-size: 10px;
-  }
-  
+
   .fancybox-livephoto-container .livephoto-content .livephoto-icon-svg {
     width: 14px;
     height: 14px;
   }
 }
 
-/* 超小屏幕优化 - 只调整图标样式 */
 @media (max-width: 480px) {
   .fancybox-livephoto-container .livephoto-content .livephoto-icon {
     padding: 3px 6px;
   }
-  
+
   .fancybox-livephoto-container .livephoto-content .livephoto-label {
-    display: inline;
     font-size: 9px;
   }
-  
+
   .fancybox-livephoto-container .livephoto-content .livephoto-icon-svg {
     width: 12px;
     height: 12px;
