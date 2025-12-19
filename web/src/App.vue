@@ -2,7 +2,7 @@
 import { RouterView } from 'vue-router'
 import { onMounted, ref } from 'vue'
 import { watch } from 'vue'
-import { useSettingStore } from '@/stores/setting'
+import { useSettingStore } from '@/stores'
 import { storeToRefs } from 'pinia'
 import { Toaster } from 'vue-sonner'
 import { getApiUrl } from './service/request/shared'

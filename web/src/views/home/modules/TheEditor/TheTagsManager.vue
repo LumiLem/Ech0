@@ -21,7 +21,7 @@
 </template>
 
 <script setup lang="ts">
-import { useEchoStore } from '@/stores/echo'
+import { useEchoStore } from '@/stores'
 import { fetchDeleteTagById } from '@/service/api'
 import { storeToRefs } from 'pinia'
 import { useBaseDialog } from '@/composables/useBaseDialog'

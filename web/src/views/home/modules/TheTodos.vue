@@ -34,9 +34,7 @@
 <script setup lang="ts">
 import TheTodoCard from '@/components/advanced/TheTodoCard.vue'
 import { onMounted } from 'vue'
-import { useTodoStore } from '@/stores/todo'
-import { useUserStore } from '@/stores/user'
-import { useSettingStore } from '@/stores/setting'
+import { useTodoStore, useUserStore, useSettingStore } from '@/stores'
 import { storeToRefs } from 'pinia'
 
 const todoStore = useTodoStore()

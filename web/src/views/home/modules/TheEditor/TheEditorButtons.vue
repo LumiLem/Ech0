@@ -63,6 +63,7 @@
           currentMode !== Mode.Panel &&
           currentMode !== Mode.TagManage &&
           currentMode !== Mode.PlayMusic &&
+          currentMode !== Mode.INBOX &&
           isUpdateMode === false
         "
       >
@@ -79,6 +80,7 @@
           currentMode !== Mode.Panel &&
           currentMode !== Mode.TODO &&
           currentMode !== Mode.PlayMusic &&
+          currentMode !== Mode.INBOX &&
           isUpdateMode === true
         "
       >
@@ -122,8 +124,7 @@ import BaseButton from '@/components/common/BaseButton.vue'
 import BaseCombobox from '@/components/common/BaseCombobox.vue'
 import { ImageSource, Mode } from '@/enums/enums'
 import { storeToRefs } from 'pinia'
-import { useEditorStore } from '@/stores/editor'
-import { useEchoStore } from '@/stores/echo'
+import { useEditorStore, useEchoStore } from '@/stores'
 import { theToast } from '@/utils/toast'
 import { localStg } from '@/utils/storage'
 

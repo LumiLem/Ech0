@@ -120,7 +120,7 @@ import Saveupdate from '@/components/icons/saveupdate.vue'
 import { ref, onMounted } from 'vue'
 import { fetchUpdateAgentSettings } from '@/service/api'
 import { theToast } from '@/utils/toast'
-import { useSettingStore } from '@/stores/setting'
+import { useSettingStore } from '@/stores'
 import { storeToRefs } from 'pinia'
 import { AgentProvider } from '@/enums/enums'
 

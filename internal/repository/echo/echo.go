@@ -196,8 +196,9 @@ func (echoRepository *EchoRepository) GetTodayEchos(showPrivate bool) []model.Ec
 		Order("created_at DESC").
 		Find(&echos)
 
-	// 保存到缓存
-	echoRepository.cache.Set(GetTodayEchosCacheKey(showPrivate), echos, 1)
+	// 保存到缓存，缓存到明天零点
+	ttl := time.Until(time.Date(today.Year(), today.Month(), today.Day()+1, 0, 0, 0, 0, today.Location()))
+	echoRepository.cache.SetWithTTL(GetTodayEchosCacheKey(showPrivate), echos, 1, ttl)
 
 	// 返回结果
 	return echos

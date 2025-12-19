@@ -128,11 +128,16 @@ func Generate(
 		resp, genErr = cm.Generate(ctx, in)
 
 	case string(commonModel.DeepSeek):
+		var tValue float32 = 1.0
+		if t != nil {
+			tValue = *t
+		}
+
 		cm, err := deepseek.NewChatModel(ctx, &deepseek.ChatModelConfig{
 			APIKey:      apiKey,
 			Model:       model,
 			BaseURL:     baseURL,
-			Temperature: *t,
+			Temperature: tValue,
 		})
 		if err != nil {
 			return "", err

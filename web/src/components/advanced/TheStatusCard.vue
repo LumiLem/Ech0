@@ -43,7 +43,7 @@
 <script setup lang="ts">
 import { fetchGetStatus } from '@/service/api'
 import { onMounted, ref } from 'vue'
-import { useUserStore } from '@/stores/user'
+import { useUserStore } from '@/stores'
 import StatusInfo from '../icons/statusinfo.vue'
 
 const status = ref<App.Api.Ech0.Status>()

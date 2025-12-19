@@ -61,7 +61,7 @@ import Close from '@/components/icons/close.vue'
 import { ref, onMounted } from 'vue'
 import { fetchUpdateBackupScheduleSetting } from '@/service/api'
 import { theToast } from '@/utils/toast'
-import { useSettingStore } from '@/stores/setting'
+import { useSettingStore } from '@/stores'
 import { storeToRefs } from 'pinia'
 
 const settingStore = useSettingStore()

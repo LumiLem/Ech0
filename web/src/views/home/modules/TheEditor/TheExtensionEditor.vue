@@ -80,7 +80,7 @@ import BaseInput from '@/components/common/BaseInput.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
 import { ExtensionType } from '@/enums/enums'
 import { parseMusicURL, extractAndCleanMusicURL } from '@/utils/other' // 导入新函数
-import { useEditorStore } from '@/stores/editor'
+import { useEditorStore } from '@/stores'
 import { ref, watch } from 'vue' // 从 vue 导入 watch
 import { fetchGetWebsiteTitle } from '@/service/api'
 import { theToast } from '@/utils/toast'

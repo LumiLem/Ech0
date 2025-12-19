@@ -2,7 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/home/HomeView.vue'
 import EchoView from '../views/echo/EchoView.vue'
 import NotFoundView from '../views/404/NotFoundView.vue'
-import { useUserStore } from '@/stores/user'
+import { useUserStore } from '@/stores'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),

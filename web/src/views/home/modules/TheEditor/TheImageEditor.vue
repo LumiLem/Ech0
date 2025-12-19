@@ -83,8 +83,7 @@
 </template>
 
 <script setup lang="ts">
-import { useEditorStore } from '@/stores/editor'
-import { useSettingStore } from '@/stores/setting'
+import { useEditorStore, useSettingStore } from '@/stores'
 import { storeToRefs } from 'pinia'
 import { ImageSource, ImageLayout } from '@/enums/enums'
 import Url from '@/components/icons/url.vue'

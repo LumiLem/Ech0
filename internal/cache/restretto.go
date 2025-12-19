@@ -2,6 +2,7 @@ package cache
 
 import (
 	"errors"
+	"time"
 
 	"github.com/dgraph-io/ristretto/v2"
 )
@@ -31,6 +32,11 @@ func NewRistrettoCache[K ristretto.Key, V any](
 // Set 将键值对存入缓存
 func (r *RistrettoCache[K, V]) Set(key K, value V, cost int64) bool {
 	return r.cache.Set(key, value, cost)
+}
+
+// SetWithTTL 将键值对存入缓存，并设置过期时间
+func (r *RistrettoCache[K, V]) SetWithTTL(key K, value V, cost int64, ttl time.Duration) bool {
+	return r.cache.SetWithTTL(key, value, cost, ttl)
 }
 
 // Get 从缓存中获取值，如果不存在则返回错误

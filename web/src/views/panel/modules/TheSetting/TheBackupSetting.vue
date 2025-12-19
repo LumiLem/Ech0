@@ -50,7 +50,7 @@ import ExportBackup from '@/components/icons/exportbackup.vue'
 import RestoreBackup from '@/components/icons/restorebackup.vue'
 import { fetchBackup, fetchImportBackup } from '@/service/api'
 import { theToast } from '@/utils/toast'
-import { useUserStore } from '@/stores/user'
+import { useUserStore } from '@/stores'
 import { storeToRefs } from 'pinia'
 
 const userStore = useUserStore()

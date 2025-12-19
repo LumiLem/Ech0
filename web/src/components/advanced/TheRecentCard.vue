@@ -21,7 +21,7 @@ import { fetchGetRecent } from '@/service/api'
 import { onMounted, ref } from 'vue'
 import RecentIcon from '../icons/recent.vue'
 import TheMdPreview from './TheMdPreview.vue'
-import { useSettingStore } from '@/stores/setting'
+import { useSettingStore } from '@/stores'
 import { storeToRefs } from 'pinia'
 
 const settingStore = useSettingStore()

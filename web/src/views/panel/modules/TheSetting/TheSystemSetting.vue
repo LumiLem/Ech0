@@ -199,7 +199,7 @@ import { ref, onMounted } from 'vue'
 import { fetchUpdateSettings, fetchUploadImage } from '@/service/api'
 import { ImageSource } from '@/enums/enums'
 import { theToast } from '@/utils/toast'
-import { useSettingStore } from '@/stores/setting'
+import { useSettingStore } from '@/stores'
 import { storeToRefs } from 'pinia'
 import { getApiUrl } from '@/service/request/shared'
 

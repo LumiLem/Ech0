@@ -16,7 +16,7 @@
 import 'md-editor-v3/lib/preview.css'
 import { MdPreview } from 'md-editor-v3'
 import { computed } from 'vue'
-import { useThemeStore } from '@/stores/theme'
+import { useThemeStore } from '@/stores'
 
 const props = defineProps<{
   content: string

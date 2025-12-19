@@ -11,7 +11,7 @@
 <script setup lang="ts">
 import BaseTextArea from '@/components/common/BaseTextArea.vue'
 import { computed } from 'vue'
-import { useEditorStore } from '@/stores/editor'
+import { useEditorStore } from '@/stores'
 
 const editorStore = useEditorStore()
 const content = computed({

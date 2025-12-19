@@ -11,6 +11,7 @@ import { theToast } from '@/utils/toast'
 import { useUserStore } from './user'
 
 export const useInboxStore = defineStore('inboxStore', () => {
+  const inboxMode = ref<boolean>(false)
   const items = ref<App.Api.Inbox.Inbox[]>([])
   const unreadItems = ref<App.Api.Inbox.Inbox[]>([])
   const total = ref(0)
@@ -142,6 +143,10 @@ export const useInboxStore = defineStore('inboxStore', () => {
     return false
   }
 
+  function setInboxMode(mode: boolean) {
+    inboxMode.value = mode
+  }
+
   function init() {
     if (initialized.value) {
       return
@@ -162,6 +167,7 @@ export const useInboxStore = defineStore('inboxStore', () => {
   }
 
   return {
+    inboxMode,
     items,
     unreadItems,
     total,
@@ -169,6 +175,7 @@ export const useInboxStore = defineStore('inboxStore', () => {
     hasMore,
     canAccess,
     currentSearch,
+    setInboxMode,
     refresh,
     loadMore,
     updateSearch,

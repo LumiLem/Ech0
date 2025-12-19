@@ -99,7 +99,7 @@ import { ref, onMounted } from 'vue'
 import { fetchAddConnect, fetchDeleteConnect } from '@/service/api'
 import { theToast } from '@/utils/toast'
 
-import { useConnectStore } from '@/stores/connect'
+import { useConnectStore } from '@/stores'
 import { storeToRefs } from 'pinia'
 
 import { useBaseDialog } from '@/composables/useBaseDialog'

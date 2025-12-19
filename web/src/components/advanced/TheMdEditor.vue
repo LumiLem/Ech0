@@ -29,8 +29,7 @@ import { reactive, computed } from 'vue'
 import { MdEditor, config } from 'md-editor-v3'
 import type { ToolbarNames } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
-import { useEditorStore } from '@/stores/editor'
-import { useThemeStore } from '@/stores/theme'
+import { useEditorStore, useThemeStore } from '@/stores'
 
 const editorStore = useEditorStore()
 const themeStore = useThemeStore()

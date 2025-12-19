@@ -9,6 +9,7 @@
 
       <!-- The Editor -->
       <div class="rounded-lg p-2 sm:p-3 mb-1">
+        <!-- EchoMode : TheMdEditor -->
         <TheMdEditor v-if="currentMode === Mode.ECH0" class="rounded-lg" />
 
         <!-- ImageMode : TheImageEditor -->
@@ -26,6 +27,7 @@
         <!-- ExtensionMode: TheExtensionEditor -->
         <TheExtensionEditor v-if="currentMode === Mode.EXTEN" />
 
+        <!-- TagManageMode: TheTagsManager -->
         <TheTagsManager v-if="currentMode === Mode.TagManage" />
       </div>
 
@@ -52,10 +54,9 @@ import TheTagsManager from './TheEditor/TheTagsManager.vue'
 
 import { theToast } from '@/utils/toast'
 import { watch } from 'vue'
-import { useEchoStore } from '@/stores/echo'
+import { useEchoStore, useEditorStore } from '@/stores'
 import { storeToRefs } from 'pinia'
 import { Mode, ExtensionType, ImageLayout } from '@/enums/enums'
-import { useEditorStore } from '@/stores/editor'
 
 /* --------------- 与Pinia相关 ---------------- */
 const echoStore = useEchoStore()

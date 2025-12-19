@@ -1,7 +1,7 @@
 import 'virtual:uno.css'
 import '@/themes/index.scss'
 
-import { initStores } from './stores/store-init'
+import { initStores } from './stores'
 
 // Md-Editor Start
 import { config } from 'md-editor-v3'

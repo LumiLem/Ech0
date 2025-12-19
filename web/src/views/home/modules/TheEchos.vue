@@ -47,8 +47,7 @@
 <script setup lang="ts">
 import TheEchoCard from '@/components/advanced/TheEchoCard.vue'
 import { onMounted } from 'vue'
-import { useEchoStore } from '@/stores/echo'
-import { useSettingStore } from '@/stores/setting'
+import { useEchoStore, useSettingStore } from '@/stores'
 import BaseButton from '@/components/common/BaseButton.vue'
 import { storeToRefs } from 'pinia'
 import TheBackTop from '@/components/advanced/TheBackTop.vue'

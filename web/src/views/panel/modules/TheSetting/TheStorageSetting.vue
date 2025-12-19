@@ -213,7 +213,7 @@ import { ref, onMounted } from 'vue'
 import { S3Provider } from '@/enums/enums'
 import { fetchUpdateS3Settings } from '@/service/api'
 import { theToast } from '@/utils/toast'
-import { useSettingStore } from '@/stores/setting'
+import { useSettingStore } from '@/stores'
 import { storeToRefs } from 'pinia'
 
 const settingStore = useSettingStore()

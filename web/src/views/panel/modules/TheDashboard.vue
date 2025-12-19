@@ -79,7 +79,7 @@ import {
 } from 'echarts/components'
 import { GaugeChart, LineChart, BarChart, PieChart } from 'echarts/charts'
 import { CanvasRenderer } from 'echarts/renderers'
-import { useUserStore } from '@/stores/user'
+import { useUserStore } from '@/stores'
 import { getWsUrl } from '@/service/request/shared'
 
 const connected = ref<boolean>(false)

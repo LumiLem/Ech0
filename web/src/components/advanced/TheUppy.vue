@@ -9,12 +9,12 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { getAuthToken } from '@/service/request/shared'
-import { useUserStore } from '@/stores/user'
+import { useUserStore, useEditorStore } from '@/stores'
 import { theToast } from '@/utils/toast'
 import { storeToRefs } from 'pinia'
 import { ImageSource } from '@/enums/enums'
 import { fetchGetPresignedUrl } from '@/service/api'
-import { useEditorStore } from '@/stores/editor'
+
 import { 
   detectLivePhotoPairs, 
   detectLivePhotoPairsFromMedia, 

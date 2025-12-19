@@ -40,7 +40,7 @@ import Music from '@/components/icons/music.vue'
 import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { parseMusicURL } from '@/utils/other'
-import { useSettingStore } from '@/stores/setting'
+import { useSettingStore } from '@/stores'
 import { ExtensionType, MusicProvider } from '@/enums/enums'
 
 const { SystemSetting, loading } = storeToRefs(useSettingStore())

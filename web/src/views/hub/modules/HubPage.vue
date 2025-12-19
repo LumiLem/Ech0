@@ -51,7 +51,7 @@ import Arrow from '@/components/icons/arrow.vue'
 import TheBackTop from '@/components/advanced/TheBackTop.vue'
 import TheHubEcho from '@/components/advanced/TheHubEcho.vue'
 import { onMounted, watch, computed, ref, onBeforeUnmount, nextTick } from 'vue'
-import { useHubStore } from '@/stores/hub'
+import { useHubStore } from '@/stores'
 import { storeToRefs } from 'pinia'
 import { useRouter, useRoute } from 'vue-router'
 

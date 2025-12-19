@@ -34,7 +34,7 @@ import TheEchoDetail from '@/components/advanced/TheEchoDetail.vue'
 import TheComment from '@/components/advanced/TheComment.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
 import Arrow from '@/components/icons/arrow.vue'
-import { useEchoStore } from '@/stores/echo'
+import { useEchoStore } from '@/stores'
 
 const router = useRouter()
 const route = useRoute()

@@ -41,9 +41,7 @@ import TheAudioCard from '@/components/advanced/TheAudioCard.vue'
 import TheRecentCard from '@/components/advanced/TheRecentCard.vue'
 
 import { storeToRefs } from 'pinia'
-import { useUserStore } from '@/stores/user'
-import { useTodoStore } from '@/stores/todo'
-import { useSettingStore } from '@/stores/setting'
+import { useUserStore, useTodoStore, useSettingStore } from '@/stores'
 import { onMounted } from 'vue'
 const todoStore = useTodoStore()
 const userStore = useUserStore()

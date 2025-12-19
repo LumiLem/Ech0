@@ -3,14 +3,14 @@ import { ref } from 'vue'
 import { theToast } from '@/utils/toast'
 import { fetchAddEcho, fetchUpdateEcho, fetchAddTodo, fetchGetMusic, fetchGetEchoById } from '@/service/api'
 import { Mode, ExtensionType, ImageSource, ImageLayout } from '@/enums/enums'
-import { useEchoStore } from '@/stores/echo'
-import { useTodoStore } from '@/stores/todo'
+import { useEchoStore, useTodoStore, useInboxStore } from '@/stores'
 import { localStg } from '@/utils/storage'
 import { getImageSize } from '@/utils/other'
 
 export const useEditorStore = defineStore('editorStore', () => {
   const echoStore = useEchoStore()
   const todoStore = useTodoStore()
+  const inboxStore = useInboxStore()
 
   //================================================================
   // 编辑器状态控制
@@ -83,6 +83,7 @@ export const useEditorStore = defineStore('editorStore', () => {
 
     if (mode === Mode.Panel) {
       todoStore.setTodoMode(false)
+      inboxStore.setInboxMode(false)
     }
   }
   // 切换当前编辑模式
@@ -91,6 +92,7 @@ export const useEditorStore = defineStore('editorStore', () => {
       setMode(Mode.Panel) // 切换到面板模式
     else if (
       currentMode.value === Mode.TODO ||
+      currentMode.value === Mode.INBOX ||
       currentMode.value === Mode.PlayMusic ||
       currentMode.value === Mode.EXTEN
     )

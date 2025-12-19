@@ -96,7 +96,7 @@ import {
 } from '@headlessui/vue'
 import tagsetting from '../icons/tagsetting.vue'
 import jump from '../icons/jump.vue'
-import { useEditorStore } from '@/stores/editor'
+import { useEditorStore } from '@/stores'
 import { Mode } from '@/enums/enums'
 
 type ClassValue = string | string[] | Record<string, boolean | number | string>

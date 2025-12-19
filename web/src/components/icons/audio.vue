@@ -1,18 +1,17 @@
 <template>
-  <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16">
-    <!-- Icon from Bootstrap Icons by The Bootstrap Authors - https://github.com/twbs/icons/blob/main/LICENSE.md -->
-    <g fill="#888888">
-      <path
-        d="M6 13c0 1.105-1.12 2-2.5 2S1 14.105 1 13s1.12-2 2.5-2s2.5.896 2.5 2m9-2c0 1.105-1.12 2-2.5 2s-2.5-.895-2.5-2s1.12-2 2.5-2s2.5.895 2.5 2"
-      ></path>
-      <path fillRule="evenodd" d="M14 11V2h1v9zM6 3v10H5V3z"></path>
-      <path d="M5 2.905a1 1 0 0 1 .9-.995l8-.8a1 1 0 0 1 1.1.995V3L5 4z"></path>
-    </g>
+  <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 14 14">
+    <!-- Icon from Flex free icons by Streamline - https://creativecommons.org/licenses/by/4.0/ -->
+    <path
+      fill="#888888"
+      fillRule="evenodd"
+      d="M10.685.293a.5.5 0 0 0-.5.5V4.64a.5.5 0 0 0 .5.5h.656v1.886c0 .58-.362 1.096-.907 1.293l-2.742.992a.625.625 0 1 0 .425 1.176l2.742-.992a2.625 2.625 0 0 0 1.733-2.469V5.14h.657a.5.5 0 0 0 .5-.5V.793a.5.5 0 0 0-.5-.5zM5.514 9.797a.875.875 0 0 1-.875-.875v-.5a.875.875 0 1 1 1.75 0v.5a.875.875 0 0 1-.875.875M1.479 8.666c0-1.338.374-2.295.997-2.919c.623-.623 1.58-.997 2.919-.997c1.92 0 3.084.761 3.598 2.049a.625.625 0 1 0 1.161-.463C9.405 4.459 7.691 3.5 5.394 3.5c-1.568 0-2.881.443-3.802 1.363C.672 5.784.23 7.098.23 8.666s.442 2.881 1.363 3.802c.921.92 2.234 1.364 3.803 1.364c1.496 0 2.761-.403 3.675-1.243a.625.625 0 1 0-.845-.92c-.622.571-1.553.913-2.83.913c-1.339 0-2.296-.375-2.919-.998s-.997-1.58-.997-2.918"
+      clipRule="evenodd"
+    />
   </svg>
 </template>
 
 <script lang="ts">
 export default {
-  name: 'BiMusicNoteBeamed',
+  name: 'StreamlineFlexRecordPlayerRemix',
 }
 </script>

@@ -86,7 +86,7 @@ import Arrow from '@/components/icons/arrow.vue'
 import { fetchSearchFediverseActor, fetchFediverseTimeline } from '@/service/api/fediverse'
 import TheActorCard from '@/components/advanced/TheActorCard.vue'
 import TheTimeline from './TheTimeline.vue'
-import { useUserStore } from '@/stores/user'
+import { useUserStore } from '@/stores'
 import { storeToRefs } from 'pinia'
 
 const userStore = useUserStore()

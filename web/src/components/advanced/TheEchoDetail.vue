@@ -177,13 +177,11 @@ import { fetchLikeEcho } from '@/service/api'
 import { theToast } from '@/utils/toast'
 import { localStg } from '@/utils/storage'
 import { storeToRefs } from 'pinia'
-import { useSettingStore } from '@/stores/setting'
+import { useSettingStore, useThemeStore } from '@/stores'
 import { useUserStore } from '@/stores/user'
 import { getApiUrl } from '@/service/request/shared'
 import { ExtensionType, ImageLayout } from '@/enums/enums'
 import { formatDate, formatDetailedTime } from '@/utils/other'
-import { useThemeStore } from '@/stores/theme'
-
 const emit = defineEmits(['updateLikeCount'])
 
 type Echo = App.Api.Ech0.Echo
