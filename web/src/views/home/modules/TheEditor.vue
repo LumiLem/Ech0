@@ -169,7 +169,7 @@ watch(
 
       // 5. 填充私密状态 && 布局方式
       echoToAdd.value.private = echoToUpdate.value?.private || false
-      echoToAdd.value.layout = echoToUpdate.value?.layout || ImageLayout.WATERFALL
+      echoToAdd.value.layout = echoToUpdate.value?.layout || ImageLayout.GRID
 
       // 6. 回到页面顶部（进入编辑模式）
       window.scrollTo({ top: 0, behavior: 'smooth' })

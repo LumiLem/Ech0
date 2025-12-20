@@ -35,3 +35,29 @@ func (agentHandler *AgentHandler) GetRecent() gin.HandlerFunc {
 		}
 	})
 }
+
+// RecommendLayout 推荐媒体布局
+func (agentHandler *AgentHandler) RecommendLayout() gin.HandlerFunc {
+	return res.Execute(func(ctx *gin.Context) res.Response {
+		var req service.LayoutRecommendRequest
+		if err := ctx.ShouldBindJSON(&req); err != nil {
+			return res.Response{
+				Msg: "参数错误",
+				Err: err,
+			}
+		}
+
+		result, err := agentHandler.agentService.RecommendLayout(ctx, req)
+		if err != nil {
+			return res.Response{
+				Msg: "布局推荐失败",
+				Err: err,
+			}
+		}
+
+		return res.Response{
+			Data: result,
+			Msg:  "布局推荐成功",
+		}
+	})
+}

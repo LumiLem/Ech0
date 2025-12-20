@@ -47,6 +47,15 @@
         class="w-32 h-7"
         placeholder="请选择布局方式"
       />
+      <!-- AI 布局推荐按钮（手动触发，仅在非自动模式时显示） -->
+      <BaseButton
+        v-if="mediaListToAdd.length > 0 && echoToAdd.layout !== ImageLayout.AUTO"
+        :icon="Magic"
+        :class="`w-7 h-7 sm:w-7 sm:h-7 rounded-md ${isRecommending ? 'animate-pulse' : ''}`"
+        :disabled="isRecommending"
+        @click="handleAIRecommend"
+        :title="isRecommending ? 'AI 正在分析...' : 'AI 智能推荐布局'"
+      />
     </div>
 
     <!-- 当前上传方式与状态 -->
@@ -83,6 +92,7 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useEditorStore, useSettingStore } from '@/stores'
 import { storeToRefs } from 'pinia'
 import { ImageSource, ImageLayout } from '@/enums/enums'
@@ -90,6 +100,7 @@ import Url from '@/components/icons/url.vue'
 import Upload from '@/components/icons/upload.vue'
 import Bucket from '@/components/icons/bucket.vue'
 import Addmore from '@/components/icons/addmore.vue'
+import Magic from '@/components/icons/magic.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
 import BaseSelect from '@/components/common/BaseSelect.vue'
 import BaseInput from '@/components/common/BaseInput.vue'
@@ -97,9 +108,12 @@ import TheUppy from '@/components/advanced/TheUppy.vue'
 import { localStg } from '@/utils/storage'
 
 const editorStore = useEditorStore()
-const { mediaToAdd, MediaUploading, echoToAdd } = storeToRefs(editorStore)
+const { mediaToAdd, MediaUploading, echoToAdd, mediaListToAdd } = storeToRefs(editorStore)
 const settingStore = useSettingStore()
 const { S3Setting } = storeToRefs(settingStore)
+
+// AI 布局推荐状态
+const isRecommending = ref(false)
 
 const handleSetMediaSource = (source: ImageSource) => {
   mediaToAdd.value.media_source = source
@@ -108,8 +122,19 @@ const handleSetMediaSource = (source: ImageSource) => {
   localStg.setItem('image_source', source)
 }
 
+// AI 智能推荐布局（手动点击按钮）
+const handleAIRecommend = async () => {
+  isRecommending.value = true
+  try {
+    await editorStore.doRecommendLayout(true) // 显示 toast 提示
+  } finally {
+    isRecommending.value = false
+  }
+}
+
 // 布局选择
 const layoutOptions = [
+  { label: '🪄 自动', value: ImageLayout.AUTO },
   { label: '瀑布流', value: ImageLayout.WATERFALL },
   { label: '九宫格', value: ImageLayout.GRID },
   { label: '单图轮播', value: ImageLayout.CAROUSEL },

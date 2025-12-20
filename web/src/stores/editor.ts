@@ -6,6 +6,7 @@ import { Mode, ExtensionType, ImageSource, ImageLayout } from '@/enums/enums'
 import { useEchoStore, useTodoStore, useInboxStore } from '@/stores'
 import { localStg } from '@/utils/storage'
 import { getImageSize } from '@/utils/other'
+import { useLayoutRecommend } from '@/composables/useLayoutRecommend'
 
 export const useEditorStore = defineStore('editorStore', () => {
   const echoStore = useEchoStore()
@@ -37,7 +38,7 @@ export const useEditorStore = defineStore('editorStore', () => {
     content: '', // 文字板块
     media: [], // 媒体板块（图片和视频）
     private: false, // 是否私密
-    layout: ImageLayout.WATERFALL, // 媒体布局方式，默认为 waterfall
+    layout: ImageLayout.AUTO, // 媒体布局方式，默认为自动推荐
     extension: null, // 拓展内容（对于扩展类型所需的数据）
     extension_type: null, // 拓展内容类型（音乐/视频/链接/GITHUB项目）
   })
@@ -73,6 +74,54 @@ export const useEditorStore = defineStore('editorStore', () => {
   //================================================================
   const PlayingMusicURL = ref('') // 当前正在播放的音乐URL
   const ShouldLoadMusic = ref(true) // 是否应该加载音乐（用于控制音乐播放器的加载）
+
+  // AI 布局自动推荐
+  const { recommendLayout, extractMediaInfo, extractContentInfo } = useLayoutRecommend()
+
+  /**
+   * 执行布局推荐
+   * @param showToast 是否显示提示（手动调用时为 true，自动调用时为 false）
+   * @returns 推荐的布局，失败返回 null
+   */
+  const doRecommendLayout = async (showToast: boolean = false): Promise<ImageLayout | null> => {
+    if (mediaListToAdd.value.length === 0) {
+      if (showToast) {
+        theToast.info('请先添加图片/视频')
+      }
+      return null
+    }
+
+    try {
+      const mediaInfo = extractMediaInfo(mediaListToAdd.value as App.Api.Ech0.Media[])
+      const contentInfo = extractContentInfo(
+        echoToAdd.value.content || '',
+        echoToAdd.value.tags as { name: string }[] | undefined
+      )
+      const layout = await recommendLayout(mediaInfo, contentInfo)
+      echoToAdd.value.layout = layout
+
+      if (showToast) {
+        const layoutLabels: Record<string, string> = {
+          [ImageLayout.AUTO]: '自动',
+          [ImageLayout.WATERFALL]: '瀑布流',
+          [ImageLayout.GRID]: '九宫格',
+          [ImageLayout.CAROUSEL]: '单图轮播',
+          [ImageLayout.HORIZONTAL]: '水平轮播',
+        }
+        theToast.success(`AI 推荐使用「${layoutLabels[layout]}」布局`)
+      } else {
+        console.log('[AI Layout] 自动推荐完成:', layout)
+      }
+
+      return layout
+    } catch (e) {
+      console.error('[AI Layout] 推荐失败:', e)
+      if (showToast) {
+        theToast.error('AI 推荐失败，请手动选择布局')
+      }
+      return null
+    }
+  }
 
   //================================================================
   // 编辑器功能函数
@@ -110,7 +159,7 @@ export const useEditorStore = defineStore('editorStore', () => {
       content: '',
       media: [],
       private: false,
-      layout: ImageLayout.WATERFALL,
+      layout: ImageLayout.AUTO,
       extension: null,
       extension_type: null,
       tags: [],
@@ -248,23 +297,23 @@ export const useEditorStore = defineStore('editorStore', () => {
     // 如果是更新模式且不是仅同步媒体，检测是否有实际变更
     if (!justSyncMedia && isUpdateMode.value && !hasChanges()) {
       theToast.info('没有需要更新的内容，已退出更新模式')
-      
+
       // 保存要回到的Echo ID
       const echoId = echoStore.echoToUpdate?.id
-      
+
       // 自动退出更新模式
       clearEditor()
       isUpdateMode.value = false
       echoStore.echoToUpdate = null
       setMode(Mode.ECH0)
-      
+
       // 滚动回到编辑内容的位置
       if (echoId) {
         setTimeout(() => {
           scrollToEditedEcho(echoId)
         }, 100)
       }
-      
+
       return
     }
 
@@ -281,6 +330,22 @@ export const useEditorStore = defineStore('editorStore', () => {
 
       // 回填标签板块
       echoToAdd.value.tags = tagToAdd.value?.trim() ? [{ name: tagToAdd.value.trim() }] : []
+
+      // 处理布局：如果是 AUTO，需要调用 AI 推荐或使用默认值
+      // 注意：auto 只是前端选项，不能存入数据库
+      if (echoToAdd.value.layout === ImageLayout.AUTO) {
+        if (mediaListToAdd.value.length > 0) {
+          // 有媒体时调用 AI 推荐（自动模式不显示toast）
+          const layout = await doRecommendLayout(false)
+          // 如果推荐失败，使用默认布局
+          if (!layout) {
+            echoToAdd.value.layout = ImageLayout.GRID
+          }
+        } else {
+          // 没有媒体时使用默认布局
+          echoToAdd.value.layout = ImageLayout.GRID
+        }
+      }
 
       // 检查Echo是否为空
       if (checkIsEmptyEcho(echoToAdd.value)) {
@@ -333,7 +398,7 @@ export const useEditorStore = defineStore('editorStore', () => {
 
         // 更新 Echo
         const updatePromise = fetchUpdateEcho(echoStore.echoToUpdate)
-        
+
         theToast.promise(updatePromise, {
           loading: justSyncMedia ? '🔁同步图片/视频中...' : '🚀更新中...',
           success: (res) => {
@@ -357,7 +422,7 @@ export const useEditorStore = defineStore('editorStore', () => {
               // 使用服务器最新数据更新本地
               echoStore.updateEcho(latestRes.data)
             }
-            
+
             if (!justSyncMedia) {
               // 完整更新模式的后续处理
               clearEditor()
@@ -365,7 +430,7 @@ export const useEditorStore = defineStore('editorStore', () => {
               echoStore.echoToUpdate = null
               setMode(Mode.ECH0)
               echoStore.getTags() // 刷新标签列表
-              
+
               // 延迟滚动到编辑的内容位置
               setTimeout(() => {
                 scrollToEditedEcho(updatedEchoId)
@@ -389,7 +454,7 @@ export const useEditorStore = defineStore('editorStore', () => {
       // 滚动到该元素，并留出一些顶部空间
       const elementTop = echoElement.getBoundingClientRect().top + window.pageYOffset
       const offsetTop = elementTop - 100 // 留出100px的顶部空间
-      
+
       window.scrollTo({
         top: offsetTop,
         behavior: 'smooth'
@@ -508,13 +573,13 @@ export const useEditorStore = defineStore('editorStore', () => {
   const handleExitUpdateMode = () => {
     // 保存要回到的Echo ID
     const echoId = echoStore.echoToUpdate?.id
-    
+
     isUpdateMode.value = false
     echoStore.echoToUpdate = null
     clearEditor()
     setMode(Mode.ECH0)
     theToast.info('已退出更新模式')
-    
+
     // 延迟滚动回到原来编辑的内容位置
     if (echoId) {
       setTimeout(() => {
@@ -581,5 +646,6 @@ export const useEditorStore = defineStore('editorStore', () => {
     clearExtension,
     handleUppyUploaded,
     scrollToEditedEcho,
+    doRecommendLayout,
   }
 })

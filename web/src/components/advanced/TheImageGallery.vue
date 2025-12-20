@@ -2,7 +2,7 @@
   <div v-if="visibleMediaItems.length" class="image-gallery-container">
     <!-- 瀑布流布局 -->
     <div
-      v-if="layout === ImageLayout.WATERFALL || !layout"
+      v-if="layout === ImageLayout.WATERFALL"
       :class="[
         'imgwidth mx-auto grid gap-2 mb-4',
         visibleMediaItems.length === 1 ? 'grid-cols-1 justify-items-center' : 'grid-cols-2',
@@ -66,22 +66,26 @@
 
     <!-- 九宫格布局 -->
     <div v-if="layout === ImageLayout.GRID" class="imgwidth mx-auto mb-4">
-      <div class="grid grid-cols-3 gap-2">
+      <div :class="['grid gap-2', gridColsClass]">
         <template v-for="(item, idx) in displayedVisibleImages" :key="idx">
           <!-- 实况照片 -->
           <button
             v-if="isLivePhoto(item)"
-            class="livephoto-preview bg-transparent border-0 p-0 cursor-pointer overflow-hidden aspect-square relative"
+            :class="[
+              'livephoto-preview bg-transparent border-0 p-0 cursor-pointer overflow-hidden relative',
+              isSingleItem ? singleItemColSpan : 'aspect-square'
+            ]"
             @click="openFancybox(idx)"
           >
             <img
               :src="getMediaUrlCompat(item)"
               :alt="`实况照片${idx + 1}`"
               loading="lazy"
-              class="echoimg w-full h-full object-cover"
+              :class="['echoimg', isSingleItem ? 'w-full h-auto' : 'w-full h-full object-cover']"
             />
-            <div class="livephoto-overlay livephoto-overlay-small">
-              <LivePhotoIcon class="livephoto-preview-icon-small" color="#ffffff" />
+            <div :class="['livephoto-overlay', isSingleItem ? '' : 'livephoto-overlay-small']">
+              <LivePhotoIcon :class="isSingleItem ? 'livephoto-preview-icon' : 'livephoto-preview-icon-small'" color="#ffffff" />
+              <span v-if="isSingleItem" class="livephoto-text">LIVE</span>
             </div>
             <div v-if="extraVisibleCount > 0 && idx === 8" class="more-overlay" aria-hidden="true">
               +{{ extraVisibleCount }}
@@ -91,14 +95,17 @@
           <!-- 普通图片 -->
           <button
             v-else-if="!isVideo(item)"
-            class="bg-transparent border-0 p-0 cursor-pointer overflow-hidden aspect-square relative"
+            :class="[
+              'bg-transparent border-0 p-0 cursor-pointer overflow-hidden relative',
+              isSingleItem ? singleItemColSpan : 'aspect-square'
+            ]"
             @click="openFancybox(idx)"
           >
             <img
               :src="getMediaUrlCompat(item)"
               :alt="`预览图片${idx + 1}`"
               loading="lazy"
-              class="echoimg w-full h-full object-cover"
+              :class="['echoimg', isSingleItem ? 'w-full h-auto' : 'w-full h-full object-cover']"
             />
             <div v-if="extraVisibleCount > 0 && idx === 8" class="more-overlay" aria-hidden="true">
               +{{ extraVisibleCount }}
@@ -108,7 +115,10 @@
           <!-- 视频 -->
           <button
             v-else
-            class="video-preview bg-transparent border-0 p-0 cursor-pointer overflow-hidden aspect-square relative"
+            :class="[
+              'video-preview bg-transparent border-0 p-0 cursor-pointer overflow-hidden relative',
+              isSingleItem ? singleItemColSpan : 'aspect-square'
+            ]"
             @click="openFancybox(idx)"
           >
             <video
@@ -116,7 +126,7 @@
               preload="metadata"
               muted
               playsinline
-              class="echoimg video-thumb w-full h-full object-cover"
+              :class="['echoimg video-thumb', isSingleItem ? 'w-full h-auto' : 'w-full h-full object-cover']"
             ></video>
             <div class="play-overlay">
               <Play class="play-icon" color="#ffffff" />
@@ -291,7 +301,7 @@ const mediaItems = computed(() => (props.media || props.images || []) as MediaIt
 const baseUrl = props.baseUrl
 
 // 布局状态（来自 props.layout）
-const layout = props.layout || ImageLayout.WATERFALL
+const layout = props.layout || ImageLayout.GRID
 
 // 辅助函数：获取媒体URL（兼容新旧格式）
 const getMediaUrlCompat = (item: any) => {
@@ -339,6 +349,46 @@ const displayedVisibleImages = computed(() => visibleMediaItems.value.slice(0, 9
 const extraVisibleCount = computed(() =>
   visibleMediaItems.value.length > 9 ? visibleMediaItems.value.length - 9 : 0
 )
+
+// 九宫格布局：根据媒体数量动态调整列数
+// 1张: 根据宽高比决定占几列
+// 2张: 两列
+// 3张: 三列
+// 4张: 2x2
+// 5-6张: 三列
+// 7-9张: 三列
+const gridColsClass = computed(() => {
+  const count = displayedVisibleImages.value.length
+  if (count === 1) return 'grid-cols-3'
+  if (count === 2) return 'grid-cols-2'
+  if (count === 4) return 'grid-cols-2'
+  return 'grid-cols-3'
+})
+
+// 是否为单张媒体（用于九宫格布局中完整显示单张图片）
+const isSingleItem = computed(() => displayedVisibleImages.value.length === 1)
+
+// 获取单张媒体的宽高比类型
+const singleItemAspectType = computed(() => {
+  if (!isSingleItem.value) return 'square'
+  const item = displayedVisibleImages.value[0] as any
+  const width = item?.width || 0
+  const height = item?.height || 0
+  if (!width || !height) return 'square' // 无宽高信息时默认方图
+  const ratio = width / height
+  if (ratio > 1.2) return 'landscape' // 横图
+  if (ratio < 0.8) return 'portrait'  // 竖图
+  return 'square' // 方图
+})
+
+// 单张媒体的列跨度类
+const singleItemColSpan = computed(() => {
+  switch (singleItemAspectType.value) {
+    case 'landscape': return 'col-span-3' // 横图占满
+    case 'portrait': return 'col-span-1'  // 竖图占 1/3
+    default: return 'col-span-2'          // 方图占 2/3
+  }
+})
 
 // 瀑布流布局：获取列跨度
 const getColSpan = (idx: number, total: number) => {

@@ -27,6 +27,7 @@ export enum ImageSource {
 
 // 图片布局
 export enum ImageLayout {
+  AUTO = 'auto', // AI 自动推荐
   WATERFALL = 'waterfall', // 瀑布流布局
   GRID = 'grid', // 九宫格布局
   HORIZONTAL = 'horizontal', // 横向布局
