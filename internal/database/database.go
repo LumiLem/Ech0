@@ -7,11 +7,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
-
 	"github.com/lin-snow/ech0/internal/config"
+	authModel "github.com/lin-snow/ech0/internal/model/auth"
 	commonModel "github.com/lin-snow/ech0/internal/model/common"
 	connectModel "github.com/lin-snow/ech0/internal/model/connect"
 	echoModel "github.com/lin-snow/ech0/internal/model/echo"
@@ -23,6 +20,9 @@ import (
 	userModel "github.com/lin-snow/ech0/internal/model/user"
 	webhookModel "github.com/lin-snow/ech0/internal/model/webhook"
 	util "github.com/lin-snow/ech0/internal/util/err"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 // DB 全局数据库连接变量
@@ -131,6 +131,7 @@ func MigrateDB() error {
 		&queueModel.DeadLetter{},
 		&settingModel.AccessTokenSetting{},
 		&inboxModel.Inbox{},
+		&authModel.Passkey{},
 
 		// Fediverse 相关
 		&fediverseModel.Follow{},

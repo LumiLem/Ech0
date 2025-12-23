@@ -80,9 +80,11 @@ Ech0 is a new-generation open-source self-hosted platform designed for individua
 🏷️ **Elegant Tag Management & Filtering**: Intelligent tagging system with fast filtering and precise search for effortless organization  
 ☁️ **S3 Storage Integration** — Native support for S3-compatible object storage enables efficient cloud synchronization  
 🌐 **ActivityPub Federation** — Seamlessly federates with Mastodon, Misskey, and other decentralized platforms  
-🔑 **OAuth2 Integration** — Native support for OAuth2, simplifying third-party login and API authorization  
+🔑 **OAuth2 & OIDC Authentication** — Native support for OAuth2 and OIDC protocols, enabling seamless third-party login and API authorization  
+🙈 **Passkey Passwordless Login**: Supports passkey login based on biometrics or hardware keys, greatly enhancing security and login experience  
 🪶 **Highly Available Webhook**: Enables real-time integration and collaboration with external systems, supporting event-driven automated workflows  
 📝 **Built-in Todo Management**: Easily capture and manage daily tasks to stay organized and productive  
+🧘 **Quiet Inbox Mode**: Minimizes system-level interruptions by default—messages are surfaced only as needed, letting the tool assist without intruding.
 🌗 **Dark Mode & Theme Extensions**: Supports adaptive system dark mode or manual switching, with future extensibility for custom color schemes  
 🤖 **Quick Agent AI Setup**: Easily configure multiple large language models for instant AI experience, no manual setup required  
 🧰 **Command-Line Powerhouse**: A built-in high-availability CLI that empowers developers and advanced users with precision control and seamless automation  

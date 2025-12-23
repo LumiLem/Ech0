@@ -23,7 +23,11 @@ type FediverseRepositoryInterface interface {
 	SaveOrUpdateFollow(ctx context.Context, follow *model.Follow) error
 
 	// 根据用户和目标 Actor 获取关注关系
-	GetFollowByUserAndObject(ctx context.Context, userID uint, objectID string) (*model.Follow, error)
+	GetFollowByUserAndObject(
+		ctx context.Context,
+		userID uint,
+		objectID string,
+	) (*model.Follow, error)
 
 	// 删除关注关系
 	DeleteFollow(ctx context.Context, followID uint) error
@@ -32,8 +36,16 @@ type FediverseRepositoryInterface interface {
 	UpsertInboxStatus(ctx context.Context, status *model.InboxStatus) error
 
 	// ListInboxStatuses 获取本地收件箱推文
-	ListInboxStatuses(ctx context.Context, userID uint, page, pageSize int) ([]model.InboxStatus, int64, error)
+	ListInboxStatuses(
+		ctx context.Context,
+		userID uint,
+		page, pageSize int,
+	) ([]model.InboxStatus, int64, error)
 
 	// UpdateFollowStatusByActivityID 根据 Follow Activity ID 更新关注状态
-	UpdateFollowStatusByActivityID(ctx context.Context, userID uint, activityID, status string) error
+	UpdateFollowStatusByActivityID(
+		ctx context.Context,
+		userID uint,
+		activityID, status string,
+	) error
 }

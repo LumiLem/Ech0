@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-
 	res "github.com/lin-snow/ech0/internal/handler/response"
 	commonModel "github.com/lin-snow/ech0/internal/model/common"
 	service "github.com/lin-snow/ech0/internal/service/backup"
@@ -24,14 +23,14 @@ func NewBackupHandler(backupService service.BackupServiceInterface) *BackupHandl
 
 // Backup 执行数据备份
 //
-// @Summary 执行数据备份
-// @Description 用户触发数据备份操作，成功后返回备份成功信息
-// @Tags 系统备份
-// @Accept json
-// @Produce json
-// @Success 200 {object} res.Response "备份成功"
-// @Failure 200 {object} res.Response "备份失败"
-// @Router /backup [get]
+//	@Summary		执行数据备份
+//	@Description	用户触发数据备份操作，成功后返回备份成功信息
+//	@Tags			系统备份
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	res.Response	"备份成功"
+//	@Failure		200	{object}	res.Response	"备份失败"
+//	@Router			/backup [get]
 func (backupHandler *BackupHandler) Backup() gin.HandlerFunc {
 	return res.Execute(func(ctx *gin.Context) res.Response {
 		userId := ctx.MustGet("userid").(uint)
@@ -50,14 +49,14 @@ func (backupHandler *BackupHandler) Backup() gin.HandlerFunc {
 
 // ExportBackup 导出数据备份
 //
-// @Summary 导出数据备份
-// @Description 用户导出备份文件，成功后触发文件下载
-// @Tags 系统备份
-// @Accept json
-// @Produce application/octet-stream
-// @Success 200 {object} res.Response "导出备份成功，返回文件下载"
-// @Failure 200 {object} res.Response "导出备份失败"
-// @Router /backup/export [get]
+//	@Summary		导出数据备份
+//	@Description	用户导出备份文件，成功后触发文件下载
+//	@Tags			系统备份
+//	@Accept			json
+//	@Produce		application/octet-stream
+//	@Success		200	{object}	res.Response	"导出备份成功，返回文件下载"
+//	@Failure		200	{object}	res.Response	"导出备份失败"
+//	@Router			/backup/export [get]
 func (backupHandler *BackupHandler) ExportBackup() gin.HandlerFunc {
 	return res.Execute(func(ctx *gin.Context) res.Response {
 		token := ctx.Query("token")
@@ -95,15 +94,15 @@ func (backupHandler *BackupHandler) ExportBackup() gin.HandlerFunc {
 
 // ImportBackup 恢复数据备份
 //
-// @Summary 恢复数据备份
-// @Description 用户上传备份文件，成功后恢复数据
-// @Tags 系统备份
-// @Accept multipart/form-data
-// @Produce json
-// @Param file formData file true "备份文件"
-// @Success 200 {object} res.Response "导入备份成功"
-// @Failure 200 {object} res.Response "导入备份失败"
-// @Router /backup/import [post]
+//	@Summary		恢复数据备份
+//	@Description	用户上传备份文件，成功后恢复数据
+//	@Tags			系统备份
+//	@Accept			multipart/form-data
+//	@Produce		json
+//	@Param			file	formData	file			true	"备份文件"
+//	@Success		200		{object}	res.Response	"导入备份成功"
+//	@Failure		200		{object}	res.Response	"导入备份失败"
+//	@Router			/backup/import [post]
 func (backupHandler *BackupHandler) ImportBackup() gin.HandlerFunc {
 	return res.Execute(func(ctx *gin.Context) res.Response {
 		// 提取userid

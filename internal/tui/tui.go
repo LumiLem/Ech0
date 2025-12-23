@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
-
 	commonModel "github.com/lin-snow/ech0/internal/model/common"
 )
 
@@ -148,11 +147,22 @@ func ClearScreen() {
 
 // GetEch0Info 获取Ech0信息
 func GetEch0Info() string {
-	content := lipgloss.JoinVertical(lipgloss.Left,
-		infoStyle.Render("📦 "+titleStyle.Render("Version")+": "+highlight.Render(commonModel.Version)),
+	content := lipgloss.JoinVertical(
+		lipgloss.Left,
+		infoStyle.Render(
+			"📦 "+titleStyle.Render("Version")+": "+highlight.Render(commonModel.Version),
+		),
 		infoStyle.Render("🧙 "+titleStyle.Render("Author")+": "+highlight.Render("L1nSn0w")),
-		infoStyle.Render("👉 "+titleStyle.Render("Website")+": "+highlight.Render("https://ech0.app/")),
-		infoStyle.Render("👉 "+titleStyle.Render("GitHub")+": "+highlight.Render("https://github.com/lin-snow/Ech0")),
+		infoStyle.Render(
+			"👉 "+titleStyle.Render("Website")+": "+highlight.Render("https://ech0.app/"),
+		),
+		infoStyle.Render(
+			"👉 "+titleStyle.Render(
+				"GitHub",
+			)+": "+highlight.Render(
+				"https://github.com/lin-snow/Ech0",
+			),
+		),
 	)
 
 	full := lipgloss.JoinVertical(lipgloss.Left,

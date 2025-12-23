@@ -95,14 +95,6 @@ const router = createRouter({
       name: 'echo',
       component: EchoView,
     },
-    {
-      path: '/inbox',
-      name: 'inbox',
-      component: () => import('../views/inbox/InboxView.vue'),
-      meta: {
-        requiresAuth: true,
-      },
-    },
     // {
     //   path: '/fediverse',
     //   name: 'fediverse',

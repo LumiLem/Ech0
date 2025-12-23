@@ -18,7 +18,11 @@ import (
 )
 
 // UploadFileToLocal 根据文件类型上传文件到本地存储
-func UploadFileToLocal(file *multipart.FileHeader, fileType commonModel.UploadFileType, userID uint) (string, error) {
+func UploadFileToLocal(
+	file *multipart.FileHeader,
+	fileType commonModel.UploadFileType,
+	userID uint,
+) (string, error) {
 	// 根据文件类型选择上传方式
 	switch fileType {
 	case commonModel.ImageType:

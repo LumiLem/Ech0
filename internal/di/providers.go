@@ -70,6 +70,8 @@ func ProvideCache(factory *cache.CacheFactory) cache.ICache[string, any] {
 }
 
 // ProvideTransactionManager 提供事务管理器实例给 wire 注入
-func ProvideTransactionManager(factory *transaction.TransactionManagerFactory) transaction.TransactionManager {
+func ProvideTransactionManager(
+	factory *transaction.TransactionManagerFactory,
+) transaction.TransactionManager {
 	return factory.TransactionManager()
 }

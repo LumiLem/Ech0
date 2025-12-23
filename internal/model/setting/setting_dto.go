@@ -44,6 +44,10 @@ type OAuth2SettingDto struct {
 	AuthURL      string   `json:"auth_url"`
 	TokenURL     string   `json:"token_url"`
 	UserInfoURL  string   `json:"user_info_url"`
+
+	IsOIDC  bool   `json:"is_oidc"`  // 是否启用 OIDC
+	Issuer  string `json:"issuer"`   // OIDC 颁发者
+	JWKSURL string `json:"jwks_url"` // OIDC JWKS URL
 }
 
 type OAuth2Status struct {

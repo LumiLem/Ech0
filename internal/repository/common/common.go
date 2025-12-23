@@ -3,12 +3,11 @@ package repository
 import (
 	"context"
 
-	"gorm.io/gorm"
-
 	commonModel "github.com/lin-snow/ech0/internal/model/common"
 	echoModel "github.com/lin-snow/ech0/internal/model/echo"
 	userModel "github.com/lin-snow/ech0/internal/model/user"
 	"github.com/lin-snow/ech0/internal/transaction"
+	"gorm.io/gorm"
 )
 
 type CommonRepository struct {
@@ -79,7 +78,9 @@ func (commonRepository *CommonRepository) GetAllEchos(showPrivate bool) ([]echoM
 }
 
 // GetHeatMap 获取热力图数据
-func (commonRepository *CommonRepository) GetHeatMap(startDate, endDate string) ([]commonModel.Heatmap, error) {
+func (commonRepository *CommonRepository) GetHeatMap(
+	startDate, endDate string,
+) ([]commonModel.Heatmap, error) {
 	var results []commonModel.Heatmap
 
 	// 查询数据
@@ -98,23 +99,38 @@ func (commonRepository *CommonRepository) GetHeatMap(startDate, endDate string) 
 }
 
 // SaveTempFile 保存临时文件记录
-func (commonRepository *CommonRepository) SaveTempFile(ctx context.Context, file commonModel.TempFile) error {
+func (commonRepository *CommonRepository) SaveTempFile(
+	ctx context.Context,
+	file commonModel.TempFile,
+) error {
 	return commonRepository.getDB(ctx).Create(&file).Error
 }
 
 // DeleteTempFile 删除临时文件记录
 func (commonRepository *CommonRepository) DeleteTempFile(ctx context.Context, id uint) error {
-	return commonRepository.getDB(ctx).Model(&commonModel.TempFile{}).Where("id = ?", id).Update("deleted", true).Error
+	return commonRepository.getDB(ctx).
+		Model(&commonModel.TempFile{}).
+		Where("id = ?", id).
+		Update("deleted", true).
+		Error
 }
 
 // DeleteTempFilePermanently 永久删除临时文件记录
-func (commonRepository *CommonRepository) DeleteTempFilePermanently(ctx context.Context, id uint) error {
+func (commonRepository *CommonRepository) DeleteTempFilePermanently(
+	ctx context.Context,
+	id uint,
+) error {
 	return commonRepository.getDB(ctx).Delete(&commonModel.TempFile{}, id).Error
 }
 
 // DeleteTempFileByObjectKey 根据对象键删除临时文件记录（有则删除，没有则跳过）
-func (commonRepository *CommonRepository) DeleteTempFileByObjectKey(ctx context.Context, objectKey string) error {
-	result := commonRepository.getDB(ctx).Where("object_key = ?", objectKey).Delete(&commonModel.TempFile{})
+func (commonRepository *CommonRepository) DeleteTempFileByObjectKey(
+	ctx context.Context,
+	objectKey string,
+) error {
+	result := commonRepository.getDB(ctx).
+		Where("object_key = ?", objectKey).
+		Delete(&commonModel.TempFile{})
 	if result.Error != nil {
 		return result.Error
 	}

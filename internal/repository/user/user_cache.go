@@ -7,6 +7,8 @@ const (
 	IDKeyPrefix       = "id"       // id:userid
 	AdminKey          = "admin"    // admin:userid
 	SysAdminKey       = "sysadmin"
+	PasskeyRegKey     = "passkey:reg"   // passkey:reg:nonce
+	PasskeyLoginKey   = "passkey:login" // passkey:login:nonce
 )
 
 func GetUserIDKey(id uint) string {
@@ -23,4 +25,12 @@ func GetAdminKey(id uint) string {
 
 func GetSysAdminKey() string {
 	return SysAdminKey
+}
+
+func GetPasskeyRegisterSessionKey(nonce string) string {
+	return fmt.Sprintf("%s:%s", PasskeyRegKey, nonce)
+}
+
+func GetPasskeyLoginSessionKey(nonce string) string {
+	return fmt.Sprintf("%s:%s", PasskeyLoginKey, nonce)
 }

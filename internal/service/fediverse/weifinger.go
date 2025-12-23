@@ -9,7 +9,9 @@ import (
 )
 
 // Webfinger 处理 Webfinger 请求
-func (fediverseService *FediverseService) Webfinger(username string) (model.WebFingerResponse, error) {
+func (fediverseService *FediverseService) Webfinger(
+	username string,
+) (model.WebFingerResponse, error) {
 	// 查询用户
 	user, err := fediverseService.userRepository.GetUserByUsername(username)
 	if err != nil {
@@ -23,10 +25,14 @@ func (fediverseService *FediverseService) Webfinger(username string) (model.WebF
 	}
 
 	return model.WebFingerResponse{
-		Subject: "acct:" + user.Username + "@" + httpUtil.ExtractDomain(httpUtil.TrimURL(setting.ServerURL)),
+		Subject: "acct:" + user.Username + "@" + httpUtil.ExtractDomain(
+			httpUtil.TrimURL(setting.ServerURL),
+		),
 		Aliases: []string{
 			actor.ID,
-			"acct:" + user.Username + "@" + httpUtil.ExtractDomain(httpUtil.TrimURL(setting.ServerURL)),
+			"acct:" + user.Username + "@" + httpUtil.ExtractDomain(
+				httpUtil.TrimURL(setting.ServerURL),
+			),
 		},
 		Links: []model.Link{
 			{

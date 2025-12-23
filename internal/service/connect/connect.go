@@ -8,8 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"go.uber.org/zap"
-
 	commonModel "github.com/lin-snow/ech0/internal/model/common"
 	model "github.com/lin-snow/ech0/internal/model/connect"
 	settingModel "github.com/lin-snow/ech0/internal/model/setting"
@@ -20,6 +18,7 @@ import (
 	"github.com/lin-snow/ech0/internal/transaction"
 	httpUtil "github.com/lin-snow/ech0/internal/util/http"
 	logUtil "github.com/lin-snow/ech0/internal/util/log"
+	"go.uber.org/zap"
 )
 
 type ConnectService struct {
@@ -195,7 +194,8 @@ func (connectService *ConnectService) GetConnectsInfo() ([]model.Connect, error)
 			for attempt := 0; attempt < maxRetries; attempt++ {
 				select {
 				case <-ctx.Done():
-					logUtil.GetLogger().Info("[连接信息获取取消]", zap.String("地址", conn.ConnectURL), zap.Error(ctx.Err()))
+					logUtil.GetLogger().
+						Info("[连接信息获取取消]", zap.String("地址", conn.ConnectURL), zap.Error(ctx.Err()))
 					return // 总体超时直接退出
 				default:
 				}

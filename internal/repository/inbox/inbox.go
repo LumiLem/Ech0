@@ -3,10 +3,9 @@ package repository
 import (
 	"context"
 
-	"gorm.io/gorm"
-
 	inboxModel "github.com/lin-snow/ech0/internal/model/inbox"
 	"github.com/lin-snow/ech0/internal/transaction"
+	"gorm.io/gorm"
 )
 
 type InboxRepository struct {
@@ -28,7 +27,10 @@ func (inboxRepository *InboxRepository) getDB(ctx context.Context) *gorm.DB {
 }
 
 // PostInbox 创建收件箱消息
-func (inboxRepository *InboxRepository) PostInbox(ctx context.Context, inbox *inboxModel.Inbox) error {
+func (inboxRepository *InboxRepository) PostInbox(
+	ctx context.Context,
+	inbox *inboxModel.Inbox,
+) error {
 	return inboxRepository.getDB(ctx).Create(inbox).Error
 }
 
@@ -60,7 +62,8 @@ func (inboxRepository *InboxRepository) GetInboxList(
 		return nil, 0, err
 	}
 
-	query = query.Order("created_at DESC")
+	// 以创建时间倒序（最新在前）；同一时间戳内用 id 倒序保证稳定排序
+	query = query.Order("created_at DESC").Order("id DESC")
 
 	if offset > 0 {
 		query = query.Offset(offset)
@@ -74,6 +77,20 @@ func (inboxRepository *InboxRepository) GetInboxList(
 	}
 
 	return inboxes, total, nil
+}
+
+// GetInboxById 获取指定 ID 的收件箱消息
+func (inboxRepository *InboxRepository) GetInboxById(ctx context.Context, inboxID uint) (*inboxModel.Inbox, error) {
+	var inbox inboxModel.Inbox
+	if err := inboxRepository.getDB(ctx).First(&inbox, inboxID).Error; err != nil {
+		return nil, err
+	}
+	return &inbox, nil
+}
+
+// UpdateInbox 更新收件箱消息
+func (inboxRepository *InboxRepository) UpdateInbox(ctx context.Context, inbox *inboxModel.Inbox) error {
+	return inboxRepository.getDB(ctx).Save(inbox).Error
 }
 
 // MarkAsRead 标记消息为已读
@@ -114,13 +131,24 @@ func (inboxRepository *InboxRepository) ClearInbox(ctx context.Context) error {
 }
 
 // GetUnreadInbox 获取所有未读消息
-func (inboxRepository *InboxRepository) GetUnreadInbox(ctx context.Context) ([]*inboxModel.Inbox, error) {
+func (inboxRepository *InboxRepository) GetUnreadInbox(
+	ctx context.Context,
+) ([]*inboxModel.Inbox, error) {
 	var inboxes []*inboxModel.Inbox
 	if err := inboxRepository.getDB(ctx).
 		Where("read = ?", false).
-		Order("created_at DESC").
+		// 以创建时间倒序（最新在前）；同一时间戳内用 id 倒序保证稳定排序
+		Order("created_at DESC").Order("id DESC").
 		Find(&inboxes).Error; err != nil {
 		return nil, err
 	}
 	return inboxes, nil
+}
+
+// ClearReadInboxByIds 清空已读消息
+func (inboxRepository *InboxRepository) ClearReadInboxByIds(ctx context.Context, inboxIDs []uint) error {
+	return inboxRepository.getDB(ctx).
+		Where("id IN (?)", inboxIDs).
+		Update("read", true).
+		Error
 }

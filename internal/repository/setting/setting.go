@@ -3,10 +3,9 @@ package repository
 import (
 	"context"
 
-	"gorm.io/gorm"
-
 	model "github.com/lin-snow/ech0/internal/model/setting"
 	"github.com/lin-snow/ech0/internal/transaction"
+	"gorm.io/gorm"
 )
 
 type SettingRepository struct {
@@ -27,7 +26,9 @@ func (settingRepository *SettingRepository) getDB(ctx context.Context) *gorm.DB 
 }
 
 // ListAccessTokens 列出访问令牌
-func (settingRepository *SettingRepository) ListAccessTokens(userID uint) ([]model.AccessTokenSetting, error) {
+func (settingRepository *SettingRepository) ListAccessTokens(
+	userID uint,
+) ([]model.AccessTokenSetting, error) {
 	var tokens []model.AccessTokenSetting
 	// 查询所有访问令牌
 	if err := settingRepository.db().Where("user_id = ?", userID).Find(&tokens).Error; err != nil {
@@ -46,7 +47,10 @@ func (settingRepository *SettingRepository) CreateAccessToken(
 }
 
 // DeleteAccessTokenByID 删除访问令牌
-func (settingRepository *SettingRepository) DeleteAccessTokenByID(ctx context.Context, id uint) error {
+func (settingRepository *SettingRepository) DeleteAccessTokenByID(
+	ctx context.Context,
+	id uint,
+) error {
 	db := settingRepository.getDB(ctx)
 	return db.Delete(&model.AccessTokenSetting{}, id).Error
 }

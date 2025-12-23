@@ -9,10 +9,9 @@ import (
 	"strings"
 	"time"
 
+	commonModel "github.com/lin-snow/ech0/internal/model/common"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
-
-	commonModel "github.com/lin-snow/ech0/internal/model/common"
 )
 
 type minioStorage struct {
@@ -164,7 +163,13 @@ func (m *minioStorage) PresignURL(
 		// 下载类型预签名 URL
 		reqParams := make(url.Values)
 		reqParams.Set("response-content-disposition", "attachment")
-		presignedURL, err := m.client.PresignedGetObject(ctx, m.bucketName, objectName, expiry, reqParams)
+		presignedURL, err := m.client.PresignedGetObject(
+			ctx,
+			m.bucketName,
+			objectName,
+			expiry,
+			reqParams,
+		)
 		if err != nil {
 			return "", err
 		}
@@ -184,7 +189,12 @@ func (m *minioStorage) PresignURL(
 }
 
 // Upload implements storage.ObjectStorage.
-func (m *minioStorage) Upload(ctx context.Context, objectName string, r io.Reader, contentType string) error {
+func (m *minioStorage) Upload(
+	ctx context.Context,
+	objectName string,
+	r io.Reader,
+	contentType string,
+) error {
 	var objectSize int64 = -1
 	// Try to determine the size of the reader
 	if s, ok := r.(interface {
@@ -197,9 +207,16 @@ func (m *minioStorage) Upload(ctx context.Context, objectName string, r io.Reade
 		}
 	}
 
-	_, err := m.client.PutObject(ctx, m.bucketName, objectName, r, objectSize, minio.PutObjectOptions{
-		ContentType: contentType,
-	})
+	_, err := m.client.PutObject(
+		ctx,
+		m.bucketName,
+		objectName,
+		r,
+		objectSize,
+		minio.PutObjectOptions{
+			ContentType: contentType,
+		},
+	)
 	if err != nil {
 		return fmt.Errorf("failed to upload object: %w", err)
 	}

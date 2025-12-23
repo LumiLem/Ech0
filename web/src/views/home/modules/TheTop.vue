@@ -9,7 +9,7 @@
           type="text"
           v-model="searchContent"
           placeholder="搜索..."
-          class="w-42 h-10 bg-[var(--input-bg-color)]"
+          class="w-42! h-10 bg-[var(--input-bg-color)]"
           @keyup.enter="$event.target.blur()"
           @blur="handleSearch"
         />

@@ -138,7 +138,12 @@ func (core *FediverseCore) BuildAcceptActivityPayload(
 	}
 
 	now := time.Now().UTC()
-	acceptID := fmt.Sprintf("%s/activities/%s/accept/%d", serverURL, actor.PreferredUsername, now.UnixNano())
+	acceptID := fmt.Sprintf(
+		"%s/activities/%s/accept/%d",
+		serverURL,
+		actor.PreferredUsername,
+		now.UnixNano(),
+	)
 
 	payload := map[string]any{
 		"@context": []any{"https://www.w3.org/ns/activitystreams"},

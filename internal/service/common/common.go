@@ -18,8 +18,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/feeds"
-	"golang.org/x/net/html"
-
 	"github.com/lin-snow/ech0/internal/config"
 	"github.com/lin-snow/ech0/internal/event"
 	commonModel "github.com/lin-snow/ech0/internal/model/common"
@@ -38,6 +36,7 @@ import (
 	mdUtil "github.com/lin-snow/ech0/internal/util/md"
 	storageUtil "github.com/lin-snow/ech0/internal/util/storage"
 	"go.uber.org/zap"
+	"golang.org/x/net/html"
 )
 
 type CommonService struct {
@@ -71,7 +70,11 @@ func (commonService *CommonService) CommonGetUserByUserId(userId uint) (userMode
 	return commonService.commonRepository.GetUserByUserId(userId)
 }
 
-func (commonService *CommonService) UploadImage(userId uint, file *multipart.FileHeader, source string) (commonModel.ImageDto, error) {
+func (commonService *CommonService) UploadImage(
+	userId uint,
+	file *multipart.FileHeader,
+	source string,
+) (commonModel.ImageDto, error) {
 	user, err := commonService.commonRepository.GetUserByUserId(userId)
 	if err != nil {
 		return commonModel.ImageDto{}, err
@@ -129,7 +132,8 @@ func (commonService *CommonService) UploadImage(userId uint, file *multipart.Fil
 			event.EventPayloadType: fileType,
 		},
 	)); err != nil {
-		logUtil.GetLogger().Error("Failed to publish resource uploaded event", zap.String("error", err.Error()))
+		logUtil.GetLogger().
+			Error("Failed to publish resource uploaded event", zap.String("error", err.Error()))
 	}
 
 	return commonModel.ImageDto{
@@ -522,7 +526,11 @@ func (commonService *CommonService) GenerateRSS(ctx *gin.Context) (string, error
 		// 添加标签到正文后
 		if len(msg.Tags) > 0 {
 			for _, tag := range msg.Tags {
-				renderedContent = fmt.Appendf(renderedContent, "<br /><span class=\"tag\">#%s</span>", tag.Name)
+				renderedContent = fmt.Appendf(
+					renderedContent,
+					"<br /><span class=\"tag\">#%s</span>",
+					tag.Name,
+				)
 			}
 		}
 
@@ -546,7 +554,10 @@ func (commonService *CommonService) GenerateRSS(ctx *gin.Context) (string, error
 	return atom, nil
 }
 
-func (commonService *CommonService) UploadMusic(userId uint, file *multipart.FileHeader) (string, error) {
+func (commonService *CommonService) UploadMusic(
+	userId uint,
+	file *multipart.FileHeader,
+) (string, error) {
 	user, err := commonService.commonRepository.GetUserByUserId(userId)
 	if err != nil {
 		return "", err
@@ -556,7 +567,10 @@ func (commonService *CommonService) UploadMusic(userId uint, file *multipart.Fil
 	}
 
 	// 检查文件类型是否合法
-	if !storageUtil.IsAllowedType(file.Header.Get("Content-Type"), config.Config.Upload.AllowedTypes) {
+	if !storageUtil.IsAllowedType(
+		file.Header.Get("Content-Type"),
+		config.Config.Upload.AllowedTypes,
+	) {
 		return "", errors.New(commonModel.FILE_TYPE_NOT_ALLOWED)
 	}
 
@@ -566,7 +580,12 @@ func (commonService *CommonService) UploadMusic(userId uint, file *multipart.Fil
 	}
 
 	// 调用存储函数存储图片
-	audioUrl, err := storageUtil.UploadFile(file, commonModel.AudioType, commonModel.LOCAL_FILE, user.ID)
+	audioUrl, err := storageUtil.UploadFile(
+		file,
+		commonModel.AudioType,
+		commonModel.LOCAL_FILE,
+		user.ID,
+	)
 	if err != nil {
 		return "", err
 	}
@@ -726,7 +745,12 @@ func (commonService *CommonService) GetS3PresignURL(
 	result.ObjectKey = objectKey
 
 	// 生成预签名 URL (有效期24小时)
-	presignURL, err := commonService.objStorage.PresignURL(context.Background(), objectKey, 24*time.Hour, method)
+	presignURL, err := commonService.objStorage.PresignURL(
+		context.Background(),
+		objectKey,
+		24*time.Hour,
+		method,
+	)
 	if err != nil {
 		return result, err
 	}
@@ -810,7 +834,10 @@ func (commonService *CommonService) GetS3Client() (storageUtil.ObjectStorage, se
 }
 
 // GetS3ObjectURL 获取 S3 对象的 URL（支持自定义 CDN）
-func (CommonService *CommonService) GetS3ObjectURL(s3Setting settingModel.S3Setting, objectKey string) (string, error) {
+func (CommonService *CommonService) GetS3ObjectURL(
+	s3Setting settingModel.S3Setting,
+	objectKey string,
+) (string, error) {
 	if s3Setting.Endpoint == "" || s3Setting.BucketName == "" || objectKey == "" {
 		return "", errors.New(commonModel.S3_CONFIG_ERROR)
 	}

@@ -63,6 +63,10 @@ export const useSettingStore = defineStore('settingStore', () => {
     auth_url: '',
     token_url: '',
     user_info_url: '',
+
+    is_oidc: false,
+    issuer: '',
+    jwks_url: '',
   })
   const Webhooks = ref<App.Api.Setting.Webhook[]>([])
   const AccessTokens = ref<App.Api.Setting.AccessToken[]>([])

@@ -78,5 +78,10 @@ type ObjectStorage interface {
 	DeleteObject(ctx context.Context, objectName string) error
 
 	// PresignURL 生成对象存储中文件的临时访问链接
-	PresignURL(ctx context.Context, objectName string, expiry time.Duration, method string) (string, error)
+	PresignURL(
+		ctx context.Context,
+		objectName string,
+		expiry time.Duration,
+		method string,
+	) (string, error)
 }

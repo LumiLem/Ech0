@@ -6,10 +6,9 @@ import (
 	"sync"
 	"time"
 
+	logUtil "github.com/lin-snow/ech0/internal/util/log"
 	"github.com/oklog/ulid/v2"
 	"go.uber.org/zap"
-
-	logUtil "github.com/lin-snow/ech0/internal/util/log"
 )
 
 // 定义事件类型
@@ -30,6 +29,10 @@ const (
 	EventTypeUpdateBackupSchedule EventType = "system.update_backup_schedule" // 更新自动备份计划
 
 	EventTypeDeadLetterRetried EventType = "deadletter.retried" // 死信任务重试
+
+	EventTypeInboxClear EventType = "inbox.clear" // 清理Inbox（超过七天的已读消息）
+
+	EventTypeEch0UpdateCheck EventType = "ech0.update" // 检查 Ech0 版本更新
 )
 
 // 定义事件Payload的常用字段
@@ -147,7 +150,9 @@ func (eb *EventBus) Publish(ctx context.Context, event *Event) error {
 			go func(h EventHandler) {
 				if err := h(ctx, event); err != nil {
 					// 错误处理
-					logUtil.GetLogger().Error("Event Handler Error:", zap.String("err", err.Error()))
+					logUtil.GetLogger().
+						Error("Event Handler Error:", zap.String("err", err.Error()))
+
 					// log.Println("Event Handler Error:", err)
 				}
 			}(gh.handler)

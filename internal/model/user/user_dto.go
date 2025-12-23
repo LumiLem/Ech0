@@ -26,4 +26,6 @@ type OAuthInfoDto struct {
 	Provider string `json:"provider"`
 	UserID   uint   `json:"user_id"`
 	OAuthID  string `json:"oauth_id"`
+	Issuer   string `json:"issuer"`
+	AuthType string `json:"auth_type"`
 }

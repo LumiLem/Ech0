@@ -5,8 +5,6 @@ import (
 	"errors"
 	"strings"
 
-	"go.uber.org/zap"
-
 	"github.com/lin-snow/ech0/internal/event"
 	authModel "github.com/lin-snow/ech0/internal/model/auth"
 	commonModel "github.com/lin-snow/ech0/internal/model/common"
@@ -20,6 +18,7 @@ import (
 	"github.com/lin-snow/ech0/internal/transaction"
 	httpUtil "github.com/lin-snow/ech0/internal/util/http"
 	logUtil "github.com/lin-snow/ech0/internal/util/log"
+	"go.uber.org/zap"
 )
 
 type EchoService struct {

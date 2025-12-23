@@ -1,10 +1,9 @@
 package util
 
 import (
-	"go.uber.org/zap"
-
 	model "github.com/lin-snow/ech0/internal/model/common"
 	util "github.com/lin-snow/ech0/internal/util/log"
+	"go.uber.org/zap"
 )
 
 // HandleError 处理错误信息，记录日志并返回错误消息

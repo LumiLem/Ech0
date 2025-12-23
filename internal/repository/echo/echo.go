@@ -6,12 +6,11 @@ import (
 	"strings"
 	"time"
 
-	"gorm.io/gorm"
-
 	"github.com/lin-snow/ech0/internal/cache"
 	commonModel "github.com/lin-snow/ech0/internal/model/common"
 	model "github.com/lin-snow/ech0/internal/model/echo"
 	"github.com/lin-snow/ech0/internal/transaction"
+	"gorm.io/gorm"
 )
 
 type EchoRepository struct {
@@ -19,7 +18,10 @@ type EchoRepository struct {
 	cache cache.ICache[string, any]
 }
 
-func NewEchoRepository(dbProvider func() *gorm.DB, cache cache.ICache[string, any]) EchoRepositoryInterface {
+func NewEchoRepository(
+	dbProvider func() *gorm.DB,
+	cache cache.ICache[string, any],
+) EchoRepositoryInterface {
 	return &EchoRepository{db: dbProvider, cache: cache}
 }
 
@@ -197,7 +199,9 @@ func (echoRepository *EchoRepository) GetTodayEchos(showPrivate bool) []model.Ec
 		Find(&echos)
 
 	// 保存到缓存，缓存到明天零点
-	ttl := time.Until(time.Date(today.Year(), today.Month(), today.Day()+1, 0, 0, 0, 0, today.Location()))
+	ttl := time.Until(
+		time.Date(today.Year(), today.Month(), today.Day()+1, 0, 0, 0, 0, today.Location()),
+	)
 	echoRepository.cache.SetWithTTL(GetTodayEchosCacheKey(showPrivate), echos, 1, ttl)
 
 	// 返回结果
@@ -546,7 +550,10 @@ func (echoRepository *EchoRepository) CreateTag(ctx context.Context, tag *model.
 }
 
 // IncrementTagUsageCount 增加标签的使用计数
-func (echoRepository *EchoRepository) IncrementTagUsageCount(ctx context.Context, tagID uint) error {
+func (echoRepository *EchoRepository) IncrementTagUsageCount(
+	ctx context.Context,
+	tagID uint,
+) error {
 	return echoRepository.getDB(ctx).Model(&model.Tag{}).
 		Where("id = ?", tagID).
 		UpdateColumn("usage_count", gorm.Expr("usage_count + ?", 1)).Error

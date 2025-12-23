@@ -6,13 +6,12 @@ import (
 	"strings"
 	"time"
 
+	model "github.com/lin-snow/ech0/internal/model/metric"
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/disk"
 	"github.com/shirou/gopsutil/v4/host"
 	"github.com/shirou/gopsutil/v4/mem"
 	"github.com/shirou/gopsutil/v4/net"
-
-	model "github.com/lin-snow/ech0/internal/model/metric"
 )
 
 type SystemCollector struct {

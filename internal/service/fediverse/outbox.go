@@ -39,7 +39,10 @@ func (fediverseService *FediverseService) HandleOutboxPage(
 	var activities []model.Activity
 	for i := range echosByPage {
 		// 转换为 Activity
-		activities = append(activities, fediverseService.core.ConvertEchoToActivity(&echosByPage[i], &actor, serverURL))
+		activities = append(
+			activities,
+			fediverseService.core.ConvertEchoToActivity(&echosByPage[i], &actor, serverURL),
+		)
 	}
 
 	// 拼装 OutboxPage
@@ -64,7 +67,9 @@ func (fediverseService *FediverseService) HandleOutboxPage(
 	return outboxPage, nil
 }
 
-func (fediverseService *FediverseService) HandleOutbox(username string) (model.OutboxResponse, error) {
+func (fediverseService *FediverseService) HandleOutbox(
+	username string,
+) (model.OutboxResponse, error) {
 	outbox, err := fediverseService.core.BuildOutbox(username)
 	if err != nil {
 		return model.OutboxResponse{}, err

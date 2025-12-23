@@ -11,9 +11,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/spf13/viper"
-
 	model "github.com/lin-snow/ech0/internal/model/common"
+	"github.com/spf13/viper"
 )
 
 // Config 全局配置变量

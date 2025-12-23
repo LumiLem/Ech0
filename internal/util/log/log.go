@@ -5,11 +5,10 @@ import (
 	"path/filepath"
 	"sync"
 
+	model "github.com/lin-snow/ech0/internal/model/common"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
-
-	model "github.com/lin-snow/ech0/internal/model/common"
 )
 
 // Logger 全局日志记录器

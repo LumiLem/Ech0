@@ -25,9 +25,13 @@ func ExecuteBackup() (string, string, error) {
 	backupFileName := fmt.Sprintf("%s_%s.zip", backupFileName, backupTime) // 暂时不开启多备份，每次只保留最新的一份备份
 	backupPath := fmt.Sprintf("%s/%s", backupDir, backupFileName)
 
-	return backupPath, backupFileName, fileUtil.ZipDirectoryWithOptions(dataDir, backupPath, fileUtil.ZipOptions{
-		ExcludePatterns: []string{excludeFile},
-	})
+	return backupPath, backupFileName, fileUtil.ZipDirectoryWithOptions(
+		dataDir,
+		backupPath,
+		fileUtil.ZipOptions{
+			ExcludePatterns: []string{excludeFile},
+		},
+	)
 }
 
 // ExecuteRestore 执行恢复

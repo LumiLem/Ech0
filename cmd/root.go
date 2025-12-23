@@ -3,9 +3,8 @@ package cmd
 import (
 	"os"
 
-	"github.com/spf13/cobra"
-
 	"github.com/lin-snow/ech0/internal/cli"
+	"github.com/spf13/cobra"
 )
 
 // rootCmd 是 Ech0 的根命令

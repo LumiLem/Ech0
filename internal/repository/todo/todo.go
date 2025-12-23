@@ -3,11 +3,10 @@ package repository
 import (
 	"context"
 
-	"gorm.io/gorm"
-
 	"github.com/lin-snow/ech0/internal/cache"
 	model "github.com/lin-snow/ech0/internal/model/todo"
 	"github.com/lin-snow/ech0/internal/transaction"
+	"gorm.io/gorm"
 )
 
 type TodoRepository struct {
@@ -15,7 +14,10 @@ type TodoRepository struct {
 	cache cache.ICache[string, any]
 }
 
-func NewTodoRepository(dbProvider func() *gorm.DB, cache cache.ICache[string, any]) TodoRepositoryInterface {
+func NewTodoRepository(
+	dbProvider func() *gorm.DB,
+	cache cache.ICache[string, any],
+) TodoRepositoryInterface {
 	return &TodoRepository{
 		db:    dbProvider,
 		cache: cache,

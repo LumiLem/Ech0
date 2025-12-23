@@ -1,6 +1,10 @@
 package model
 
 import (
+	"encoding/json"
+	"time"
+
+	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -18,7 +22,10 @@ const (
 	NO_USER_LOGINED = uint(0)
 )
 
-type OAuth2Action string
+type (
+	OAuth2Action string
+	AuthType     string
+)
 
 const (
 	// OAuth2ActionLogin 表示登录操作
@@ -27,6 +34,9 @@ const (
 	OAuth2ActionRegister OAuth2Action = "register"
 	// OAuth2ActionBind 表示绑定操作
 	OAuth2ActionBind OAuth2Action = "bind"
+
+	AuthTypeOAuth2 AuthType = "oauth2"
+	AuthTypeOIDC   AuthType = "oidc"
 )
 
 type OAuthState struct {
@@ -100,4 +110,59 @@ type QQUser struct {
 	FigureURLQQ1 string `json:"figureurl_qq_1"` // 40x40头像
 	FigureURLQQ2 string `json:"figureurl_qq_2"` // 100x100头像
 	Gender       string `json:"gender"`         // 性别
+}
+
+// Passkey/WebAuthn 定义 Passkey/WebAuthn 实体，用于存储 Passkey/WebAuthn 凭证信息和绑定已有用户
+type Passkey struct {
+	ID           uint   `gorm:"primaryKey"`
+	UserID       uint   `gorm:"not null;index"`
+	CredentialID string `gorm:"size:255;not null;uniqueIndex:uid_cred"`
+	// CredentialJSON 存储 go-webauthn 的 webauthn.Credential 序列化结果，用于后续校验
+	CredentialJSON string `gorm:"type:text;not null"`
+	// PublicKey 为冗余字段（便于排查/展示），存储 credential.PublicKey 的 base64url
+	PublicKey  string `gorm:"type:text"`
+	SignCount  uint32 `gorm:"not null;default:0"`
+	LastUsedAt time.Time
+	DeviceName string `gorm:"size:128"`
+	AAGUID     string `gorm:"size:36"`
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+}
+
+// PasskeyRegisterBeginReq Passkey 注册/绑定 begin 请求
+type PasskeyRegisterBeginReq struct {
+	DeviceName string `json:"device_name"`
+}
+
+// PasskeyRegisterBeginResp Passkey 注册/绑定 begin 响应
+type PasskeyRegisterBeginResp struct {
+	Nonce string `json:"nonce"`
+	// PublicKey 为 WebAuthn Creation Options（直接可给 navigator.credentials.create 使用）
+	PublicKey *protocol.PublicKeyCredentialCreationOptions `json:"publicKey"`
+}
+
+// PasskeyFinishReq Passkey finish 请求（注册/登录共用）
+type PasskeyFinishReq struct {
+	Nonce      string          `json:"nonce"      binding:"required"`
+	Credential json.RawMessage `json:"credential" binding:"required"`
+}
+
+// PasskeyLoginBeginResp Passkey 登录 begin 响应（Resident Key / discoverable）
+type PasskeyLoginBeginResp struct {
+	Nonce string `json:"nonce"`
+	// PublicKey 为 WebAuthn Request Options（直接可给 navigator.credentials.get 使用）
+	PublicKey *protocol.PublicKeyCredentialRequestOptions `json:"publicKey"`
+}
+
+// PasskeyDeviceDto 用于多设备展示
+type PasskeyDeviceDto struct {
+	ID         uint      `json:"id"`
+	DeviceName string    `json:"device_name"`
+	AAGUID     string    `json:"aaguid"`
+	LastUsedAt time.Time `json:"last_used_at"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
+type PasskeyUpdateDeviceNameReq struct {
+	DeviceName string `json:"device_name" binding:"required"`
 }

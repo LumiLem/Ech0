@@ -17,7 +17,7 @@ export const useInboxStore = defineStore('inboxStore', () => {
   const total = ref(0)
   const loading = ref(false)
   const page = ref(1)
-  const pageSize = ref(12)
+  const pageSize = ref(5)
   const search = ref('')
   const initialized = ref(false)
 
@@ -27,6 +27,7 @@ export const useInboxStore = defineStore('inboxStore', () => {
   const hasMore = computed(() => items.value.length < total.value)
   const currentSearch = computed(() => search.value)
 
+  // 重置状态
   function resetState() {
     items.value = []
     unreadItems.value = []
@@ -35,6 +36,7 @@ export const useInboxStore = defineStore('inboxStore', () => {
     search.value = ''
   }
 
+  // 获取列表
   async function fetchList(options: { append?: boolean } = {}) {
     if (!canAccess.value) {
       return false
@@ -61,6 +63,7 @@ export const useInboxStore = defineStore('inboxStore', () => {
     }
   }
 
+  // 获取未读
   async function fetchUnread() {
     if (!canAccess.value) {
       return false
@@ -74,12 +77,14 @@ export const useInboxStore = defineStore('inboxStore', () => {
     return false
   }
 
+  // 刷新
   async function refresh() {
     page.value = 1
     await fetchList()
     await fetchUnread()
   }
 
+  // 加载更多
   async function loadMore() {
     if (!canAccess.value || loading.value || !hasMore.value) {
       return
@@ -91,6 +96,7 @@ export const useInboxStore = defineStore('inboxStore', () => {
     }
   }
 
+  // 更新搜索
   async function updateSearch(keyword: string) {
     if (!canAccess.value) {
       search.value = ''
@@ -105,6 +111,7 @@ export const useInboxStore = defineStore('inboxStore', () => {
     await fetchList()
   }
 
+  // 标记为已读
   async function markAsRead(id: number) {
     const res = await fetchMarkInboxRead(id)
     if (res.code === 1) {
@@ -122,6 +129,7 @@ export const useInboxStore = defineStore('inboxStore', () => {
     return false
   }
 
+  // 删除
   async function deleteInbox(id: number) {
     const res = await fetchDeleteInbox(id)
     if (res.code === 1) {
@@ -133,6 +141,7 @@ export const useInboxStore = defineStore('inboxStore', () => {
     return false
   }
 
+  // 清空
   async function clearInbox() {
     const res = await fetchClearInbox()
     if (res.code === 1) {
@@ -143,6 +152,7 @@ export const useInboxStore = defineStore('inboxStore', () => {
     return false
   }
 
+  // 设置模式
   function setInboxMode(mode: boolean) {
     inboxMode.value = mode
   }

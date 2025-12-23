@@ -268,7 +268,11 @@ func extractFile(file *zip.File, destDir string) error {
 		_ = fileReader.Close()
 	}()
 
-	targetFile, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, file.FileInfo().Mode())
+	targetFile, err := os.OpenFile(
+		filePath,
+		os.O_WRONLY|os.O_CREATE|os.O_TRUNC,
+		file.FileInfo().Mode(),
+	)
 	if err != nil {
 		return err
 	}

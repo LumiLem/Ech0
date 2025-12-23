@@ -4,7 +4,6 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-
 	res "github.com/lin-snow/ech0/internal/handler/response"
 	commonModel "github.com/lin-snow/ech0/internal/model/common"
 	service "github.com/lin-snow/ech0/internal/service/inbox"
@@ -22,17 +21,17 @@ func NewInboxHandler(inboxService service.InboxServiceInterface) *InboxHandler {
 
 // GetInboxList 获取收件箱消息列表
 //
-// @Summary 获取收件箱列表
-// @Description 根据分页条件获取系统收件箱
-// @Tags 收件箱
-// @Accept json
-// @Produce json
-// @Param page query int false "页码"
-// @Param pageSize query int false "每页数量"
-// @Param search query string false "搜索关键词"
-// @Success 200 {object} res.Response "获取成功"
-// @Failure 200 {object} res.Response "获取失败"
-// @Router /inbox [get]
+//	@Summary		获取收件箱列表
+//	@Description	根据分页条件获取系统收件箱
+//	@Tags			收件箱
+//	@Accept			json
+//	@Produce		json
+//	@Param			page		query		int				false	"页码"
+//	@Param			pageSize	query		int				false	"每页数量"
+//	@Param			search		query		string			false	"搜索关键词"
+//	@Success		200			{object}	res.Response	"获取成功"
+//	@Failure		200			{object}	res.Response	"获取失败"
+//	@Router			/inbox [get]
 func (inboxHandler *InboxHandler) GetInboxList() gin.HandlerFunc {
 	return res.Execute(func(ctx *gin.Context) res.Response {
 		userid := ctx.MustGet("userid").(uint)
@@ -59,14 +58,14 @@ func (inboxHandler *InboxHandler) GetInboxList() gin.HandlerFunc {
 
 // GetUnreadInbox 获取所有未读消息
 //
-// @Summary 获取未读消息
-// @Description 获取所有未读收件箱消息
-// @Tags 收件箱
-// @Accept json
-// @Produce json
-// @Success 200 {object} res.Response "获取成功"
-// @Failure 200 {object} res.Response "获取失败"
-// @Router /inbox/unread [get]
+//	@Summary		获取未读消息
+//	@Description	获取所有未读收件箱消息
+//	@Tags			收件箱
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	res.Response	"获取成功"
+//	@Failure		200	{object}	res.Response	"获取失败"
+//	@Router			/inbox/unread [get]
 func (inboxHandler *InboxHandler) GetUnreadInbox() gin.HandlerFunc {
 	return res.Execute(func(ctx *gin.Context) res.Response {
 		userid := ctx.MustGet("userid").(uint)
@@ -85,15 +84,15 @@ func (inboxHandler *InboxHandler) GetUnreadInbox() gin.HandlerFunc {
 
 // MarkInboxAsRead 将消息标记为已读
 //
-// @Summary 标记消息为已读
-// @Description 根据 ID 将消息标记为已读
-// @Tags 收件箱
-// @Accept json
-// @Produce json
-// @Param id path int true "收件箱ID"
-// @Success 200 {object} res.Response "标记成功"
-// @Failure 200 {object} res.Response "标记失败"
-// @Router /inbox/{id}/read [put]
+//	@Summary		标记消息为已读
+//	@Description	根据 ID 将消息标记为已读
+//	@Tags			收件箱
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		int				true	"收件箱ID"
+//	@Success		200	{object}	res.Response	"标记成功"
+//	@Failure		200	{object}	res.Response	"标记失败"
+//	@Router			/inbox/{id}/read [put]
 func (inboxHandler *InboxHandler) MarkInboxAsRead() gin.HandlerFunc {
 	return res.Execute(func(ctx *gin.Context) res.Response {
 		userid := ctx.MustGet("userid").(uint)
@@ -116,15 +115,15 @@ func (inboxHandler *InboxHandler) MarkInboxAsRead() gin.HandlerFunc {
 
 // DeleteInbox 删除指定的收件箱消息
 //
-// @Summary 删除收件箱消息
-// @Description 根据 ID 删除收件箱消息
-// @Tags 收件箱
-// @Accept json
-// @Produce json
-// @Param id path int true "收件箱ID"
-// @Success 200 {object} res.Response "删除成功"
-// @Failure 200 {object} res.Response "删除失败"
-// @Router /inbox/{id} [delete]
+//	@Summary		删除收件箱消息
+//	@Description	根据 ID 删除收件箱消息
+//	@Tags			收件箱
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		int				true	"收件箱ID"
+//	@Success		200	{object}	res.Response	"删除成功"
+//	@Failure		200	{object}	res.Response	"删除失败"
+//	@Router			/inbox/{id} [delete]
 func (inboxHandler *InboxHandler) DeleteInbox() gin.HandlerFunc {
 	return res.Execute(func(ctx *gin.Context) res.Response {
 		userid := ctx.MustGet("userid").(uint)
@@ -147,14 +146,14 @@ func (inboxHandler *InboxHandler) DeleteInbox() gin.HandlerFunc {
 
 // ClearInbox 清空收件箱
 //
-// @Summary 清空收件箱
-// @Description 删除所有收件箱消息
-// @Tags 收件箱
-// @Accept json
-// @Produce json
-// @Success 200 {object} res.Response "清空成功"
-// @Failure 200 {object} res.Response "清空失败"
-// @Router /inbox [delete]
+//	@Summary		清空收件箱
+//	@Description	删除所有收件箱消息
+//	@Tags			收件箱
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	res.Response	"清空成功"
+//	@Failure		200	{object}	res.Response	"清空失败"
+//	@Router			/inbox [delete]
 func (inboxHandler *InboxHandler) ClearInbox() gin.HandlerFunc {
 	return res.Execute(func(ctx *gin.Context) res.Response {
 		userid := ctx.MustGet("userid").(uint)

@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-
 	"github.com/lin-snow/ech0/template"
 )
 
@@ -49,7 +48,13 @@ func (webHandler *WebHandler) Templates() gin.HandlerFunc {
 			defer func() { _ = fallback.Close() }()
 			fallbackStat, _ := fallback.Stat()
 			ctx.Header("Content-Type", "text/html; charset=utf-8")
-			http.ServeContent(ctx.Writer, ctx.Request, "index.html", fallbackStat.ModTime(), fallback)
+			http.ServeContent(
+				ctx.Writer,
+				ctx.Request,
+				"index.html",
+				fallbackStat.ModTime(),
+				fallback,
+			)
 			return
 		}
 		defer func() { _ = f.Close() }()

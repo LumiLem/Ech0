@@ -42,7 +42,8 @@ func (p *WorkerPool) start() {
 					}
 					p.wg.Add(1)
 					if err := job(); err != nil {
-						logUtil.GetLogger().Error("worker job failed", zap.String("err", err.Error()))
+						logUtil.GetLogger().
+							Error("worker job failed", zap.String("err", err.Error()))
 					}
 					p.wg.Done()
 				case <-p.ctx.Done():

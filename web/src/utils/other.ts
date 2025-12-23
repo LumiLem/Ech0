@@ -113,100 +113,133 @@ export const formatDetailedTime = (dateString: string) => {
 export const parseMusicURL = (url: string) => {
   url = url.trim()
 
-  // 网易云音乐 - 修复id参数位置问题
-  const neteaseMatch = url.match(/music\.163\.com\/(#\/)?(song|playlist|album)(\?.*)?/)
-  if (neteaseMatch) {
-    // 从查询参数中提取id
+  /* =======================
+   * 网易云音乐
+   * ======================= */
+  if (/^https:\/\/([a-z0-9-]+\.)*music\.163\.com/i.test(url)) {
+    // id：永远从 query 拿
     const idMatch = url.match(/[?&]id=(\d+)/)
-    if (idMatch) {
+    if (!idMatch) return null
+
+    let type: 'song' | 'playlist' | 'album' | undefined
+
+    if (/(\/|#\/|\/m\/)song/.test(url)) {
+      type = 'song'
+    } else if (/(\/|#\/|\/m\/)playlist/.test(url)) {
+      type = 'playlist'
+    }
+    // else if (/(\/|#\/|\/m\/)album/.test(url)) {
+    //   type = 'album'
+    // }
+
+    if (!type) return null
+
+    return {
+      server: MusicProvider.NETEASE,
+      type,
+      id: idMatch[1],
+    }
+  }
+
+  /* =======================
+   * QQ 音乐
+   * ======================= */
+  if (/^https:\/\/([a-z0-9-]+\.)*qq\.com/i.test(url)) {
+    // 新版 songDetail（字母数字混合）
+    const newSongMatch = url.match(/songDetail\/([a-zA-Z0-9]+)/)
+    if (newSongMatch) {
       return {
-        server: MusicProvider.NETEASE,
-        type: neteaseMatch[2], // song, playlist, album
-        id: idMatch[1],
+        server: MusicProvider.QQ,
+        type: 'song',
+        id: newSongMatch[1],
       }
     }
-  }
 
-  // QQ音乐 新格式支持，songDetail 路径，id一般是字母数字混合
-  const qqNewSongMatch = url.match(/y\.qq\.com\/n\/ryqq\/songDetail\/([a-zA-Z0-9]+)/)
-  if (qqNewSongMatch) {
-    return {
-      server: MusicProvider.QQ,
-      type: 'song',
-      id: qqNewSongMatch[1],
+    // 旧版 songid（纯数字）
+    const oldSongMatch = url.match(/[?&]songid=(\d+)/)
+    if (oldSongMatch) {
+      return {
+        server: MusicProvider.QQ,
+        type: 'song',
+        id: oldSongMatch[1],
+      }
     }
-  }
 
-  // QQ音乐 - 旧格式playsong，支持各种子域名前缀
-  const qqOldSongMatch = url.match(/(?:i\d*\.)?y\.qq\.com\/.*[?&]songid=(\d+)/)
-  if (qqOldSongMatch) {
-    return {
-      server: MusicProvider.QQ,
-      type: 'song',
-      id: qqOldSongMatch[1],
+    // 匹配 /playlist/ 后面的数字ID
+    const playlistMatch = url.match(/\/playlist\/(\d+)/i)
+    if (playlistMatch) {
+      return {
+        server: MusicProvider.QQ,
+        type: 'playlist',
+        id: playlistMatch[1],
+      }
     }
+    return null
   }
 
-  // Apple Music
-  const appleMatch = url.match(/music\.apple\.com\/[a-z]{2}\/(song|album)\/[^/]+\/(\d+)/)
-  if (appleMatch) {
+  /* =======================
+   * Apple Music
+   * ======================= */
+  if (/^https:\/\/music\.apple\.com/i.test(url)) {
+    const appleMatch = url.match(/\/(song|album)\/[^/]+\/(\d+)/)
+    if (!appleMatch) return null
+
     return {
       server: MusicProvider.APPLE,
-      type: appleMatch[1], // song / album
+      type: appleMatch[1],
       id: appleMatch[2],
     }
   }
-
-  // 解析失败
   return null
 }
 
 /**
- * 从一段文本中提取并返回最短、最规范的音乐链接
- * @param input 包含音乐链接的原始文本
- * @returns 返回清理后的音乐链接字符串，如果找不到则返回 null
+ * 从一段文本中提取并返回最短、规范的音乐链接
  */
 export const extractAndCleanMusicURL = (input: string): string | null => {
   const text = input.trim()
 
-  // 网易云音乐
-  // 匹配并捕获完整的、包含id参数的网易云链接
-  const neteaseMatch = text.match(
-    /(https?:\/\/music\.163\.com\/(#\/)?(song|playlist|album)\?id=\d+)/i,
-  )
-  if (neteaseMatch) {
-    // neteaseMatch[1] 就是第一个捕获组，即我们想要的完整链接
-    return neteaseMatch?.[1]?.replace(/^http:\/\//, 'https://') ?? null // 统一为https
-  }
+  // 1️⃣ 粗暴提取第一个 URL（足够鲁棒）
+  const urlMatch = text.match(/https?:\/\/[^\s]+/i)
+  if (!urlMatch) return null
 
-  // QQ音乐 新格式
-  // 匹配并捕获 songDetail 路径的链接
-  const qqNewMatch = text.match(/(https?:\/\/y\.qq\.com\/n\/ryqq\/songDetail\/[a-zA-Z0-9]+)/i)
-  if (qqNewMatch) {
-    return qqNewMatch?.[1]?.replace(/^http:\/\//, 'https://') ?? null
-  }
+  const rawUrl = urlMatch[0]
 
-  // QQ音乐 旧格式
-  // 这个稍微复杂，因为可能还有其他参数。我们只关心songid
-  const qqOldMatch = text.match(/(https?:\/\/(?:i\d*\.)?y\.qq\.com\/\S*)[?&]songid=(\d+)/i)
-  if (qqOldMatch) {
-    const baseUrl = qqOldMatch?.[1]?.replace(/^http:\/\//, 'https://') ?? null
-    const songId = qqOldMatch?.[2] ?? null
-    // 重新构建最短链接，只保留songid参数
-    return `${baseUrl}?songid=${songId}`
-  }
+  // 2️⃣ 复用统一解析函数
+  const parsed = parseMusicURL(rawUrl)
+  if (!parsed) return null
 
-  // Apple Music
-  // 匹配并捕获 Apple Music 的 song 或 album 链接
-  const appleMatch = text.match(
-    /(https?:\/\/music\.apple\.com\/[a-z]{2}\/(song|album)\/[^\/]+\/\d+)/i,
-  )
-  if (appleMatch) {
-    return appleMatch?.[1]?.replace(/^http:\/\//, 'https://') ?? null
-  }
+  // 3️⃣ 规范化重组
+  switch (parsed.server) {
+    case MusicProvider.NETEASE: {
+      // 统一为 PC 可打开的最短链接
+      return `https://music.163.com/#/${parsed.type}?id=${parsed.id}`
+    }
 
-  // 如果没有匹配到任何规则
-  return null
+    case MusicProvider.QQ: {
+      // 根据 type 分别生成歌曲或歌单的规范化链接
+      if (parsed.type === 'song') {
+        return `https://y.qq.com/n/ryqq_v2/songDetail/${parsed.id}`
+      }
+
+      if (parsed.type === 'playlist') {
+        // 使用统一的歌单路径格式
+        return `https://y.qq.com/n/ryqq_v2/playlist/${parsed.id}`
+      }
+
+      // 如果是其他未知类型，则返回 null
+      return null
+    }
+
+    case MusicProvider.APPLE: {
+      // 去掉后面的参数
+      const cleanUrl = rawUrl.split('?')[0]
+      return cleanUrl ?? rawUrl
+    }
+
+    default:
+      return null
+  }
 }
 
 // 获取图片尺寸
@@ -249,4 +282,30 @@ export const getHubImageUrl = (image: App.Api.Ech0.Image, baseurl: string) => {
     // 未知的图片来源，按照本地图片处理
     return baseurl + '/api' + String(image.media_url)
   }
+}
+
+/**
+ * Base64URL to Uint8Array
+ * 用于解析服务端返回的 WebAuthn publicKey
+ */
+export function base64urlToUint8Array(input: string): Uint8Array<ArrayBuffer> {
+  const base64 = input.replace(/-/g, '+').replace(/_/g, '/')
+  const pad = base64.length % 4 === 0 ? '' : '='.repeat(4 - (base64.length % 4))
+  const binary = atob(base64 + pad)
+  const buffer = new ArrayBuffer(binary.length)
+  const bytes = new Uint8Array(buffer)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  return bytes
+}
+
+/**
+ * Uint8Array to Base64URL
+ * 用于生成客户端返回的 WebAuthn publicKey
+ */
+export function uint8ArrayToBase64url(bytes: ArrayBuffer | Uint8Array): string {
+  const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes)
+  let binary = ''
+  for (let i = 0; i < u8.length; i++) binary += String.fromCharCode(u8[i]!)
+  const base64 = btoa(binary)
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
 }

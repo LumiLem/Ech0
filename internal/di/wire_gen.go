@@ -130,7 +130,8 @@ func BuildEventRegistrar(dbProvider func() *gorm.DB, ebProvider func() event.IEv
 	todoRepositoryInterface := repository8.NewTodoRepository(dbProvider, iCache)
 	inboxRepositoryInterface := repository7.NewInboxRepository(dbProvider)
 	agentProcessor := event.NewAgentProcessor(echoRepositoryInterface, todoRepositoryInterface, userRepositoryInterface, keyValueRepositoryInterface, inboxRepositoryInterface)
-	eventHandlers := event.NewEventHandlers(webhookDispatcher, deadLetterResolver, fediverseAgent, backupScheduler, agentProcessor)
+	inboxDispatcher := event.NewInboxDispatcher(inboxRepositoryInterface, keyValueRepositoryInterface)
+	eventHandlers := event.NewEventHandlers(webhookDispatcher, deadLetterResolver, fediverseAgent, backupScheduler, agentProcessor, inboxDispatcher)
 	eventRegistrar := event.NewEventRegistry(ebProvider, eventHandlers)
 	return eventRegistrar, nil
 }
@@ -199,7 +200,7 @@ var FediverseCoreSet = wire.NewSet(fediverse.NewFediverseCore)
 var FediverseSet = wire.NewSet(repository6.NewFediverseRepository, service4.NewFediverseService, handler10.NewFediverseHandler, event.NewFediverseAgent)
 
 // EventSet 包含了构建 Event 相关所需的所有 Provider
-var EventSet = wire.NewSet(event.NewWebhookDispatcher, event.NewBackupScheduler, event.NewDeadLetterResolver, event.NewAgentProcessor, event.NewEventHandlers, event.NewEventRegistry)
+var EventSet = wire.NewSet(event.NewWebhookDispatcher, event.NewBackupScheduler, event.NewDeadLetterResolver, event.NewAgentProcessor, event.NewInboxDispatcher, event.NewEventHandlers, event.NewEventRegistry)
 
 // MetricSet 包含了构建 Metric 相关所需的所有 Provider
 var MetricSet = wire.NewSet(metric.NewSystemCollector)

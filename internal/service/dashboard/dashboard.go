@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-
 	model "github.com/lin-snow/ech0/internal/model/metric"
 	"github.com/lin-snow/ech0/internal/monitor"
 	commonService "github.com/lin-snow/ech0/internal/service/common"

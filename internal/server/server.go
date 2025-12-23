@@ -1,10 +1,10 @@
 // Package server
 //
-// @title Ech0 API 文档
-// @version 1.0
-// @description 开源、自托管轻量级发布平台 Ech0 的 API 文档
-// @host localhost:6277
-// @BasePath /api
+//	@title			Ech0 API 文档
+//	@version		1.0
+//	@description	开源、自托管轻量级发布平台 Ech0 的 API 文档
+//	@host			localhost:6277
+//	@BasePath		/api
 package server
 
 import (
@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-
 	"github.com/lin-snow/ech0/internal/cache"
 	"github.com/lin-snow/ech0/internal/config"
 	"github.com/lin-snow/ech0/internal/database"
@@ -66,7 +65,12 @@ func (s *Server) Init() {
 	event.InitEventBus()
 
 	// Handlers
-	handlers, err := di.BuildHandlers(database.GetDB, cacheFactory, transactionManagerFactory, event.GetEventBus)
+	handlers, err := di.BuildHandlers(
+		database.GetDB,
+		cacheFactory,
+		transactionManagerFactory,
+		event.GetEventBus,
+	)
 	if err != nil {
 		errUtil.HandlePanicError(&commonModel.ServerError{
 			Msg: commonModel.INIT_HANDLERS_PANIC,
@@ -78,7 +82,12 @@ func (s *Server) Init() {
 	router.SetupRouter(s.GinEngine, handlers)
 
 	// Tasker
-	s.tasker, err = di.BuildTasker(database.GetDB, cacheFactory, transactionManagerFactory, event.GetEventBus)
+	s.tasker, err = di.BuildTasker(
+		database.GetDB,
+		cacheFactory,
+		transactionManagerFactory,
+		event.GetEventBus,
+	)
 	if err != nil {
 		errUtil.HandlePanicError(&commonModel.ServerError{
 			Msg: commonModel.INIT_TASKER_PANIC,
@@ -113,7 +122,8 @@ func (s *Server) Start() {
 
 	// 启动服务器
 	go func() {
-		if err := s.httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		if err := s.httpServer.ListenAndServe(); err != nil &&
+			!errors.Is(err, http.ErrServerClosed) {
 			errUtil.HandlePanicError(&commonModel.ServerError{
 				Msg: commonModel.GIN_RUN_FAILED,
 				Err: err,

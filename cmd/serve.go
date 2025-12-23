@@ -1,9 +1,8 @@
 package cmd
 
 import (
-	"github.com/spf13/cobra"
-
 	"github.com/lin-snow/ech0/internal/cli"
+	"github.com/spf13/cobra"
 )
 
 // serveCmd 是启动 Web 和 SSH 服务的命令

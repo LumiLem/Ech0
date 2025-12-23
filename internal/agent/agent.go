@@ -11,10 +11,9 @@ import (
 	"github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino-ext/components/model/qwen"
 	"github.com/cloudwego/eino/schema"
-	"google.golang.org/genai"
-
 	commonModel "github.com/lin-snow/ech0/internal/model/common"
 	model "github.com/lin-snow/ech0/internal/model/setting"
+	"google.golang.org/genai"
 )
 
 const (

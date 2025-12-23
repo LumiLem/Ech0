@@ -17,7 +17,10 @@ import (
 //=======================================
 
 // HandleInbox 处理接收到的 ActivityPub 消息
-func (fediverseService *FediverseService) handleFollowActivity(user *userModel.User, activity *model.Activity) error {
+func (fediverseService *FediverseService) handleFollowActivity(
+	user *userModel.User,
+	activity *model.Activity,
+) error {
 	fmt.Println("Handling follow activity:", activity)
 
 	followerActor := activity.ActorURL
@@ -34,7 +37,12 @@ func (fediverseService *FediverseService) handleFollowActivity(user *userModel.U
 	}
 	serverURL := httpUtil.TrimURL(setting.ServerURL)
 
-	acceptPayload, err := fediverseService.core.BuildAcceptActivityPayload(&actor, activity, followerActor, serverURL)
+	acceptPayload, err := fediverseService.core.BuildAcceptActivityPayload(
+		&actor,
+		activity,
+		followerActor,
+		serverURL,
+	)
 	if err != nil {
 		fmt.Printf("Error building accept activity payload: %v\n", err)
 		return err
@@ -55,7 +63,11 @@ func (fediverseService *FediverseService) handleFollowActivity(user *userModel.U
 	fmt.Printf("Saving follower: userID=%d, actor=%s\n", user.ID, followerActor)
 
 	// 检查是否已经存在该粉丝记录
-	exists, err := fediverseService.fediverseRepository.FollowerExists(context.Background(), user.ID, followerActor)
+	exists, err := fediverseService.fediverseRepository.FollowerExists(
+		context.Background(),
+		user.ID,
+		followerActor,
+	)
 	if err != nil {
 		fmt.Printf("Error checking if follower exists: %v\n", err)
 		return err
@@ -79,7 +91,9 @@ func (fediverseService *FediverseService) handleFollowActivity(user *userModel.U
 //============================================================
 
 // GetFollowers 获取粉丝列表
-func (fediverseService *FediverseService) GetFollowers(username string) (model.FollowersResponse, error) {
+func (fediverseService *FediverseService) GetFollowers(
+	username string,
+) (model.FollowersResponse, error) {
 	actor, followerURLs, err := fediverseService.loadFollowersData(username)
 	if err != nil {
 		return model.FollowersResponse{}, err
@@ -97,7 +111,11 @@ func (fediverseService *FediverseService) GetFollowers(username string) (model.F
 }
 
 // buildFollowersPage 构建粉丝列表分页
-func buildFollowersPage(actor *model.Actor, followerURLs []string, page, pageSize int) model.FollowersPage {
+func buildFollowersPage(
+	actor *model.Actor,
+	followerURLs []string,
+	page, pageSize int,
+) model.FollowersPage {
 	total := len(followerURLs)
 	start := (page - 1) * pageSize
 	if start > total {
@@ -147,7 +165,9 @@ func (fediverseService *FediverseService) GetFollowersPage(
 }
 
 // loadFollowersData 加载用户的粉丝数据
-func (fediverseService *FediverseService) loadFollowersData(username string) (model.Actor, []string, error) {
+func (fediverseService *FediverseService) loadFollowersData(
+	username string,
+) (model.Actor, []string, error) {
 	// 查询用户
 	user, err := fediverseService.userRepository.GetUserByUsername(username)
 	if err != nil {
@@ -196,7 +216,9 @@ func uniqueFollowerActorIDs(followers []model.Follower) []string {
 //================================================================
 
 // GetFollowing 获取关注列表
-func (fediverseService *FediverseService) GetFollowing(username string) (model.FollowingResponse, error) {
+func (fediverseService *FediverseService) GetFollowing(
+	username string,
+) (model.FollowingResponse, error) {
 	actor, followingURLs, err := fediverseService.loadFollowingData(username)
 	if err != nil {
 		return model.FollowingResponse{}, err
@@ -214,7 +236,11 @@ func (fediverseService *FediverseService) GetFollowing(username string) (model.F
 }
 
 // buildFollowersPage 构建粉丝列表分页
-func buildFollowingPage(actor *model.Actor, followingURLs []string, page, pageSize int) model.FollowingPage {
+func buildFollowingPage(
+	actor *model.Actor,
+	followingURLs []string,
+	page, pageSize int,
+) model.FollowingPage {
 	total := len(followingURLs)
 	start := (page - 1) * pageSize
 	if start > total {
@@ -264,7 +290,9 @@ func (fediverseService *FediverseService) GetFollowingPage(
 }
 
 // loadFollowingData 加载用户的关注数据
-func (fediverseService *FediverseService) loadFollowingData(username string) (model.Actor, []string, error) {
+func (fediverseService *FediverseService) loadFollowingData(
+	username string,
+) (model.Actor, []string, error) {
 	user, err := fediverseService.userRepository.GetUserByUsername(username)
 	if err != nil {
 		return model.Actor{}, nil, errors.New(commonModel.USER_NOTFOUND)

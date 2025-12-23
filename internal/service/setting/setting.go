@@ -55,7 +55,9 @@ func NewSettingService(
 // GetSetting 获取设置
 func (settingService *SettingService) GetSetting(setting *model.SystemSetting) error {
 	return settingService.txManager.Run(func(ctx context.Context) error {
-		systemSetting, err := settingService.keyvalueRepository.GetKeyValue(commonModel.SystemSettingsKey)
+		systemSetting, err := settingService.keyvalueRepository.GetKeyValue(
+			commonModel.SystemSettingsKey,
+		)
 		if err != nil {
 			// 数据库中不存在数据，手动添加初始数据
 			setting.SiteTitle = config.Config.Setting.SiteTitle
@@ -98,7 +100,10 @@ func (settingService *SettingService) GetSetting(setting *model.SystemSetting) e
 }
 
 // UpdateSetting 更新设置
-func (settingService *SettingService) UpdateSetting(userid uint, newSetting *model.SystemSettingDto) error {
+func (settingService *SettingService) UpdateSetting(
+	userid uint,
+	newSetting *model.SystemSettingDto,
+) error {
 	return settingService.txManager.Run(func(ctx context.Context) error {
 		user, err := settingService.commonService.CommonGetUserByUserId(userid)
 		if err != nil {
@@ -143,7 +148,9 @@ func (settingService *SettingService) UpdateSetting(userid uint, newSetting *mod
 // GetCommentSetting 获取评论设置
 func (settingService *SettingService) GetCommentSetting(setting *model.CommentSetting) error {
 	return settingService.txManager.Run(func(ctx context.Context) error {
-		commentSetting, err := settingService.keyvalueRepository.GetKeyValue(commonModel.CommentSettingKey)
+		commentSetting, err := settingService.keyvalueRepository.GetKeyValue(
+			commonModel.CommentSettingKey,
+		)
 		if err != nil {
 			// 数据库中不存在数据，手动添加初始数据
 			setting.EnableComment = config.Config.Comment.EnableComment
@@ -174,7 +181,10 @@ func (settingService *SettingService) GetCommentSetting(setting *model.CommentSe
 }
 
 // UpdateCommentSetting 更新评论设置
-func (settingService *SettingService) UpdateCommentSetting(userid uint, newSetting *model.CommentSettingDto) error {
+func (settingService *SettingService) UpdateCommentSetting(
+	userid uint,
+	newSetting *model.CommentSettingDto,
+) error {
 	user, err := settingService.commonService.CommonGetUserByUserId(userid)
 	if err != nil {
 		return err
@@ -270,7 +280,10 @@ func (settingService *SettingService) GetS3Setting(userid uint, setting *model.S
 }
 
 // UpdateS3Setting 更新 S3 存储设置
-func (settingService *SettingService) UpdateS3Setting(userid uint, newSetting *model.S3SettingDto) error {
+func (settingService *SettingService) UpdateS3Setting(
+	userid uint,
+	newSetting *model.S3SettingDto,
+) error {
 	user, err := settingService.commonService.CommonGetUserByUserId(userid)
 	if err != nil {
 		return err
@@ -360,7 +373,9 @@ func (settingService *SettingService) GetOAuth2Setting(
 			}
 		}
 
-		oauthSetting, err := settingService.keyvalueRepository.GetKeyValue(commonModel.OAuth2SettingKey)
+		oauthSetting, err := settingService.keyvalueRepository.GetKeyValue(
+			commonModel.OAuth2SettingKey,
+		)
 		if err != nil {
 			// 数据库中不存在数据，手动添加初始数据
 			setting.Enable = false
@@ -374,6 +389,9 @@ func (settingService *SettingService) GetOAuth2Setting(
 			setting.Scopes = []string{
 				"read:user",
 			}
+			setting.IsOIDC = false
+			setting.Issuer = ""
+			setting.JWKSURL = ""
 
 			// 序列化为 JSON
 			settingToJSON, err := jsonUtil.JSONMarshal(setting)
@@ -396,7 +414,10 @@ func (settingService *SettingService) GetOAuth2Setting(
 }
 
 // UpdateOAuth2Setting 更新 OAuth2 设置
-func (settingService *SettingService) UpdateOAuth2Setting(userid uint, newSetting *model.OAuth2SettingDto) error {
+func (settingService *SettingService) UpdateOAuth2Setting(
+	userid uint,
+	newSetting *model.OAuth2SettingDto,
+) error {
 	user, err := settingService.commonService.CommonGetUserByUserId(userid)
 	if err != nil {
 		return err
@@ -416,6 +437,9 @@ func (settingService *SettingService) UpdateOAuth2Setting(userid uint, newSettin
 			UserInfoURL:  httpUtil.TrimURL(newSetting.UserInfoURL),
 			RedirectURI:  httpUtil.TrimURL(newSetting.RedirectURI),
 			Scopes:       newSetting.Scopes,
+			IsOIDC:       newSetting.IsOIDC,
+			Issuer:       newSetting.Issuer,
+			JWKSURL:      httpUtil.TrimURL(newSetting.JWKSURL),
 		}
 
 		// 序列化为 JSON
@@ -481,7 +505,10 @@ func (settingService *SettingService) DeleteWebhook(userid, id uint) error {
 }
 
 // UpdateWebhook 更新 Webhook
-func (settingService *SettingService) UpdateWebhook(userid, id uint, newWebhook *model.WebhookDto) error {
+func (settingService *SettingService) UpdateWebhook(
+	userid, id uint,
+	newWebhook *model.WebhookDto,
+) error {
 	// 鉴权
 	user, err := settingService.commonService.CommonGetUserByUserId(userid)
 	if err != nil {
@@ -518,7 +545,10 @@ func (settingService *SettingService) UpdateWebhook(userid, id uint, newWebhook 
 }
 
 // CreateWebhook 创建 Webhook
-func (settingService *SettingService) CreateWebhook(userid uint, newWebhook *model.WebhookDto) error {
+func (settingService *SettingService) CreateWebhook(
+	userid uint,
+	newWebhook *model.WebhookDto,
+) error {
 	// 鉴权
 	user, err := settingService.commonService.CommonGetUserByUserId(userid)
 	if err != nil {
@@ -550,7 +580,9 @@ func (settingService *SettingService) CreateWebhook(userid uint, newWebhook *mod
 }
 
 // ListAccessTokens 列出访问令牌
-func (settingService *SettingService) ListAccessTokens(userid uint) ([]model.AccessTokenSetting, error) {
+func (settingService *SettingService) ListAccessTokens(
+	userid uint,
+) ([]model.AccessTokenSetting, error) {
 	// 鉴权
 	user, err := settingService.commonService.CommonGetUserByUserId(userid)
 	if err != nil {
@@ -664,9 +696,14 @@ func (settingService *SettingService) DeleteAccessToken(userid, id uint) error {
 }
 
 // GetFediverseSetting 获取联邦网络设置
-func (settingService *SettingService) GetFediverseSetting(userid uint, setting *model.FediverseSetting) error {
+func (settingService *SettingService) GetFediverseSetting(
+	userid uint,
+	setting *model.FediverseSetting,
+) error {
 	return settingService.txManager.Run(func(ctx context.Context) error {
-		fediverseSetting, err := settingService.keyvalueRepository.GetKeyValue(commonModel.FediverseSettingKey)
+		fediverseSetting, err := settingService.keyvalueRepository.GetKeyValue(
+			commonModel.FediverseSettingKey,
+		)
 		if err != nil {
 			// 数据库中不存在数据，手动添加初始数据
 			setting.Enable = false
@@ -693,7 +730,10 @@ func (settingService *SettingService) GetFediverseSetting(userid uint, setting *
 }
 
 // UpdateFediverseSetting 更新联邦网络设置
-func (settingService *SettingService) UpdateFediverseSetting(userid uint, newSetting *model.FediverseSettingDto) error {
+func (settingService *SettingService) UpdateFediverseSetting(
+	userid uint,
+	newSetting *model.FediverseSettingDto,
+) error {
 	return settingService.txManager.Run(func(ctx context.Context) error {
 		// 鉴权
 		user, err := settingService.commonService.CommonGetUserByUserId(userid)
@@ -729,7 +769,9 @@ func (settingService *SettingService) UpdateFediverseSetting(userid uint, newSet
 }
 
 // GetBackupScheduleSetting 获取备份计划
-func (settingService *SettingService) GetBackupScheduleSetting(setting *model.BackupSchedule) error {
+func (settingService *SettingService) GetBackupScheduleSetting(
+	setting *model.BackupSchedule,
+) error {
 	// 鉴权
 	// user, err := settingService.commonService.CommonGetUserByUserId(userid)
 	// if err != nil {
@@ -740,7 +782,9 @@ func (settingService *SettingService) GetBackupScheduleSetting(setting *model.Ba
 	// }
 
 	return settingService.txManager.Run(func(ctx context.Context) error {
-		backupSchedule, err := settingService.keyvalueRepository.GetKeyValue(commonModel.BackupScheduleKey)
+		backupSchedule, err := settingService.keyvalueRepository.GetKeyValue(
+			commonModel.BackupScheduleKey,
+		)
 		if err != nil {
 			// 数据库中不存在数据，手动添加初始数据
 			setting.Enable = false
@@ -812,7 +856,8 @@ func (settingService *SettingService) UpdateBackupScheduleSetting(
 				},
 			),
 		); err != nil {
-			logUtil.GetLogger().Error("Failed to publish update backup schedule event", zap.String("error", err.Error()))
+			logUtil.GetLogger().
+				Error("Failed to publish update backup schedule event", zap.String("error", err.Error()))
 		}
 
 		return nil
@@ -822,7 +867,9 @@ func (settingService *SettingService) UpdateBackupScheduleSetting(
 // GetAgentInfo 获取 Agent 信息
 func (settingService *SettingService) GetAgentInfo(setting *model.AgentSetting) error {
 	return settingService.txManager.Run(func(ctx context.Context) error {
-		agentSetting, err := settingService.keyvalueRepository.GetKeyValue(commonModel.AgentSettingKey)
+		agentSetting, err := settingService.keyvalueRepository.GetKeyValue(
+			commonModel.AgentSettingKey,
+		)
 		if err != nil {
 			// 数据库中不存在数据，返回默认值
 			setting.Enable = false
@@ -852,7 +899,10 @@ func (settingService *SettingService) GetAgentInfo(setting *model.AgentSetting) 
 }
 
 // GetAgentSettings 获取 Agent 设置
-func (settingService *SettingService) GetAgentSettings(userid uint, setting *model.AgentSetting) error {
+func (settingService *SettingService) GetAgentSettings(
+	userid uint,
+	setting *model.AgentSetting,
+) error {
 	// 检查用户权限
 	user, err := settingService.commonService.CommonGetUserByUserId(userid)
 	if err != nil {
@@ -863,7 +913,9 @@ func (settingService *SettingService) GetAgentSettings(userid uint, setting *mod
 	}
 
 	return settingService.txManager.Run(func(ctx context.Context) error {
-		agentSetting, err := settingService.keyvalueRepository.GetKeyValue(commonModel.AgentSettingKey)
+		agentSetting, err := settingService.keyvalueRepository.GetKeyValue(
+			commonModel.AgentSettingKey,
+		)
 		if err != nil {
 			// 数据库中不存在数据，返回默认值
 			setting.Enable = false
@@ -894,7 +946,10 @@ func (settingService *SettingService) GetAgentSettings(userid uint, setting *mod
 }
 
 // UpdateAgentSettings 更新 Agent 设置
-func (settingService *SettingService) UpdateAgentSettings(userid uint, newSetting *model.AgentSettingDto) error {
+func (settingService *SettingService) UpdateAgentSettings(
+	userid uint,
+	newSetting *model.AgentSettingDto,
+) error {
 	// 检查用户权限
 	user, err := settingService.commonService.CommonGetUserByUserId(userid)
 	if err != nil {

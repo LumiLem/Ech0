@@ -4,7 +4,6 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-
 	res "github.com/lin-snow/ech0/internal/handler/response"
 	commonModel "github.com/lin-snow/ech0/internal/model/common"
 	model "github.com/lin-snow/ech0/internal/model/setting"
@@ -24,14 +23,14 @@ func NewSettingHandler(settingService service.SettingServiceInterface) *SettingH
 
 // GetSettings 获取设置
 //
-// @Summary 获取设置
-// @Description 获取系统的全局设置
-// @Tags 系统设置
-// @Accept json
-// @Produce json
-// @Success 200 {object} res.Response{data=model.SystemSetting} "获取设置成功"
-// @Failure 200 {object} res.Response "获取设置失败"
-// @Router /settings [get]
+//	@Summary		获取设置
+//	@Description	获取系统的全局设置
+//	@Tags			系统设置
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	res.Response{data=model.SystemSetting}	"获取设置成功"
+//	@Failure		200	{object}	res.Response							"获取设置失败"
+//	@Router			/settings [get]
 func (settingHandler *SettingHandler) GetSettings() gin.HandlerFunc {
 	return res.Execute(func(ctx *gin.Context) res.Response {
 		var settings model.SystemSetting
@@ -51,15 +50,15 @@ func (settingHandler *SettingHandler) GetSettings() gin.HandlerFunc {
 
 // UpdateSettings 更新设置
 //
-// @Summary 更新设置
-// @Description 更新系统的全局设置
-// @Tags 系统设置
-// @Accept json
-// @Produce json
-// @Param settings body model.SystemSettingDto true "新的系统设置"
-// @Success 200 {object} res.Response "更新设置成功"
-// @Failure 200 {object} res.Response "更新设置失败"
-// @Router /settings [put]
+//	@Summary		更新设置
+//	@Description	更新系统的全局设置
+//	@Tags			系统设置
+//	@Accept			json
+//	@Produce		json
+//	@Param			settings	body		model.SystemSettingDto	true	"新的系统设置"
+//	@Success		200			{object}	res.Response			"更新设置成功"
+//	@Failure		200			{object}	res.Response			"更新设置失败"
+//	@Router			/settings [put]
 func (settingHandler *SettingHandler) UpdateSettings() gin.HandlerFunc {
 	return res.Execute(func(ctx *gin.Context) res.Response {
 		// 获取当前用户 ID
@@ -89,14 +88,14 @@ func (settingHandler *SettingHandler) UpdateSettings() gin.HandlerFunc {
 
 // GetCommentSettings 获取评论设置
 //
-// @Summary 获取评论设置
-// @Description 获取系统的评论相关设置
-// @Tags 系统设置
-// @Accept json
-// @Produce json
-// @Success 200 {object} res.Response{data=model.CommentSetting} "获取评论设置成功"
-// @Failure 200 {object} res.Response "获取评论设置失败"
-// @Router /comment/settings [get]
+//	@Summary		获取评论设置
+//	@Description	获取系统的评论相关设置
+//	@Tags			系统设置
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	res.Response{data=model.CommentSetting}	"获取评论设置成功"
+//	@Failure		200	{object}	res.Response							"获取评论设置失败"
+//	@Router			/comment/settings [get]
 func (settingHandler *SettingHandler) GetCommentSettings() gin.HandlerFunc {
 	return res.Execute(func(ctx *gin.Context) res.Response {
 		var commentSetting model.CommentSetting
@@ -116,15 +115,15 @@ func (settingHandler *SettingHandler) GetCommentSettings() gin.HandlerFunc {
 
 // UpdateCommentSettings 更新评论设置
 //
-// @Summary 更新评论设置
-// @Description 更新系统的评论相关设置
-// @Tags 系统设置
-// @Accept json
-// @Produce json
-// @Param commentSettings body model.CommentSettingDto true "新的评论设置"
-// @Success 200 {object} res.Response "更新评论设置成功"
-// @Failure 200 {object} res.Response "更新评论设置失败"
-// @Router /comment/settings [put]
+//	@Summary		更新评论设置
+//	@Description	更新系统的评论相关设置
+//	@Tags			系统设置
+//	@Accept			json
+//	@Produce		json
+//	@Param			commentSettings	body		model.CommentSettingDto	true	"新的评论设置"
+//	@Success		200				{object}	res.Response			"更新评论设置成功"
+//	@Failure		200				{object}	res.Response			"更新评论设置失败"
+//	@Router			/comment/settings [put]
 func (settingHandler *SettingHandler) UpdateCommentSettings() gin.HandlerFunc {
 	return res.Execute(func(ctx *gin.Context) res.Response {
 		// 获取当前用户 ID
@@ -154,14 +153,14 @@ func (settingHandler *SettingHandler) UpdateCommentSettings() gin.HandlerFunc {
 
 // GetS3Settings 获取 S3 存储设置
 //
-// @Summary 获取 S3 存储设置
-// @Description 获取系统的 S3 存储相关设置
-// @Tags 系统设置
-// @Accept json
-// @Produce json
-// @Success 200 {object} res.Response{data=model.S3Setting} "获取 S3 存储设置成功"
-// @Failure 200 {object} res.Response "获取 S3 存储设置失败"
-// @Router /s3/settings [get]
+//	@Summary		获取 S3 存储设置
+//	@Description	获取系统的 S3 存储相关设置
+//	@Tags			系统设置
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	res.Response{data=model.S3Setting}	"获取 S3 存储设置成功"
+//	@Failure		200	{object}	res.Response						"获取 S3 存储设置失败"
+//	@Router			/s3/settings [get]
 func (settingHandler *SettingHandler) GetS3Settings() gin.HandlerFunc {
 	return res.Execute(func(ctx *gin.Context) res.Response {
 		// 获取当前用户 ID
@@ -184,15 +183,15 @@ func (settingHandler *SettingHandler) GetS3Settings() gin.HandlerFunc {
 
 // UpdateS3Settings 更新 S3 存储设置
 //
-// @Summary 更新 S3 存储设置
-// @Description 更新系统的 S3 存储相关设置
-// @Tags 系统设置
-// @Accept json
-// @Produce json
-// @Param s3Settings body model.S3SettingDto true "新的 S3 存储设置"
-// @Success 200 {object} res.Response "更新 S3 存储设置成功"
-// @Failure 200 {object} res.Response "更新 S3 存储设置失败"
-// @Router /s3/settings [put]
+//	@Summary		更新 S3 存储设置
+//	@Description	更新系统的 S3 存储相关设置
+//	@Tags			系统设置
+//	@Accept			json
+//	@Produce		json
+//	@Param			s3Settings	body		model.S3SettingDto	true	"新的 S3 存储设置"
+//	@Success		200			{object}	res.Response		"更新 S3 存储设置成功"
+//	@Failure		200			{object}	res.Response		"更新 S3 存储设置失败"
+//	@Router			/s3/settings [put]
 func (settingHandler *SettingHandler) UpdateS3Settings() gin.HandlerFunc {
 	return res.Execute(func(ctx *gin.Context) res.Response {
 		// 获取当前用户 ID
@@ -222,14 +221,14 @@ func (settingHandler *SettingHandler) UpdateS3Settings() gin.HandlerFunc {
 
 // GetOAuth2Settings 获取 OAuth2 设置
 //
-// @Summary 获取 OAuth2 设置
-// @Description 获取系统的 OAuth2 相关设置
-// @Tags 系统设置
-// @Accept json
-// @Produce json
-// @Success 200 {object} res.Response{data=model.OAuth2Setting} "获取 OAuth2 设置成功"
-// @Failure 200 {object} res.Response "获取 OAuth2 设置失败"
-// @Router /oauth2/settings [get]
+//	@Summary		获取 OAuth2 设置
+//	@Description	获取系统的 OAuth2 相关设置
+//	@Tags			系统设置
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	res.Response{data=model.OAuth2Setting}	"获取 OAuth2 设置成功"
+//	@Failure		200	{object}	res.Response							"获取 OAuth2 设置失败"
+//	@Router			/oauth2/settings [get]
 func (settingHandler *SettingHandler) GetOAuth2Settings() gin.HandlerFunc {
 	return res.Execute(func(ctx *gin.Context) res.Response {
 		// 获取当前用户 ID
@@ -252,15 +251,15 @@ func (settingHandler *SettingHandler) GetOAuth2Settings() gin.HandlerFunc {
 
 // UpdateOAuth2Settings 更新 OAuth2 设置
 //
-// @Summary 更新 OAuth2 设置
-// @Description 更新系统的 OAuth2 相关设置
-// @Tags 系统设置
-// @Accept json
-// @Produce json
-// @Param oauthSettings body model.OAuth2SettingDto true "新的 OAuth 设置"
-// @Success 200 {object} res.Response "更新 OAuth 设置成功"
-// @Failure 200 {object} res.Response "更新 OAuth 设置失败"
-// @Router /oauth2/settings [put]
+//	@Summary		更新 OAuth2 设置
+//	@Description	更新系统的 OAuth2 相关设置
+//	@Tags			系统设置
+//	@Accept			json
+//	@Produce		json
+//	@Param			oauthSettings	body		model.OAuth2SettingDto	true	"新的 OAuth 设置"
+//	@Success		200				{object}	res.Response			"更新 OAuth 设置成功"
+//	@Failure		200				{object}	res.Response			"更新 OAuth 设置失败"
+//	@Router			/oauth2/settings [put]
 func (settingHandler *SettingHandler) UpdateOAuth2Settings() gin.HandlerFunc {
 	return res.Execute(func(ctx *gin.Context) res.Response {
 		// 获取当前用户 ID
@@ -290,14 +289,14 @@ func (settingHandler *SettingHandler) UpdateOAuth2Settings() gin.HandlerFunc {
 
 // GetOAuth2Status 获取 OAuth2 状态
 //
-// @Summary 获取 OAuth2 状态
-// @Description 获取系统的 OAuth2 启用状态
-// @Tags 系统设置
-// @Accept json
-// @Produce json
-// @Success 200 {object} res.Response{data=bool} "获取 OAuth2 状态成功"
-// @Failure 200 {object} res.Response "获取 OAuth2 状态失败"
-// @Router /oauth2/status [get]
+//	@Summary		获取 OAuth2 状态
+//	@Description	获取系统的 OAuth2 启用状态
+//	@Tags			系统设置
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	res.Response{data=bool}	"获取 OAuth2 状态成功"
+//	@Failure		200	{object}	res.Response			"获取 OAuth2 状态失败"
+//	@Router			/oauth2/status [get]
 func (settingHandler *SettingHandler) GetOAuth2Status() gin.HandlerFunc {
 	return res.Execute(func(ctx *gin.Context) res.Response {
 		var status model.OAuth2Status
@@ -317,14 +316,14 @@ func (settingHandler *SettingHandler) GetOAuth2Status() gin.HandlerFunc {
 
 // GetWebhook 获取所有 Webhook
 //
-// @Summary 获取所有 Webhook
-// @Description 获取系统中配置的所有 Webhook 列表
-// @Tags 系统设置
-// @Accept json
-// @Produce json
-// @Success 200 {object} res.Response{data=[]model.Webhook} "获取 Webhook 列表成功"
-// @Failure 200 {object} res.Response "获取 Webhook 列表失败"
-// @Router /webhook [get]
+//	@Summary		获取所有 Webhook
+//	@Description	获取系统中配置的所有 Webhook 列表
+//	@Tags			系统设置
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	res.Response{data=[]model.Webhook}	"获取 Webhook 列表成功"
+//	@Failure		200	{object}	res.Response						"获取 Webhook 列表失败"
+//	@Router			/webhook [get]
 func (settingHandler *SettingHandler) GetWebhook() gin.HandlerFunc {
 	return res.Execute(func(ctx *gin.Context) res.Response {
 		// 获取当前用户 ID
@@ -347,15 +346,15 @@ func (settingHandler *SettingHandler) GetWebhook() gin.HandlerFunc {
 
 // DeleteWebhook 删除 Webhook
 //
-// @Summary 删除 Webhook
-// @Description 根据 ID 删除指定的 Webhook 配置
-// @Tags 系统设置
-// @Accept json
-// @Produce json
-// @Param id path int true "要删除的 Webhook ID"
-// @Success 200 {object} res.Response "删除 Webhook 成功"
-// @Failure 200 {object} res.Response "删除 Webhook 失败"
-// @Router /webhook/{id} [delete]
+//	@Summary		删除 Webhook
+//	@Description	根据 ID 删除指定的 Webhook 配置
+//	@Tags			系统设置
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		int				true	"要删除的 Webhook ID"
+//	@Success		200	{object}	res.Response	"删除 Webhook 成功"
+//	@Failure		200	{object}	res.Response	"删除 Webhook 失败"
+//	@Router			/webhook/{id} [delete]
 func (settingHandler *SettingHandler) DeleteWebhook() gin.HandlerFunc {
 	return res.Execute(func(ctx *gin.Context) res.Response {
 		// 获取当前用户 ID
@@ -385,16 +384,16 @@ func (settingHandler *SettingHandler) DeleteWebhook() gin.HandlerFunc {
 
 // UpdateWebhook 更新 Webhook
 //
-// @Summary 更新 Webhook
-// @Description 根据 ID 更新指定的 Webhook 配置
-// @Tags 系统设置
-// @Accept json
-// @Produce json
-// @Param id path int true "要更新的 Webhook ID"
-// @Param webhook body model.WebhookDto true "新的 Webhook 配置"
-// @Success 200 {object} res.Response "更新 Webhook 成功"
-// @Failure 200 {object} res.Response "更新 Webhook 失败"
-// @Router /webhook/{id} [put]
+//	@Summary		更新 Webhook
+//	@Description	根据 ID 更新指定的 Webhook 配置
+//	@Tags			系统设置
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path		int					true	"要更新的 Webhook ID"
+//	@Param			webhook	body		model.WebhookDto	true	"新的 Webhook 配置"
+//	@Success		200		{object}	res.Response		"更新 Webhook 成功"
+//	@Failure		200		{object}	res.Response		"更新 Webhook 失败"
+//	@Router			/webhook/{id} [put]
 func (settingHandler *SettingHandler) UpdateWebhook() gin.HandlerFunc {
 	return res.Execute(func(ctx *gin.Context) res.Response {
 		// 获取当前用户 ID
@@ -433,15 +432,15 @@ func (settingHandler *SettingHandler) UpdateWebhook() gin.HandlerFunc {
 
 // CreateWebhook 创建新的 Webhook
 //
-// @Summary 创建新的 Webhook
-// @Description 创建一个新的 Webhook 配置
-// @Tags 系统设置
-// @Accept json
-// @Produce json
-// @Param webhook body model.WebhookDto true "新的 Webhook 配置"
-// @Success 200 {object} res.Response "创建 Webhook 成功"
-// @Failure 200 {object} res.Response "创建 Webhook 失败"
-// @Router /webhook [post]
+//	@Summary		创建新的 Webhook
+//	@Description	创建一个新的 Webhook 配置
+//	@Tags			系统设置
+//	@Accept			json
+//	@Produce		json
+//	@Param			webhook	body		model.WebhookDto	true	"新的 Webhook 配置"
+//	@Success		200		{object}	res.Response		"创建 Webhook 成功"
+//	@Failure		200		{object}	res.Response		"创建 Webhook 失败"
+//	@Router			/webhook [post]
 func (settingHandler *SettingHandler) CreateWebhook() gin.HandlerFunc {
 	return res.Execute(func(ctx *gin.Context) res.Response {
 		// 获取当前用户 ID
@@ -471,14 +470,14 @@ func (settingHandler *SettingHandler) CreateWebhook() gin.HandlerFunc {
 
 // ListAccessTokens 列出访问令牌
 //
-// @Summary 列出访问令牌
-// @Description 列出当前用户的所有访问令牌
-// @Tags 系统设置
-// @Accept json
-// @Produce json
-// @Success 200 {object} res.Response{data=[]model.AccessTokenSetting} "列出访问令牌成功"
-// @Failure 200 {object} res.Response "列出访问令牌失败"
-// @Router /access-tokens [get]
+//	@Summary		列出访问令牌
+//	@Description	列出当前用户的所有访问令牌
+//	@Tags			系统设置
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	res.Response{data=[]model.AccessTokenSetting}	"列出访问令牌成功"
+//	@Failure		200	{object}	res.Response									"列出访问令牌失败"
+//	@Router			/access-tokens [get]
 func (settingHandler *SettingHandler) ListAccessTokens() gin.HandlerFunc {
 	return res.Execute(func(ctx *gin.Context) res.Response {
 		// 获取当前用户 ID
@@ -501,15 +500,15 @@ func (settingHandler *SettingHandler) ListAccessTokens() gin.HandlerFunc {
 
 // CreateAccessToken 创建访问令牌
 //
-// @Summary 创建访问令牌
-// @Description 为当前用户创建一个新的访问令牌
-// @Tags 系统设置
-// @Accept json
-// @Produce json
-// @Param accessToken body model.AccessTokenSettingDto true "新的访问令牌信息"
-// @Success 200 {object} res.Response{data=model.AccessTokenSetting} "创建访问令牌成功"
-// @Failure 200 {object} res.Response "创建访问令牌失败"
-// @Router /access-tokens [post]
+//	@Summary		创建访问令牌
+//	@Description	为当前用户创建一个新的访问令牌
+//	@Tags			系统设置
+//	@Accept			json
+//	@Produce		json
+//	@Param			accessToken	body		model.AccessTokenSettingDto					true	"新的访问令牌信息"
+//	@Success		200			{object}	res.Response{data=model.AccessTokenSetting}	"创建访问令牌成功"
+//	@Failure		200			{object}	res.Response								"创建访问令牌失败"
+//	@Router			/access-tokens [post]
 func (settingHandler *SettingHandler) CreateAccessToken() gin.HandlerFunc {
 	return res.Execute(func(ctx *gin.Context) res.Response {
 		// 获取当前用户 ID
@@ -524,7 +523,10 @@ func (settingHandler *SettingHandler) CreateAccessToken() gin.HandlerFunc {
 			}
 		}
 
-		createdToken, err := settingHandler.settingService.CreateAccessToken(userid, &newAccessToken)
+		createdToken, err := settingHandler.settingService.CreateAccessToken(
+			userid,
+			&newAccessToken,
+		)
 		if err != nil {
 			return res.Response{
 				Msg: "",
@@ -541,15 +543,15 @@ func (settingHandler *SettingHandler) CreateAccessToken() gin.HandlerFunc {
 
 // DeleteAccessToken 删除访问令牌
 //
-// @Summary 删除访问令牌
-// @Description 根据 ID 删除指定的访问令牌
-// @Tags 系统设置
-// @Accept json
-// @Produce json
-// @Param id path int true "要删除的访问令牌 ID"
-// @Success 200 {object} res.Response "删除访问令牌成功"
-// @Failure 200 {object} res.Response "删除访问令牌失败"
-// @Router /access-tokens/{id} [delete]
+//	@Summary		删除访问令牌
+//	@Description	根据 ID 删除指定的访问令牌
+//	@Tags			系统设置
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		int				true	"要删除的访问令牌 ID"
+//	@Success		200	{object}	res.Response	"删除访问令牌成功"
+//	@Failure		200	{object}	res.Response	"删除访问令牌失败"
+//	@Router			/access-tokens/{id} [delete]
 func (settingHandler *SettingHandler) DeleteAccessToken() gin.HandlerFunc {
 	return res.Execute(func(ctx *gin.Context) res.Response {
 		// 获取当前用户 ID
@@ -579,14 +581,14 @@ func (settingHandler *SettingHandler) DeleteAccessToken() gin.HandlerFunc {
 
 // GetFediverseSettings 获取联邦网络设置
 //
-// @Summary 获取联邦网络设置
-// @Description 获取系统的联邦网络相关设置
-// @Tags 系统设置
-// @Accept json
-// @Produce json
-// @Success 200 {object} res.Response{data=model.FediverseSetting} "获取联邦网络设置成功"
-// @Failure 200 {object} res.Response "获取联邦网络设置失败"
-// @Router /fediverse/settings [get]
+//	@Summary		获取联邦网络设置
+//	@Description	获取系统的联邦网络相关设置
+//	@Tags			系统设置
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	res.Response{data=model.FediverseSetting}	"获取联邦网络设置成功"
+//	@Failure		200	{object}	res.Response								"获取联邦网络设置失败"
+//	@Router			/fediverse/settings [get]
 func (settingHandler *SettingHandler) GetFediverseSettings() gin.HandlerFunc {
 	return res.Execute(func(ctx *gin.Context) res.Response {
 		// 获取当前用户 ID
@@ -609,15 +611,15 @@ func (settingHandler *SettingHandler) GetFediverseSettings() gin.HandlerFunc {
 
 // UpdateFediverseSettings 更新联邦网络设置
 //
-// @Summary 更新联邦网络设置
-// @Description 更新系统的联邦网络相关设置
-// @Tags 系统设置
-// @Accept json
-// @Produce json
-// @Param fediverseSettings body model.FediverseSettingDto true "新的联邦网络设置"
-// @Success 200 {object} res.Response "更新联邦网络设置成功"
-// @Failure 200 {object} res.Response "更新联邦网络设置失败"
-// @Router /fediverse/settings [put]
+//	@Summary		更新联邦网络设置
+//	@Description	更新系统的联邦网络相关设置
+//	@Tags			系统设置
+//	@Accept			json
+//	@Produce		json
+//	@Param			fediverseSettings	body		model.FediverseSettingDto	true	"新的联邦网络设置"
+//	@Success		200					{object}	res.Response				"更新联邦网络设置成功"
+//	@Failure		200					{object}	res.Response				"更新联邦网络设置失败"
+//	@Router			/fediverse/settings [put]
 func (settingHandler *SettingHandler) UpdateFediverseSettings() gin.HandlerFunc {
 	return res.Execute(func(ctx *gin.Context) res.Response {
 		// 获取当前用户 ID
@@ -646,14 +648,14 @@ func (settingHandler *SettingHandler) UpdateFediverseSettings() gin.HandlerFunc 
 
 // GetBackupScheduleSetting 获取备份计划
 //
-// @Summary 获取备份计划
-// @Description 获取系统的定期备份计划设置
-// @Tags 系统设置
-// @Accept json
-// @Produce json
-// @Success 200 {object} res.Response{data=model.BackupSchedule} "获取备份计划成功"
-// @Failure 200 {object} res.Response "获取备份计划失败"
-// @Router /backup/schedule [get]
+//	@Summary		获取备份计划
+//	@Description	获取系统的定期备份计划设置
+//	@Tags			系统设置
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	res.Response{data=model.BackupSchedule}	"获取备份计划成功"
+//	@Failure		200	{object}	res.Response							"获取备份计划失败"
+//	@Router			/backup/schedule [get]
 func (settingHandler *SettingHandler) GetBackupScheduleSetting() gin.HandlerFunc {
 	return res.Execute(func(ctx *gin.Context) res.Response {
 		// 获取当前用户 ID
@@ -676,15 +678,15 @@ func (settingHandler *SettingHandler) GetBackupScheduleSetting() gin.HandlerFunc
 
 // UpdateScheduleBackupSettings 更新备份计划
 //
-// @Summary 更新备份计划
-// @Description 为系统设置定期备份计划
-// @Tags 系统设置
-// @Accept json
-// @Produce json
-// @Param backupSchedule body model.BackupScheduleDto true "备份计划设置"
-// @Success 200 {object} res.Response "设置备份计划成功"
-// @Failure 200 {object} res.Response "设置备份计划失败"
-// @Router /backup/schedule [post]
+//	@Summary		更新备份计划
+//	@Description	为系统设置定期备份计划
+//	@Tags			系统设置
+//	@Accept			json
+//	@Produce		json
+//	@Param			backupSchedule	body		model.BackupScheduleDto	true	"备份计划设置"
+//	@Success		200				{object}	res.Response			"设置备份计划成功"
+//	@Failure		200				{object}	res.Response			"设置备份计划失败"
+//	@Router			/backup/schedule [post]
 func (settingHandler *SettingHandler) UpdateBackupScheduleSetting() gin.HandlerFunc {
 	return res.Execute(func(ctx *gin.Context) res.Response {
 		// 获取当前用户 ID
@@ -713,14 +715,14 @@ func (settingHandler *SettingHandler) UpdateBackupScheduleSetting() gin.HandlerF
 
 // GetAgentInfo 获取 Agent 信息
 //
-// @Summary 获取 Agent 信息
-// @Description 获取系统的 Agent 信息
-// @Tags 系统设置
-// @Accept json
-// @Produce json
-// @Success 200 {object} res.Response "获取 Agent 信息成功"
-// @Failure 200 {object} res.Response "获取 Agent 信息失败"
-// @Router /agent/info [get]
+//	@Summary		获取 Agent 信息
+//	@Description	获取系统的 Agent 信息
+//	@Tags			系统设置
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	res.Response	"获取 Agent 信息成功"
+//	@Failure		200	{object}	res.Response	"获取 Agent 信息失败"
+//	@Router			/agent/info [get]
 func (settingHandler *SettingHandler) GetAgentInfo() gin.HandlerFunc {
 	return res.Execute(func(ctx *gin.Context) res.Response {
 		var settings model.AgentSetting
@@ -744,14 +746,14 @@ func (settingHandler *SettingHandler) GetAgentInfo() gin.HandlerFunc {
 
 // GetAgentSettings 获取 Agent 设置
 //
-// @Summary 获取 Agent 设置
-// @Description 获取系统的 Agent 相关设置
-// @Tags 系统设置
-// @Accept json
-// @Produce json
-// @Success 200 {object} res.Response{data=model.AgentSetting} "获取 Agent 设置成功"
-// @Failure 200 {object} res.Response "获取 Agent 设置失败"
-// @Router /agent/settings [get]
+//	@Summary		获取 Agent 设置
+//	@Description	获取系统的 Agent 相关设置
+//	@Tags			系统设置
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	res.Response{data=model.AgentSetting}	"获取 Agent 设置成功"
+//	@Failure		200	{object}	res.Response							"获取 Agent 设置失败"
+//	@Router			/agent/settings [get]
 func (settingHandler *SettingHandler) GetAgentSettings() gin.HandlerFunc {
 	return res.Execute(func(ctx *gin.Context) res.Response {
 		// 获取当前用户 ID
@@ -774,15 +776,15 @@ func (settingHandler *SettingHandler) GetAgentSettings() gin.HandlerFunc {
 
 // UpdateAgentSettings 更新 Agent 设置
 //
-// @Summary 更新 Agent 设置
-// @Description 更新系统的 Agent 相关设置
-// @Tags 系统设置
-// @Accept json
-// @Produce json
-// @Param settings body model.AgentSettingDto true "新的 Agent 设置"
-// @Success 200 {object} res.Response "更新 Agent 设置成功"
-// @Failure 200 {object} res.Response "更新 Agent 设置失败"
-// @Router /agent/settings [put]
+//	@Summary		更新 Agent 设置
+//	@Description	更新系统的 Agent 相关设置
+//	@Tags			系统设置
+//	@Accept			json
+//	@Produce		json
+//	@Param			settings	body		model.AgentSettingDto	true	"新的 Agent 设置"
+//	@Success		200			{object}	res.Response			"更新 Agent 设置成功"
+//	@Failure		200			{object}	res.Response			"更新 Agent 设置失败"
+//	@Router			/agent/settings [put]
 func (settingHandler *SettingHandler) UpdateAgentSettings() gin.HandlerFunc {
 	return res.Execute(func(ctx *gin.Context) res.Response {
 		// 获取当前用户 ID

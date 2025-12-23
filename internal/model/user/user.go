@@ -15,7 +15,9 @@ type User struct {
 
 type OAuthBinding struct {
 	ID       uint   `gorm:"primaryKey"              json:"id"`
-	UserID   uint   `gorm:"not null;index"          json:"user_id"`
-	Provider string `gorm:"size:64;not null;index"  json:"provider"` // 例如 "github"
-	OAuthID  string `gorm:"size:255;not null;index" json:"oauth_id"` // 第三方平台的用户ID
+	UserID   uint   `gorm:"not null;index"          json:"user_id"`   // Ech0 用户 ID
+	Provider string `gorm:"size:64;not null;index"  json:"provider"`  // 例如 "github"，"google"，"qq"，"custom"，"oidc"
+	OAuthID  string `gorm:"size:255;not null;index" json:"oauth_id"`  // OAuth2: oauth_id, OIDC: sub, 第三方平台的用户ID
+	Issuer   string `gorm:"size:255;"               json:"issuer"`    // OIDC: issuer
+	AuthType string `gorm:"size:64;"                json:"auth_type"` // OAuth2: null || 'oauth2', OIDC: not null && 'oidc'
 }

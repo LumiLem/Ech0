@@ -194,6 +194,61 @@
             @blur="OAuth2Setting.scopes = scopeString.split(',').map((s) => s.trim())"
           />
         </div>
+
+        <!-- Is OIDC -->
+        <div
+          v-if="OAuth2Setting.enable"
+          class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] h-10"
+        >
+          <h2 class="font-semibold w-30 shrink-0">启用OIDC:</h2>
+          <BaseSwitch v-model="OAuth2Setting.is_oidc" :disabled="!oauth2EditMode" />
+        </div>
+
+        <!-- Issuer -->
+        <div
+          v-if="OAuth2Setting.is_oidc"
+          class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] gap-2 h-10"
+        >
+          <h2 class="font-semibold w-30 shrink-0">Issuer:</h2>
+          <span
+            v-if="!oauth2EditMode"
+            class="truncate max-w-40 inline-block align-middle"
+            :title="OAuth2Setting.issuer"
+            style="vertical-align: middle"
+          >
+            {{ OAuth2Setting.issuer.length === 0 ? '暂无' : OAuth2Setting.issuer }}
+          </span>
+          <BaseInput
+            v-else
+            v-model="OAuth2Setting.issuer"
+            type="text"
+            placeholder="请输入Issuer"
+            class="w-full py-1!"
+          />
+        </div>
+
+        <!-- JWKS URL -->
+        <div
+          v-if="OAuth2Setting.is_oidc"
+          class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] gap-2 h-10"
+        >
+          <h2 class="font-semibold w-30 shrink-0">JWKS URL:</h2>
+          <span
+            v-if="!oauth2EditMode"
+            class="truncate max-w-40 inline-block align-middle"
+            :title="OAuth2Setting.jwks_url"
+            style="vertical-align: middle"
+          >
+            {{ OAuth2Setting.jwks_url.length === 0 ? '暂无' : OAuth2Setting.jwks_url }}
+          </span>
+          <BaseInput
+            v-else
+            v-model="OAuth2Setting.jwks_url"
+            type="text"
+            placeholder="请输入JWKS URL"
+            class="w-full py-1!"
+          />
+        </div>
       </div>
     </PanelCard>
 
@@ -207,9 +262,7 @@
           <h1 class="text-[var(--text-color-600)] font-bold text-lg">账号绑定</h1>
           <p class="text-[var(--text-color-next-400)] text-sm">注意：需先配置OAuth2信息</p>
           <div
-            v-if="
-              oauthInfo && oauthInfo.oauth_id.length && oauthInfo.provider && oauthInfo.user_id != 0
-            "
+            v-if="oauthInfo && isBound"
             class="mt-2 border border-dashed border-[var(--border-color-400)] rounded-md p-3 flex items-center justify-center"
           >
             <p class="text-[var(--text-color-next-500)] font-bold flex items-center">
@@ -232,9 +285,9 @@
                     ? 'Google'
                     : oauthInfo.provider === OAuth2Provider.QQ
                       ? 'QQ'
-                      : '自定义 OAuth2 账号'
+                      : `自定义 ${oauthInfo?.auth_type === 'oidc' ? 'OIDC' : 'OAuth2'}  账号`
               }}</span>
-              账号已绑定
+              已绑定
             </p>
           </div>
           <BaseButton v-else class="rounded-md mt-2" @click="handleBindOAuth2()">
@@ -259,7 +312,7 @@
                       ? '绑定 Google 账号'
                       : OAuth2Setting.provider === OAuth2Provider.QQ
                         ? '绑定 QQ 账号'
-                        : '绑定自定义 OAuth2 账号'
+                        : `绑定自定义 ${OAuth2Setting.is_oidc ? 'OIDC' : 'OAuth2'} 账号`
                 }}
               </span>
             </div>
@@ -300,10 +353,13 @@ const OAuth2ProviderOptions = [
   { label: 'GitHub', value: OAuth2Provider.GITHUB },
   { label: 'Google', value: OAuth2Provider.GOOGLE },
   { label: 'QQ', value: OAuth2Provider.QQ },
-  { label: 'Custom', value: OAuth2Provider.CUSTOM },
+  { label: 'Custom(支持 OIDC)', value: OAuth2Provider.CUSTOM },
 ]
 
-const redirect_uri = ref(`${window.location.origin}/oauth/${OAuth2Setting.value.provider}/callback`)
+const redirect_uri = ref<string>(OAuth2Setting.value.redirect_uri)
+if (!redirect_uri.value) {
+  redirect_uri.value = `${window.location.origin}/oauth/${OAuth2Setting.value.provider}/callback`
+}
 const scopeString = ref('read:user')
 
 const handleUpdateOAuth2Setting = async () => {
@@ -320,17 +376,16 @@ const handleUpdateOAuth2Setting = async () => {
         theToast.success(res.msg)
       }
     })
-    .finally(() => {
+    .finally(async () => {
       oauth2EditMode.value = false
       // 重新获取OAuth2设置
-      getOAuth2Setting()
+      await getOAuth2Setting()
       // 重新获取OAuth信息
       if (OAuth2Setting.value.provider) {
-        fetchGetOAuthInfo(OAuth2Setting.value.provider).then((res) => {
-          if (res.code === 1) {
-            oauthInfo.value = res.data
-          }
-        })
+        const infoRes = await fetchGetOAuthInfo(OAuth2Setting.value.provider)
+        if (infoRes.code === 1) {
+          oauthInfo.value = infoRes.data
+        }
       }
     })
 }
@@ -340,12 +395,14 @@ const handleBindOAuth2 = async () => {
   if (res.code !== 1) {
     theToast.error(res.msg)
   } else {
+    console.log('Bind URL: ', res.data)
     // 成功，跳转到授权URL
     window.location.href = res.data
   }
 }
 
 const oauthInfo = ref<App.Api.Setting.OAuthInfo | null>(null)
+const isBound = ref<boolean>(false)
 
 // 监听 OAuth2Setting.provider 变化，更新必填设置模板
 watch(
@@ -388,25 +445,43 @@ function getProviderTemplate(provider: string) {
       scopes: ['get_user_info'],
     }
   } else if (provider === String(OAuth2Provider.CUSTOM)) {
-    scopeString.value = ''
+    scopeString.value = 'openid'
     redirect_uri.value = `${window.location.origin}/oauth/custom/callback`
     return {
       redirect_uri: `${window.location.origin}/oauth/custom/callback`,
       auth_url: '',
       token_url: '',
       user_info_url: '',
-      scopes: [],
+      scopes: ['openid'],
     }
   }
   return {}
 }
 
 onMounted(async () => {
-  const setting = await getOAuth2Setting()
-  if (setting?.provider) {
-    const res = await fetchGetOAuthInfo(setting.provider)
+  await getOAuth2Setting()
+  if (OAuth2Setting.value.provider) {
+    const res = await fetchGetOAuthInfo(OAuth2Setting.value.provider)
     if (res.code === 1) {
       oauthInfo.value = res.data
+
+      if (
+        oauthInfo.value.auth_type === 'oidc' &&
+        oauthInfo.value.issuer &&
+        oauthInfo.value.oauth_id &&
+        oauthInfo.value.user_id != 0
+      ) {
+        isBound.value = true
+      } else if (
+        (oauthInfo.value.auth_type === '' || oauthInfo.value.auth_type === 'oauth2') &&
+        oauthInfo.value.provider &&
+        oauthInfo.value.oauth_id &&
+        oauthInfo.value.user_id != 0
+      ) {
+        isBound.value = true
+      } else {
+        isBound.value = false
+      }
     }
   }
 })

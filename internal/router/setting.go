@@ -13,7 +13,10 @@ func setupSettingRoutes(appRouterGroup *AppRouterGroup, h *di.Handlers) {
 	// Auth
 	appRouterGroup.AuthRouterGroup.PUT("/settings", h.SettingHandler.UpdateSettings())
 
-	appRouterGroup.AuthRouterGroup.PUT("/comment/settings", h.SettingHandler.UpdateCommentSettings())
+	appRouterGroup.AuthRouterGroup.PUT(
+		"/comment/settings",
+		h.SettingHandler.UpdateCommentSettings(),
+	)
 
 	appRouterGroup.AuthRouterGroup.GET("/s3/settings", h.SettingHandler.GetS3Settings())
 	appRouterGroup.AuthRouterGroup.PUT("/s3/settings", h.SettingHandler.UpdateS3Settings())
@@ -28,13 +31,28 @@ func setupSettingRoutes(appRouterGroup *AppRouterGroup, h *di.Handlers) {
 
 	appRouterGroup.AuthRouterGroup.GET("/access-tokens", h.SettingHandler.ListAccessTokens())
 	appRouterGroup.AuthRouterGroup.POST("/access-tokens", h.SettingHandler.CreateAccessToken())
-	appRouterGroup.AuthRouterGroup.DELETE("/access-tokens/:id", h.SettingHandler.DeleteAccessToken())
+	appRouterGroup.AuthRouterGroup.DELETE(
+		"/access-tokens/:id",
+		h.SettingHandler.DeleteAccessToken(),
+	)
 
-	appRouterGroup.AuthRouterGroup.GET("/fediverse/settings", h.SettingHandler.GetFediverseSettings())
-	appRouterGroup.AuthRouterGroup.PUT("/fediverse/settings", h.SettingHandler.UpdateFediverseSettings())
+	appRouterGroup.AuthRouterGroup.GET(
+		"/fediverse/settings",
+		h.SettingHandler.GetFediverseSettings(),
+	)
+	appRouterGroup.AuthRouterGroup.PUT(
+		"/fediverse/settings",
+		h.SettingHandler.UpdateFediverseSettings(),
+	)
 
-	appRouterGroup.AuthRouterGroup.GET("/backup/schedule", h.SettingHandler.GetBackupScheduleSetting())
-	appRouterGroup.AuthRouterGroup.POST("/backup/schedule", h.SettingHandler.UpdateBackupScheduleSetting())
+	appRouterGroup.AuthRouterGroup.GET(
+		"/backup/schedule",
+		h.SettingHandler.GetBackupScheduleSetting(),
+	)
+	appRouterGroup.AuthRouterGroup.POST(
+		"/backup/schedule",
+		h.SettingHandler.UpdateBackupScheduleSetting(),
+	)
 
 	appRouterGroup.AuthRouterGroup.GET("/agent/settings", h.SettingHandler.GetAgentSettings())
 	appRouterGroup.AuthRouterGroup.PUT("/agent/settings", h.SettingHandler.UpdateAgentSettings())

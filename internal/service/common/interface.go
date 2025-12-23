@@ -4,7 +4,6 @@ import (
 	"mime/multipart"
 
 	"github.com/gin-gonic/gin"
-
 	model "github.com/lin-snow/ech0/internal/model/common"
 	echoModel "github.com/lin-snow/ech0/internal/model/echo"
 	settingModel "github.com/lin-snow/ech0/internal/model/setting"
@@ -53,7 +52,11 @@ type CommonServiceInterface interface {
 	PlayMusic(ctx *gin.Context)
 
 	// GetS3PresignURL 获取 S3 预签名 URL
-	GetS3PresignURL(userid uint, s3Dto *model.GetPresignURLDto, method string) (model.PresignDto, error)
+	GetS3PresignURL(
+		userid uint,
+		s3Dto *model.GetPresignURLDto,
+		method string,
+	) (model.PresignDto, error)
 
 	// GetS3Client 获取 S3 客户端和配置信息
 	GetS3Client() (storageUtil.ObjectStorage, settingModel.S3Setting, error)

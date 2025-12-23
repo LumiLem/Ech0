@@ -3,15 +3,17 @@ package service
 import (
 	"errors"
 
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
-
 	commonModel "github.com/lin-snow/ech0/internal/model/common"
 	model "github.com/lin-snow/ech0/internal/model/fediverse"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // ProcessInbox 处理接收到的 ActivityPub 消息
-func (fediverseService *FediverseService) HandleInbox(username string, activity *model.Activity) error {
+func (fediverseService *FediverseService) HandleInbox(
+	username string,
+	activity *model.Activity,
+) error {
 	// 查询用户，确保用户存在
 	user, err := fediverseService.userRepository.GetUserByUsername(username)
 	if err != nil {
@@ -37,7 +39,9 @@ func (fediverseService *FediverseService) HandleInbox(username string, activity 
 	// 	}
 
 	default:
-		return errors.New("Unsupported activity type: " + cases.Title(language.English).String(activity.Type))
+		return errors.New(
+			"Unsupported activity type: " + cases.Title(language.English).String(activity.Type),
+		)
 	}
 
 	return nil

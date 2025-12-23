@@ -7,6 +7,7 @@ type EventHandlers struct {
 	fa  *FediverseAgent     // 联邦事件处理器
 	bs  *BackupScheduler    // 备份事件调度器
 	ap  *AgentProcessor     // Agent事件处理器
+	id  *InboxDispatcher    // Inbox事件处理器
 }
 
 // NewEventHandlers 创建一个新的事件处理器集合
@@ -16,8 +17,9 @@ func NewEventHandlers(
 	fa *FediverseAgent,
 	bs *BackupScheduler,
 	ap *AgentProcessor,
+	id *InboxDispatcher,
 ) *EventHandlers {
-	return &EventHandlers{wbd: wbd, dlr: dlr, fa: fa, bs: bs, ap: ap}
+	return &EventHandlers{wbd: wbd, dlr: dlr, fa: fa, bs: bs, ap: ap, id: id}
 }
 
 // EventRegistrar 事件注册器
@@ -35,15 +37,24 @@ func NewEventRegistry(ebp func() IEventBus, eh *EventHandlers) *EventRegistrar {
 func (er *EventRegistrar) Register() error {
 	var err error
 	// 订阅死信事件
-	err = er.eb.Subscribe(er.eh.dlr.Handle, EventTypeDeadLetterRetried) // 订阅死信事件，交给 DeadLetterResolver 处理
+	err = er.eb.Subscribe(
+		er.eh.dlr.Handle,
+		EventTypeDeadLetterRetried,
+	) // 订阅死信事件，交给 DeadLetterResolver 处理
 	if err != nil {
 		return err
 	}
-	err = er.eb.Subscribe(er.eh.fa.Handle, EventTypeEchoCreated) // 订阅 EchoCreated 事件，交给 FediverseAgent 处理
+	err = er.eb.Subscribe(
+		er.eh.fa.Handle,
+		EventTypeEchoCreated,
+	) // 订阅 EchoCreated 事件，交给 FediverseAgent 处理
 	if err != nil {
 		return err
 	}
-	err = er.eb.Subscribe(er.eh.bs.Handle, EventTypeUpdateBackupSchedule) // 订阅 UpdateBackupSchedule 事件，交给 BackupScheduler 处理
+	err = er.eb.Subscribe(
+		er.eh.bs.Handle,
+		EventTypeUpdateBackupSchedule,
+	) // 订阅 UpdateBackupSchedule 事件，交给 BackupScheduler 处理
 	if err != nil {
 		return err
 	}
@@ -58,8 +69,22 @@ func (er *EventRegistrar) Register() error {
 	if err != nil {
 		return err
 	}
+
+	// 订阅 Inbox 事件，交给 InboxDispatcher 处理
+	err = er.eb.Subscribes(
+		er.eh.id.Handle,
+		EventTypeEch0UpdateCheck,
+		EventTypeInboxClear,
+	) // 订阅 Inbox 事件，交给 InboxDispatcher 处理
+	if err != nil {
+		return err
+	}
+
 	// 订阅所有事件，交给 WebhookDispatcher 处理
-	err = er.eb.SubscribeAll(er.eh.wbd.Handle, EventTypeDeadLetterRetried) // 订阅所有事件，交给 WebhookDispatcher 处理,但是排除死信事件
+	err = er.eb.SubscribeAll(
+		er.eh.wbd.Handle,
+		EventTypeDeadLetterRetried,
+	) // 订阅所有事件，交给 WebhookDispatcher 处理,但是排除死信事件
 	if err != nil {
 		return err
 	}

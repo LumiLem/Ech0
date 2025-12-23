@@ -13,7 +13,7 @@
     <!-- 加载更多 -->
     <div
       v-if="echoStore.hasMore && !echoStore.isLoading"
-      class="mb-4 mt-1 -ml-2 flex items-center justify-between"
+      class="mb-4 mt-1 -ml-2 flex items-center justify-between font-serif"
     >
       <BaseButton
         @click="handleLoadMore"
@@ -26,11 +26,14 @@
       <TheBackTop class="xl:hidden w-8 h-8 p-1" />
     </div>
     <!-- 没有更多 -->
-    <div v-if="!echoStore.hasMore && !echoStore.isLoading" class="mx-auto my-5 text-center">
+    <div
+      v-if="!echoStore.hasMore && !echoStore.isLoading"
+      class="mx-auto my-5 text-center font-serif"
+    >
       <span class="text-xl text-[var(--text-color-400)]">没有啦！🎉</span>
     </div>
     <!-- 加载中 -->
-    <div v-if="echoStore.isLoading" class="mx-auto my-5 text-center">
+    <div v-if="echoStore.isLoading" class="mx-auto my-5 text-center font-serif">
       <span class="text-xl text-[var(--text-color-400)]">加载中...</span>
     </div>
     <!-- 备案号 -->

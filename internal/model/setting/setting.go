@@ -54,6 +54,11 @@ type OAuth2Setting struct {
 	AuthURL      string   `json:"auth_url"`      // OAuth2 授权 URL
 	TokenURL     string   `json:"token_url"`     // OAuth2 令牌 URL
 	UserInfoURL  string   `json:"user_info_url"` // OAuth2 用户信息 URL
+
+	// OIDC 扩展
+	IsOIDC  bool   `json:"is_oidc"`  // 是否启用 OIDC
+	Issuer  string `json:"issuer"`   // OIDC 颁发者
+	JWKSURL string `json:"jwks_url"` // OIDC JWKS URL
 }
 
 // AccessTokenSetting 定义访问令牌设置实体

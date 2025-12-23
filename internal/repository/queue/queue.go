@@ -3,10 +3,9 @@ package repository
 import (
 	"context"
 
-	"gorm.io/gorm"
-
 	model "github.com/lin-snow/ech0/internal/model/queue"
 	"github.com/lin-snow/ech0/internal/transaction"
+	"gorm.io/gorm"
 )
 
 type QueueRepository struct {
@@ -25,7 +24,10 @@ func (queueRepository *QueueRepository) getDB(ctx context.Context) *gorm.DB {
 }
 
 // SaveDeadLetter 保存死信任务
-func (queueRepository *QueueRepository) SaveDeadLetter(ctx context.Context, deadLetter *model.DeadLetter) error {
+func (queueRepository *QueueRepository) SaveDeadLetter(
+	ctx context.Context,
+	deadLetter *model.DeadLetter,
+) error {
 	return queueRepository.getDB(ctx).Create(deadLetter).Error
 }
 
@@ -45,6 +47,9 @@ func (queueRepository *QueueRepository) ListDeadLetters(limit int) ([]model.Dead
 }
 
 // UpdateDeadLetter 更新死信任务
-func (queueRepository *QueueRepository) UpdateDeadLetter(ctx context.Context, deadLetter *model.DeadLetter) error {
+func (queueRepository *QueueRepository) UpdateDeadLetter(
+	ctx context.Context,
+	deadLetter *model.DeadLetter,
+) error {
 	return queueRepository.getDB(ctx).Save(deadLetter).Error
 }

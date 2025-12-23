@@ -26,14 +26,22 @@
         <!-- 账号密码输入 -->
         <BaseInput v-model="username" type="text" placeholder="请输入用户名" class="mb-4" />
         <BaseInput v-model="password" type="password" placeholder="请输入密码" class="mb-4" />
-        <div class="flex justify-between items-center px-0.5">
+        <div class="flex justify-between items-center">
           <BaseButton
             @click="router.push({ name: 'home' })"
             title="返回首页"
             :icon="Home"
-            class="rounded-md w-9 h-9"
+            class="rounded-md w-9 h-9 flex-shrink-0"
           />
-          <div class="flex items-center">
+          <div class="w-full flex items-center justify-end gap-1">
+            <!-- Passkey 登录（Resident Key / 无用户名） -->
+            <BaseButton
+              :icon="Passkey"
+              v-if="passkeySupported"
+              @click="handlePasskeyLogin"
+              class="rounded-md w-9 h-9"
+              title="使用 Passkey 登录"
+            />
             <!-- OAuth2 登录 -->
             <BaseButton
               v-if="oauth2Status && oauth2Status.enabled"
@@ -47,13 +55,14 @@
                       : Customoauth
               "
               @click="gotoOAuth2URL"
-              class="w-9 h-9 rounded-md mr-2"
+              class="w-9 h-9 rounded-md"
+              title="使用 OAuth2 登录"
             />
-            <!-- 账号密码登录 -->
-            <BaseButton @click="handleLogin" class="w-12 h-9 rounded-md">
-              <span class="text-[var(--text-color-next-500)]">登录</span>
-            </BaseButton>
           </div>
+          <!-- 账号密码登录 -->
+          <BaseButton @click="handleLogin" class="w-12 h-9 rounded-md ml-1 flex-shrink-0">
+            <span class="text-[var(--text-color-next-500)]">登录</span>
+          </BaseButton>
         </div>
       </div>
       <!-- 注册 -->
@@ -98,6 +107,7 @@ import BaseButton from '@/components/common/BaseButton.vue'
 import { useUserStore } from '@/stores'
 import { useSettingStore } from '@/stores/setting'
 import Arrow from '@/components/icons/arrow.vue'
+import Passkey from '@/components/icons/passkey.vue'
 import Home from '@/components/icons/home.vue'
 import Github from '@/components/icons/github.vue'
 import Google from '@/components/icons/google.vue'
@@ -105,6 +115,9 @@ import QQ from '@/components/icons/qq.vue'
 import Customoauth from '@/components/icons/customoauth.vue'
 import { fetchGetOAuth2Status } from '@/service/api'
 import { OAuth2Provider } from '@/enums/enums'
+import { fetchPasskeyLoginBegin, fetchPasskeyLoginFinish } from '@/service/api'
+import { theToast } from '@/utils/toast'
+import { base64urlToUint8Array, uint8ArrayToBase64url } from '@/utils/other'
 
 const AuthMode = ref<'login' | 'register'>('login') // login / register
 const username = ref<string>('')
@@ -112,6 +125,7 @@ const password = ref<string>('')
 const userStore = useUserStore()
 const settingStore = useSettingStore()
 const allowRegister = ref<boolean>(true) // 是否允许注册
+const passkeySupported = !!(window.PublicKeyCredential && navigator.credentials)
 
 const oauth2Status = ref<App.Api.Setting.OAuth2Status | null>(null)
 const baseURL =
@@ -142,6 +156,82 @@ const handleLogin = async () => {
     username: username.value,
     password: password.value,
   })
+}
+
+type RequestOptionsJSON = Omit<
+  PublicKeyCredentialRequestOptions,
+  'challenge' | 'allowCredentials'
+> & {
+  challenge: string
+  allowCredentials?: Array<{
+    type: PublicKeyCredentialType
+    id: string
+    transports?: AuthenticatorTransport[]
+  }>
+}
+
+function normalizeRequestOptions(raw: unknown): PublicKeyCredentialRequestOptions {
+  if (!raw || typeof raw !== 'object') throw new Error('服务端返回的 publicKey 不合法')
+  const o = raw as RequestOptionsJSON
+  const { challenge, allowCredentials, ...rest } = o
+
+  const allow = Array.isArray(allowCredentials)
+    ? allowCredentials.map((c) => ({
+        ...c,
+        id: base64urlToUint8Array(c.id),
+      }))
+    : undefined
+
+  return {
+    ...rest,
+    challenge: base64urlToUint8Array(challenge),
+    ...(allow ? { allowCredentials: allow } : {}),
+  }
+}
+
+function credentialToJSON(cred: PublicKeyCredential) {
+  const obj: Record<string, unknown> = {
+    id: cred.id,
+    rawId: uint8ArrayToBase64url(cred.rawId),
+    type: cred.type,
+    clientExtensionResults: cred.getClientExtensionResults?.() ?? {},
+  }
+
+  const response: Record<string, unknown> = {}
+  response.clientDataJSON = uint8ArrayToBase64url(cred.response.clientDataJSON)
+
+  if ('authenticatorData' in cred.response) {
+    const r = cred.response as AuthenticatorAssertionResponse
+    response.authenticatorData = uint8ArrayToBase64url(r.authenticatorData)
+    response.signature = uint8ArrayToBase64url(r.signature)
+    if (r.userHandle && r.userHandle.byteLength > 0) {
+      response.userHandle = uint8ArrayToBase64url(r.userHandle)
+    }
+  }
+
+  obj.response = response
+  return obj
+}
+
+const handlePasskeyLogin = async () => {
+  if (!passkeySupported) return
+  try {
+    const begin = await fetchPasskeyLoginBegin()
+    if (begin.code !== 1) return
+
+    const options = normalizeRequestOptions(begin.data.publicKey)
+    const got = await navigator.credentials.get({ publicKey: options })
+    if (!got) throw new Error('获取凭证失败')
+    const cred = got as PublicKeyCredential
+
+    const finish = await fetchPasskeyLoginFinish(begin.data.nonce, credentialToJSON(cred))
+    if (finish.code !== 1) return
+
+    await userStore.loginWithToken(finish.data)
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : 'Passkey 登录失败'
+    theToast.error(msg)
+  }
 }
 
 const handleRegister = async () => {

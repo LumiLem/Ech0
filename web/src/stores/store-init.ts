@@ -4,6 +4,7 @@ import { useSettingStore } from './setting'
 import { useTodoStore } from './todo'
 import { useEchoStore } from './echo'
 import { useEditorStore } from './editor'
+import { useInboxStore } from './inbox'
 
 export async function initStores() {
   const themeStore = useThemeStore()
@@ -12,6 +13,7 @@ export async function initStores() {
   const todoStore = useTodoStore()
   const echoStore = useEchoStore()
   const editorStore = useEditorStore()
+  const inboxStore = useInboxStore()
 
   themeStore.init()
   await userStore.init()
@@ -19,4 +21,5 @@ export async function initStores() {
   todoStore.init()
   editorStore.init()
   echoStore.init()
+  inboxStore.init()
 }

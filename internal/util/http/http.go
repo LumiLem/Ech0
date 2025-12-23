@@ -54,7 +54,11 @@ type Header struct {
 }
 
 // SendRequest 发送 HTTP 请求
-func SendRequest(url, method string, customHeader Header, timeout ...time.Duration) ([]byte, error) {
+func SendRequest(
+	url, method string,
+	customHeader Header,
+	timeout ...time.Duration,
+) ([]byte, error) {
 	// 默认超时时间，如果有传入参数则使用传入的
 	clientTimeout := 2 * time.Second
 	if len(timeout) > 0 {

@@ -20,7 +20,11 @@ type FediverseServiceInterface interface {
 	HandleOutbox(username string) (model.OutboxResponse, error)
 
 	// HandleOutbox 处理 Outbox 消息
-	HandleOutboxPage(ctx context.Context, username string, page, pageSize int) (model.OutboxPage, error)
+	HandleOutboxPage(
+		ctx context.Context,
+		username string,
+		page, pageSize int,
+	) (model.OutboxPage, error)
 
 	// GetFollowers 获取粉丝列表
 	GetFollowers(username string) (model.FollowersResponse, error)

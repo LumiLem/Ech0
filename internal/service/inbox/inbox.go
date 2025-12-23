@@ -4,14 +4,14 @@ import (
 	"context"
 	"errors"
 	"strings"
-
-	"gorm.io/gorm"
+	"time"
 
 	commonModel "github.com/lin-snow/ech0/internal/model/common"
 	inboxModel "github.com/lin-snow/ech0/internal/model/inbox"
 	inboxRepository "github.com/lin-snow/ech0/internal/repository/inbox"
 	commonService "github.com/lin-snow/ech0/internal/service/common"
 	"github.com/lin-snow/ech0/internal/transaction"
+	"gorm.io/gorm"
 )
 
 type InboxService struct {
@@ -82,8 +82,23 @@ func (inboxService *InboxService) MarkAsRead(userid, inboxID uint) error {
 		return err
 	}
 
+	// 获取消息
+	inbox, err := inboxService.inboxRepository.GetInboxById(context.Background(), inboxID)
+	if err != nil {
+		return inboxService.handleRepoError(err)
+	}
+
+	// 如果消息未读，则增加已读次数和已读时间
+	if !inbox.Read {
+		inbox.ReadCount++
+		inbox.ReadAt = time.Now().Unix()
+	} else {
+		// 如果消息已读，则增加已读次数
+		inbox.ReadCount++
+	}
+
 	return inboxService.txManager.Run(func(ctx context.Context) error {
-		if err := inboxService.inboxRepository.MarkAsRead(ctx, inboxID); err != nil {
+		if err := inboxService.inboxRepository.UpdateInbox(ctx, inbox); err != nil {
 			return inboxService.handleRepoError(err)
 		}
 		return nil

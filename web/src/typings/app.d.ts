@@ -23,6 +23,25 @@ declare namespace App {
         username: string
         password: string
       }
+
+      // Passkey / WebAuthn
+      type PasskeyRegisterBeginResp = {
+        nonce: string
+        publicKey: unknown
+      }
+
+      type PasskeyLoginBeginResp = {
+        nonce: string
+        publicKey: unknown
+      }
+
+      type PasskeyDevice = {
+        id: number
+        device_name: string
+        aaguid: string
+        last_used_at: string
+        created_at: string
+      }
     }
 
     namespace User {
@@ -249,6 +268,10 @@ declare namespace App {
         auth_url: string
         token_url: string
         user_info_url: string
+
+        is_oidc: boolean
+        issuer: string
+        jwks_url: string
       }
 
       type OAuth2Status = {
@@ -260,6 +283,8 @@ declare namespace App {
         provider: string
         user_id: number
         oauth_id: string
+        issuer: string
+        auth_type: string
       }
 
       type FediverseSetting = {
@@ -514,7 +539,9 @@ declare namespace App {
         content: string
         type: string
         read: boolean
+        read_count: number
         meta?: string
+        read_at?: string
         created_at: string
       }
 

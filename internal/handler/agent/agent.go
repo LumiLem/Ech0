@@ -2,7 +2,6 @@ package handler
 
 import (
 	"github.com/gin-gonic/gin"
-
 	res "github.com/lin-snow/ech0/internal/handler/response"
 	commonModel "github.com/lin-snow/ech0/internal/model/common"
 	service "github.com/lin-snow/ech0/internal/service/agent"

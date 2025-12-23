@@ -9,8 +9,6 @@ import (
 	"net/http"
 	"time"
 
-	"go.uber.org/zap"
-
 	"github.com/lin-snow/ech0/internal/async"
 	queueModel "github.com/lin-snow/ech0/internal/model/queue"
 	webhookModel "github.com/lin-snow/ech0/internal/model/webhook"
@@ -18,6 +16,7 @@ import (
 	webhookRepository "github.com/lin-snow/ech0/internal/repository/webhook"
 	"github.com/lin-snow/ech0/internal/transaction"
 	logUtil "github.com/lin-snow/ech0/internal/util/log"
+	"go.uber.org/zap"
 )
 
 type WebhookReplayPayload struct {
@@ -109,7 +108,8 @@ func (wd *WebhookDispatcher) Dispatch(ctx context.Context, wh *webhookModel.Webh
 	// 如果最终失败，记录到死信队列
 	if err != nil {
 		// 记录失败日志
-		logUtil.GetLogger().Error("Webhook Handle Failed: ", zap.String("name", wh.Name), zap.String("url", wh.URL))
+		logUtil.GetLogger().
+			Error("Webhook Handle Failed: ", zap.String("name", wh.Name), zap.String("url", wh.URL))
 
 		// 处理失败的事件
 		e.Meta = map[string]any{
@@ -137,13 +137,17 @@ func (wd *WebhookDispatcher) Dispatch(ctx context.Context, wh *webhookModel.Webh
 		if err := wd.txManager.Run(func(ctx context.Context) error {
 			return wd.queueRepo.SaveDeadLetter(ctx, &deadLetter)
 		}); err != nil {
-			logUtil.GetLogger().Error("Failed to save dead letter", zap.String("error", err.Error()))
+			logUtil.GetLogger().
+				Error("Failed to save dead letter", zap.String("error", err.Error()))
 		}
 	}
 }
 
 // buildRequest 构建 HTTP 请求(POST)
-func (wd *WebhookDispatcher) buildRequest(wh *webhookModel.Webhook, e *Event) (*http.Request, error) {
+func (wd *WebhookDispatcher) buildRequest(
+	wh *webhookModel.Webhook,
+	e *Event,
+) (*http.Request, error) {
 	// 构造 HTTP 请求头
 	headers := make(http.Header)
 	headers.Set("Content-Type", "application/json")  // 内容类型
@@ -175,7 +179,11 @@ func (wd *WebhookDispatcher) buildRequest(wh *webhookModel.Webhook, e *Event) (*
 }
 
 // retryWithBackoff 带指数退避的重试机制
-func (wd *WebhookDispatcher) retryWithBackoff(maxRetries int, initialBackoff time.Duration, fn func() error) error {
+func (wd *WebhookDispatcher) retryWithBackoff(
+	maxRetries int,
+	initialBackoff time.Duration,
+	fn func() error,
+) error {
 	var err error
 	delay := initialBackoff
 	for i := 0; i < maxRetries; i++ {
@@ -195,7 +203,10 @@ func (wd *WebhookDispatcher) Wait() {
 }
 
 // HandleDeadLetter 处理死信任务
-func (wd *WebhookDispatcher) HandleDeadLetter(ctx context.Context, deadLetter *queueModel.DeadLetter) error {
+func (wd *WebhookDispatcher) HandleDeadLetter(
+	ctx context.Context,
+	deadLetter *queueModel.DeadLetter,
+) error {
 	// 解析负载
 	var payload WebhookReplayPayload
 	if err := json.Unmarshal(deadLetter.Payload, &payload); err != nil {

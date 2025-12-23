@@ -48,7 +48,8 @@ func (fa *FediverseAgent) Handle(ctx context.Context, e *Event) error {
 	switch e.Type {
 	case EventTypeEchoCreated:
 		if err := fa.HandleCreateEchoEvent(ctx, e); err != nil {
-			logUtil.GetLogger().Error("Failed to handle create echo event", zap.String("error", err.Error()))
+			logUtil.GetLogger().
+				Error("Failed to handle create echo event", zap.String("error", err.Error()))
 			return nil
 		}
 
@@ -114,7 +115,8 @@ func (fa *FediverseAgent) HandleCreateEchoEvent(ctx context.Context, e *Event) e
 				if err := fa.txManager.Run(func(ctx context.Context) error {
 					return fa.queueRepo.SaveDeadLetter(ctx, &deadLetter)
 				}); err != nil {
-					logUtil.GetLogger().Error("Failed to save dead letter", zap.String("error", err.Error()))
+					logUtil.GetLogger().
+						Error("Failed to save dead letter", zap.String("error", err.Error()))
 				}
 			}
 			return nil
@@ -124,7 +126,11 @@ func (fa *FediverseAgent) HandleCreateEchoEvent(ctx context.Context, e *Event) e
 	return nil
 }
 
-func (fa *FediverseAgent) retryWithBackoff(retries int, delay time.Duration, fn func() error) error {
+func (fa *FediverseAgent) retryWithBackoff(
+	retries int,
+	delay time.Duration,
+	fn func() error,
+) error {
 	var err error
 	for i := 0; i < retries; i++ {
 		err = fn()
@@ -137,7 +143,10 @@ func (fa *FediverseAgent) retryWithBackoff(retries int, delay time.Duration, fn 
 	return err
 }
 
-func (fa *FediverseAgent) HandlePushEchoDeadLetter(ctx context.Context, deadLetter *queueModel.DeadLetter) error {
+func (fa *FediverseAgent) HandlePushEchoDeadLetter(
+	ctx context.Context,
+	deadLetter *queueModel.DeadLetter,
+) error {
 	// 解析负载
 	var payload PushEchoReplayPayload
 	if err := json.Unmarshal(deadLetter.Payload, &payload); err != nil {

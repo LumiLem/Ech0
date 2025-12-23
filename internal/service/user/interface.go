@@ -1,6 +1,8 @@
 package service
 
 import (
+	"encoding/json"
+
 	authModel "github.com/lin-snow/ech0/internal/model/auth"
 	model "github.com/lin-snow/ech0/internal/model/user"
 )
@@ -41,4 +43,16 @@ type UserServiceInterface interface {
 
 	// GetOAuthInfo 获取 OAuth2 配置信息
 	GetOAuthInfo(userId uint, provider string) (model.OAuthInfoDto, error)
+
+	// Passkey / WebAuthn
+	PasskeyRegisterBegin(
+		userID uint,
+		rpID, origin, deviceName string,
+	) (authModel.PasskeyRegisterBeginResp, error)
+	PasskeyRegisterFinish(userID uint, rpID, origin, nonce string, credential json.RawMessage) error
+	PasskeyLoginBegin(rpID, origin string) (authModel.PasskeyLoginBeginResp, error)
+	PasskeyLoginFinish(rpID, origin, nonce string, credential json.RawMessage) (string, error)
+	ListPasskeys(userID uint) ([]authModel.PasskeyDeviceDto, error)
+	DeletePasskey(userID, passkeyID uint) error
+	UpdatePasskeyDeviceName(userID, passkeyID uint, deviceName string) error
 }

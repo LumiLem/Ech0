@@ -5,8 +5,6 @@ package di
 
 import (
 	"github.com/google/wire"
-	"gorm.io/gorm"
-
 	"github.com/lin-snow/ech0/internal/cache"
 	"github.com/lin-snow/ech0/internal/event"
 	fediverse "github.com/lin-snow/ech0/internal/fediverse"
@@ -48,6 +46,7 @@ import (
 	userService "github.com/lin-snow/ech0/internal/service/user"
 	"github.com/lin-snow/ech0/internal/task"
 	"github.com/lin-snow/ech0/internal/transaction"
+	"gorm.io/gorm"
 )
 
 // BuildHandlers 使用wire生成的代码来构建Handlers实例
@@ -249,6 +248,7 @@ var EventSet = wire.NewSet(
 	event.NewBackupScheduler,
 	event.NewDeadLetterResolver,
 	event.NewAgentProcessor,
+	event.NewInboxDispatcher,
 	event.NewEventHandlers,
 	event.NewEventRegistry,
 )

@@ -62,4 +62,25 @@ type UserHandlerInterface interface {
 
 	// GetOAuthInfo 获取 OAuth2 配置信息
 	GetOAuthInfo() gin.HandlerFunc
+
+	// PasskeyLoginBegin 开始 Passkey 登录
+	PasskeyLoginBegin() gin.HandlerFunc
+
+	// PasskeyLoginFinish 完成 Passkey 登录
+	PasskeyLoginFinish() gin.HandlerFunc
+
+	// PasskeyRegisterBegin 开始 Passkey 注册
+	PasskeyRegisterBegin() gin.HandlerFunc
+
+	// PasskeyRegisterFinish 完成 Passkey 注册
+	PasskeyRegisterFinish() gin.HandlerFunc
+
+	// ListPasskeys 列出所有 Passkey
+	ListPasskeys() gin.HandlerFunc
+
+	// DeletePasskey 删除 Passkey
+	DeletePasskey() gin.HandlerFunc
+
+	// UpdatePasskeyDeviceName 更新 Passkey 设备名称
+	UpdatePasskeyDeviceName() gin.HandlerFunc
 }

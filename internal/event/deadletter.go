@@ -117,7 +117,10 @@ func (dlr *DeadLetterResolver) Handle(ctx context.Context, event *Event) error {
 }
 
 // 处理死信任务
-func (dlr *DeadLetterResolver) processDeadLetter(ctx context.Context, deadLetter *queueModel.DeadLetter) error {
+func (dlr *DeadLetterResolver) processDeadLetter(
+	ctx context.Context,
+	deadLetter *queueModel.DeadLetter,
+) error {
 	// 判断死信所属业务类型
 	switch deadLetter.Type {
 	case queueModel.DeadLetterTypeWebhook:

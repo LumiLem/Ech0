@@ -12,7 +12,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
-
 	"github.com/lin-snow/ech0/internal/config"
 	"github.com/lin-snow/ech0/internal/tui"
 )
@@ -45,7 +44,8 @@ func SSHStart() {
 	// log.Info("Starting SSH server", "host", host, "port", port)
 	go func() {
 		fmt.Println("🚀 Ech0 SSH已启动，监听端口", port)
-		if serveErr := SSHServer.ListenAndServe(); serveErr != nil && !errors.Is(serveErr, ssh.ErrServerClosed) {
+		if serveErr := SSHServer.ListenAndServe(); serveErr != nil &&
+			!errors.Is(serveErr, ssh.ErrServerClosed) {
 			fmt.Printf("ssh server run failed: %v\n", serveErr)
 		}
 	}()

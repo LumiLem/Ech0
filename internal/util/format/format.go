@@ -5,9 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/robfig/cron/v3"
-
 	model "github.com/lin-snow/ech0/internal/model/metric"
+	"github.com/robfig/cron/v3"
 )
 
 // 格式化指标（四舍五入 + 单位转换）

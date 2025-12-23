@@ -7,9 +7,6 @@ import (
 	"strings"
 
 	"github.com/cloudwego/eino/schema"
-	"go.uber.org/zap"
-	"golang.org/x/sync/singleflight"
-
 	"github.com/lin-snow/ech0/internal/agent"
 	authModel "github.com/lin-snow/ech0/internal/model/auth"
 	commonModel "github.com/lin-snow/ech0/internal/model/common"
@@ -19,6 +16,8 @@ import (
 	settingService "github.com/lin-snow/ech0/internal/service/setting"
 	todoService "github.com/lin-snow/ech0/internal/service/todo"
 	logUtil "github.com/lin-snow/ech0/internal/util/log"
+	"go.uber.org/zap"
+	"golang.org/x/sync/singleflight"
 )
 
 type AgentService struct {
@@ -61,7 +60,8 @@ func (agentService *AgentService) GetRecent(ctx context.Context) (string, error)
 		}
 
 		if err := agentService.kvRepository.AddOrUpdateKeyValue(ctx, cacheKey, output); err != nil {
-			logUtil.GetLogger().Error("Failed to add or update key value", zap.String("error", err.Error()))
+			logUtil.GetLogger().
+				Error("Failed to add or update key value", zap.String("error", err.Error()))
 		}
 
 		return output, nil
@@ -89,10 +89,13 @@ func (agentService *AgentService) getRecentFromCache(cacheKey string) (string, b
 }
 
 func (agentService *AgentService) buildRecentSummary(ctx context.Context) (string, error) {
-	echos, err := agentService.echoService.GetEchosByPage(authModel.NO_USER_LOGINED, commonModel.PageQueryDto{
-		Page:     1,
-		PageSize: 10,
-	})
+	echos, err := agentService.echoService.GetEchosByPage(
+		authModel.NO_USER_LOGINED,
+		commonModel.PageQueryDto{
+			Page:     1,
+			PageSize: 10,
+		},
+	)
 	if err != nil {
 		return "", err
 	}

@@ -9,13 +9,12 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
-
 	"github.com/lin-snow/ech0/internal/backup"
 	"github.com/lin-snow/ech0/internal/event"
 	commonModel "github.com/lin-snow/ech0/internal/model/common"
 	commonService "github.com/lin-snow/ech0/internal/service/common"
 	logUtil "github.com/lin-snow/ech0/internal/util/log"
+	"go.uber.org/zap"
 )
 
 type BackupService struct {
@@ -59,7 +58,8 @@ func (backupService *BackupService) Backup(userid uint) error {
 			},
 		),
 	); err != nil {
-		logUtil.GetLogger().Error("Failed to publish system backup completed event", zap.String("error", err.Error()))
+		logUtil.GetLogger().
+			Error("Failed to publish system backup completed event", zap.String("error", err.Error()))
 	}
 
 	return nil
@@ -97,7 +97,8 @@ func (backupService *BackupService) ExportBackup(ctx *gin.Context, userid uint) 
 
 	// 设置响应头的顺序很重要
 	ctx.Writer.Header().Set("Content-Type", "application/zip")
-	ctx.Writer.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+	ctx.Writer.Header().
+		Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
 	ctx.Writer.Header().Set("Content-Length", fmt.Sprintf("%d", fileInfo.Size()))
 	ctx.Writer.Header().Set("Accept-Ranges", "bytes")
 	ctx.Writer.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
@@ -119,14 +120,19 @@ func (backupService *BackupService) ExportBackup(ctx *gin.Context, userid uint) 
 			},
 		),
 	); err != nil {
-		logUtil.GetLogger().Error("Failed to publish system export completed event", zap.String("error", err.Error()))
+		logUtil.GetLogger().
+			Error("Failed to publish system export completed event", zap.String("error", err.Error()))
 	}
 
 	return nil
 }
 
 // ImportBackup 恢复备份
-func (backupService *BackupService) ImportBackup(ctx *gin.Context, userid uint, file *multipart.FileHeader) error {
+func (backupService *BackupService) ImportBackup(
+	ctx *gin.Context,
+	userid uint,
+	file *multipart.FileHeader,
+) error {
 	user, err := backupService.commonService.CommonGetUserByUserId(userid)
 	if err != nil {
 		return err
@@ -158,7 +164,8 @@ func (backupService *BackupService) ImportBackup(ctx *gin.Context, userid uint, 
 			},
 		),
 	); err != nil {
-		logUtil.GetLogger().Error("Failed to publish system restore completed event", zap.String("error", err.Error()))
+		logUtil.GetLogger().
+			Error("Failed to publish system restore completed event", zap.String("error", err.Error()))
 	}
 
 	return nil

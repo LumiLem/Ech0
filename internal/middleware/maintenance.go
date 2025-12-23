@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-
 	"github.com/lin-snow/ech0/internal/database"
 	commonModel "github.com/lin-snow/ech0/internal/model/common"
 	errUtil "github.com/lin-snow/ech0/internal/util/err"

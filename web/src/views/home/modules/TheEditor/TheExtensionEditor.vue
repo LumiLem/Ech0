@@ -115,19 +115,25 @@ const handleFetchWebsiteTitle = async () => {
 // 监听音乐链接输入框的变化
 watch(
   () => editorStore.extensionToAdd.extension,
-  (newValue) => {
+  (newValue: string) => {
     // 只在当前是音乐分享模式，并且输入框有内容时才执行
     if (editorStore.currentExtensionType !== ExtensionType.MUSIC || !newValue) {
       return
     }
 
+    const value = newValue.trim()
+
+    // 🔒 至少看起来像个 URL 再处理，避免打字中途被干扰
+    if (!/https?:\/\//i.test(value)) {
+      return
+    }
+
     // 尝试提取并清理链接
-    const cleanUrl = extractAndCleanMusicURL(newValue)
+    const cleanUrl = extractAndCleanMusicURL(value)
 
     // 如果成功提取到干净的链接，并且这个链接和当前输入框的内容不一样
     // （防止无限循环和重复赋值）
-    if (cleanUrl && cleanUrl !== newValue) {
-      // 更新输入框的值为干净的链接
+    if (cleanUrl && cleanUrl !== value) {
       editorStore.extensionToAdd.extension = cleanUrl
     }
   },

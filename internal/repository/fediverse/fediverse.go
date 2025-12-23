@@ -5,10 +5,9 @@ import (
 	"errors"
 	"time"
 
-	"gorm.io/gorm"
-
 	model "github.com/lin-snow/ech0/internal/model/fediverse"
 	"github.com/lin-snow/ech0/internal/transaction"
+	"gorm.io/gorm"
 )
 
 type FediverseRepository struct {
@@ -48,7 +47,11 @@ func (r *FediverseRepository) SaveFollower(ctx context.Context, follower *model.
 	return r.getDB(ctx).Create(follower).Error
 }
 
-func (r *FediverseRepository) FollowerExists(ctx context.Context, userID uint, actor string) (bool, error) {
+func (r *FediverseRepository) FollowerExists(
+	ctx context.Context,
+	userID uint,
+	actor string,
+) (bool, error) {
 	var count int64
 	if err := r.getDB(ctx).Model(&model.Follower{}).Where("user_id = ? AND actor_id = ?", userID, actor).Count(&count).Error; err != nil {
 		return false, err
@@ -63,7 +66,9 @@ func (r *FediverseRepository) SaveOrUpdateFollow(ctx context.Context, follow *mo
 
 	db := r.getDB(ctx)
 	var existing model.Follow
-	err := db.Where("user_id = ? AND object_id = ?", follow.UserID, follow.ObjectID).First(&existing).Error
+	err := db.Where("user_id = ? AND object_id = ?", follow.UserID, follow.ObjectID).
+		First(&existing).
+		Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return db.Create(follow).Error
 	}
@@ -83,7 +88,10 @@ func (r *FediverseRepository) GetFollowByUserAndObject(
 	objectID string,
 ) (*model.Follow, error) {
 	var follow model.Follow
-	err := r.getDB(ctx).Where("user_id = ? AND object_id = ?", userID, objectID).First(&follow).Error
+	err := r.getDB(ctx).
+		Where("user_id = ? AND object_id = ?", userID, objectID).
+		First(&follow).
+		Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}
@@ -97,7 +105,10 @@ func (r *FediverseRepository) DeleteFollow(ctx context.Context, followID uint) e
 	return r.getDB(ctx).Delete(&model.Follow{}, followID).Error
 }
 
-func (r *FediverseRepository) UpsertInboxStatus(ctx context.Context, status *model.InboxStatus) error {
+func (r *FediverseRepository) UpsertInboxStatus(
+	ctx context.Context,
+	status *model.InboxStatus,
+) error {
 	if status == nil {
 		return errors.New("inbox status is nil")
 	}
@@ -109,7 +120,9 @@ func (r *FediverseRepository) UpsertInboxStatus(ctx context.Context, status *mod
 	db := r.getDB(ctx)
 
 	var existing model.InboxStatus
-	err := db.Where("user_id = ? AND activity_id = ?", status.UserID, status.ActivityID).First(&existing).Error
+	err := db.Where("user_id = ? AND activity_id = ?", status.UserID, status.ActivityID).
+		First(&existing).
+		Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		if status.CreatedAt.IsZero() {
 			status.CreatedAt = time.Now()
