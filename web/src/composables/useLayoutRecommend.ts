@@ -10,19 +10,32 @@ export function useLayoutRecommend() {
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
+  // 推荐结果类型
+  interface RecommendResult {
+    layout: ImageLayout
+    source: 'ai' | 'rule' | 'unknown'
+    reason: string
+  }
+
   /**
    * 根据媒体列表和内容信息推荐布局
    * @param mediaList 媒体信息列表
    * @param contentInfo 可选的内容信息（文本长度、标签等）
-   * @returns 推荐的布局类型
+   * @returns 推荐结果（布局、来源、理由）
    */
   const recommendLayout = async (
     mediaList: MediaInfo[],
     contentInfo?: ContentInfo
-  ): Promise<ImageLayout> => {
+  ): Promise<RecommendResult> => {
+    const defaultResult: RecommendResult = {
+      layout: ImageLayout.GRID,
+      source: 'unknown',
+      reason: '默认布局',
+    }
+
     if (!mediaList || mediaList.length === 0) {
       console.log('[AI Layout] 媒体列表为空，使用默认布局')
-      return ImageLayout.GRID
+      return defaultResult
     }
 
     isLoading.value = true
@@ -37,33 +50,39 @@ export function useLayoutRecommend() {
       const res = await fetchRecommendLayout(request)
 
       if (res.data) {
-        // 新的响应格式：{ layout: string, source: string }
-        const result = res.data as { layout?: string; source?: string } | string
+        // 响应格式：{ layout: string, source: string, reason: string }
+        const result = res.data as { layout?: string; source?: string; reason?: string } | string
 
-        // 兼容旧格式（直接返回字符串）和新格式（返回对象）
         let layout: string
-        let source: string
+        let source: 'ai' | 'rule' | 'unknown'
+        let reason: string
 
         if (typeof result === 'string') {
           layout = result
           source = 'unknown'
+          reason = ''
         } else {
           layout = result.layout || ''
-          source = result.source || 'unknown'
+          source = (result.source as 'ai' | 'rule') || 'unknown'
+          reason = result.reason || ''
         }
 
         if (Object.values(ImageLayout).includes(layout as ImageLayout)) {
-          const sourceLabel = source === 'ai' ? '🤖 AI推荐' : source === 'rule' ? '📐 规则引擎' : '推荐'
-          console.log(`[AI Layout] ${sourceLabel}: ${layout}`)
-          return layout as ImageLayout
+          const sourceLabel = source === 'ai' ? '🤖 AI' : source === 'rule' ? '📐 规则' : ''
+          console.log(`[AI Layout] ${sourceLabel}: ${layout} - ${reason}`)
+          return {
+            layout: layout as ImageLayout,
+            source,
+            reason,
+          }
         }
         console.warn('[AI Layout] 无效布局:', layout, '使用默认')
       }
-      return ImageLayout.GRID
+      return defaultResult
     } catch (e: any) {
       error.value = e.message || '布局推荐失败'
       console.error('[AI Layout] 推荐失败:', e.message || e)
-      return ImageLayout.GRID
+      return defaultResult
     } finally {
       isLoading.value = false
     }

@@ -97,8 +97,8 @@ export const useEditorStore = defineStore('editorStore', () => {
         echoToAdd.value.content || '',
         echoToAdd.value.tags as { name: string }[] | undefined
       )
-      const layout = await recommendLayout(mediaInfo, contentInfo)
-      echoToAdd.value.layout = layout
+      const result = await recommendLayout(mediaInfo, contentInfo)
+      echoToAdd.value.layout = result.layout
 
       if (showToast) {
         const layoutLabels: Record<string, string> = {
@@ -108,12 +108,14 @@ export const useEditorStore = defineStore('editorStore', () => {
           [ImageLayout.CAROUSEL]: '单图轮播',
           [ImageLayout.HORIZONTAL]: '水平轮播',
         }
-        theToast.success(`AI 推荐使用「${layoutLabels[layout]}」布局`)
+        const sourceIcon = result.source === 'ai' ? '🤖' : '📐'
+        const reason = result.reason ? `（${result.reason}）` : ''
+        theToast.success(`${sourceIcon} 推荐「${layoutLabels[result.layout]}」${reason}`)
       } else {
-        console.log('[AI Layout] 自动推荐完成:', layout)
+        console.log('[AI Layout] 自动推荐完成:', result.layout, '-', result.reason)
       }
 
-      return layout
+      return result.layout
     } catch (e) {
       console.error('[AI Layout] 推荐失败:', e)
       if (showToast) {

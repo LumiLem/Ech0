@@ -37,6 +37,7 @@ type LayoutRecommendRequest struct {
 type LayoutRecommendResponse struct {
 	Layout string `json:"layout"` // 推荐的布局：waterfall/grid/horizontal/carousel
 	Source string `json:"source"` // 推荐来源：ai/rule
+	Reason string `json:"reason"` // 推荐理由
 }
 
 type AgentServiceInterface interface {

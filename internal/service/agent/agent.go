@@ -164,109 +164,127 @@ func (agentService *AgentService) RecommendLayout(ctx context.Context, req Layou
 	var setting model.AgentSetting
 	if err := agentService.settingService.GetAgentInfo(&setting); err != nil {
 		logUtil.GetLogger().Warn("[AI Layout] 获取 Agent 设置失败，使用规则引擎", zap.Error(err))
+		layout, reason := analysis.RuleBasedRecommend()
 		return &LayoutRecommendResponse{
-			Layout: analysis.RuleBasedRecommend(),
+			Layout: layout,
 			Source: "rule",
+			Reason: reason,
 		}, nil
 	}
 
 	// 如果 AI 未启用，直接使用规则引擎
 	if !setting.Enable {
 		logUtil.GetLogger().Info("[AI Layout] AI 未启用，使用规则引擎")
+		layout, reason := analysis.RuleBasedRecommend()
 		return &LayoutRecommendResponse{
-			Layout: analysis.RuleBasedRecommend(),
+			Layout: layout,
 			Source: "rule",
+			Reason: reason,
 		}, nil
 	}
 
 	in := []*schema.Message{
 		{
 			Role: schema.System,
-			Content: `你是一个专业的社交媒体图片布局专家。请根据媒体特征和文本内容，推荐最佳布局。
+			Content: `你是社交媒体布局专家。请**综合评估所有信息**，推荐最佳布局。
 
-## 四种布局的实际效果
+## 重要前提
+用户可以点击任何图片进入全屏查看，所以布局决定的是**首次展示的体验**。
 
-### 1. grid (九宫格布局)
-**显示方式**: 
-- 网格排列，图片裁切为正方形（object-cover）
-- 预览显示前9张，超过9张时第9张显示"+N"提示
-- 点击任意图片可在弹窗中浏览全部
-- 单图时智能调整：横图占满3列、方图占2列、竖图占1列
-- 根据数量动态调整列数（1张/2张/4张特殊处理，其他3列）
-**文字位置**: 文字在图片**上方**
-**适合场景**: 
-- 需要一览展示多张图片
-- 有较长文字说明的内容
-- 日常分享、美食、产品展示
-- 代码/技术内容（文字在上便于阅读）
+## 四种布局精确特点
 
-### 2. waterfall (瀑布流布局)
-**显示方式**: 
-- 2列网格，**保持原始宽高比**（不裁切）
-- 所有图片都显示，无数量限制
-- 错落有致，视觉上更丰富
-- 单图时居中展示
-- 奇数图片时第1张跨2列居中
-**文字位置**: 文字在图片**下方**
-**适合场景**: 
-- 摄影作品（需保持原始比例）
-- 横竖图混合、比例差异大
-- 短文字或无文字的图片分享
-- 艺术性、设计感强的内容
+### grid（九宫格）
+- **图片**：裁切为方形缩略图，最多显示9张（超出显示+N）
+- **文字**：在图片**上方**，读者先读文字再看图
+- **单图**：智能调整（横图占满、方图2/3、竖图1/3）
+- **适合**：
+  - 有重要文字内容需要先阅读（代码、长文、讨论）
+  - 图片可以被裁切成方形而不损失重点
+  - 快速预览很多图（>9张时显示+N提示）
 
-### 3. horizontal (水平滚动布局)
-**显示方式**: 
-- 横向滑动浏览，固定高度200px
-- 所有图片都显示，通过左右滑动查看
-- 沉浸式画廊体验
-- 底部有"← 左右滑动查看更多 →"提示
-**文字位置**: 文字在图片**上方**
-**适合场景**: 
-- 横图为主的内容（横图占比>=60%）
-- 故事性、时间线叙事
-- 旅行风景、全景摄影
-- 漫画条漫、步骤展示
+### waterfall（瀑布流）
+- **图片**：保持原始比例完整显示，2列错落有致
+- **文字**：在图片**下方**，读者先看图再读文字
+- **单图**：居中完整展示；奇数图第1张跨2列
+- **适合**：
+  - 图片本身是重点（摄影、设计、穿搭、美食）
+  - 图片比例不一致（有横有竖）需要保持原貌
+  - 短文本或无文本的纯图片分享
 
-### 4. carousel (单图轮播布局)
-**显示方式**: 
-- 一次展示一张，完整显示
-- 有前后导航按钮，显示"当前/总数"
-- 所有图片都可以逐张浏览
-**文字位置**: 文字在图片**下方**
-**适合场景**: 
-- 图片数量较多（建议10张以上）
-- 教程步骤、产品细节
-- 需要逐张仔细查看的内容
-- 故事叙述、旅行日记
+### horizontal（水平滚动）
+- **图片**：固定高度横向排列，左右滑动浏览
+- **文字**：在图片**上方**
+- **体验**：沉浸式画廊感，有"← 左右滑动 →"提示
+- **适合**：
+  - 以横图为主的内容（风景、全景）
+  - 有连续性/时间顺序的内容（旅程、过程）
+  - 图片之间有叙事关系
 
-## 核心决策因素
+### carousel（单图轮播）
+- **图片**：一次显示一张完整图片，有前后导航
+- **文字**：在图片**下方**
+- **体验**：显示"当前/总数"，逐张专注查看
+- **适合**：
+  - 每张图都需要仔细看（教程步骤、产品多角度）
+  - 图片较多（>=10张）避免信息过载
+  - 对比展示（前后对比、A/B选择）
 
-### 1. 文字位置（根据内容决定）
-- **文字在上（grid/horizontal）**: 长文本(>=100字)、代码块、标题、列表、多段落 → 先读文字再看图
-- **文字在下（waterfall/carousel）**: 短文本(<100字)或无文字 → 先看图再读文字
+## 文本语义分析（最重要）
 
-### 2. 图片比例
-- **需保持原始比例**: 比例差异大、混合横竖图 → waterfall
-- **可裁切为正方形**: 比例相近 → grid
+仔细阅读用户的文字内容，理解其**意图和语气**：
 
-### 3. 图片数量
-- **10张以上**: carousel（避免一次展示太多，逐张浏览体验更好）
-- **1-9张**: 根据其他因素决定
+### 用户在"表达观点/分享经验" → grid
+- 语义特征：描述性文字、解释性内容、问答讨论
+- 关键词：今天学到了、给大家推荐、分享一下、请问、有人知道吗
+- 判断：文字是主体，需要先读懂
 
-### 4. 横图主导
-- **横图占比>=60%且数量>=3**: horizontal（发挥横图优势）
+### 用户在"展示图片/作品" → waterfall
+- 语义特征：简短感叹、表情符号、作品名称
+- 关键词：拍的、随拍、好美、❤️、看！、今天的、记录
+- 判断：图片是主体，文字只是点缀
 
-## 决策优先级
-1. 数量>=10 → carousel
-2. 长文本或代码 → grid（文字在上）
-3. 横图主导(>=60%) → horizontal
-4. 比例差异大或混合比例 → waterfall
-5. 摄影类内容 → waterfall
-6. 短文本+少量图片 → waterfall
-7. 默认 → grid
+### 用户在"记录过程/旅程" → horizontal
+- 语义特征：时间词、顺序词、地点变化
+- 关键词：从...到...、第一天、接着、然后、一路、全景
+- 判断：图片有连续性，需要按序浏览
 
-## 输出要求
-只输出一个单词: grid、waterfall、horizontal 或 carousel`,
+### 用户在"教学/对比" → carousel
+- 语义特征：步骤说明、对比描述、选择询问
+- 关键词：第一步、如何、教程、vs、对比、哪个好
+- 判断：每张图都重要，需要逐一查看
+
+## 综合评分逻辑
+
+对每种布局计算适合度分数，综合考虑所有维度：
+
+| 维度 | 权重 | 具体评分 |
+|------|------|----------|
+| 文本语义 | 最高 | 根据用户意图判断（表达→grid, 展示→waterfall, 旅程→horizontal, 教学→carousel）|
+| 文本特征 | 高 | 代码+35grid, 长文(>=150)+30grid, 短文(<30)+25waterfall |
+| 图片比例 | 中 | 全横图(>=90%)+30horizontal, 横竖混合+20waterfall, 比例差异大+15waterfall |
+| 图片数量 | 中 | >=15+25carousel, <=2+18waterfall, 单图+20waterfall |
+| 内容类型 | 中 | 摄影+30waterfall, 教程+25carousel, 故事+25horizontal |
+| 标签关键词 | 低 | 相关标签+12 |
+
+## 关键判断点
+
+1. **理解文字意图**：用户在说什么？想让读者先看什么？
+2. **有代码块** → grid +35（必须先读代码）
+3. **长文本(>=100字)** → grid +25（文字在上）
+4. **短文本(<30字)或emoji** → waterfall +25（图片优先）
+5. **横竖比例混合** → waterfall +20（保持各自比例）
+6. **全是横图(>=70%)且>=3张** → horizontal +25（画廊体验）
+7. **摄影/美食/穿搭语义** → waterfall +30（展示作品）
+8. **教程/步骤语义** → carousel +25（逐步查看）
+
+## 输出格式
+布局|理由（10字内，说明主要依据）
+
+示例：
+- grid|代码分享，先读后看
+- waterfall|展示摄影，保持比例
+- horizontal|全横图，画廊浏览
+- carousel|教程步骤，逐张查看`,
 		},
 		{
 			Role:    schema.User,
@@ -277,14 +295,16 @@ func (agentService *AgentService) RecommendLayout(ctx context.Context, req Layou
 	output, err := agent.Generate(ctx, setting, in, false, 0.2)
 	if err != nil {
 		logUtil.GetLogger().Warn("[AI Layout] AI 调用失败，使用规则引擎", zap.Error(err))
+		layout, reason := analysis.RuleBasedRecommend()
 		return &LayoutRecommendResponse{
-			Layout: analysis.RuleBasedRecommend(),
+			Layout: layout,
 			Source: "rule",
+			Reason: reason,
 		}, nil
 	}
 
-	// 清理并验证输出
-	output = extractLayoutFromOutput(output)
+	// 解析 AI 输出（格式：布局|理由）
+	layout, reason := parseLayoutOutput(output)
 	validLayouts := map[string]bool{
 		"waterfall":  true,
 		"grid":       true,
@@ -293,16 +313,17 @@ func (agentService *AgentService) RecommendLayout(ctx context.Context, req Layou
 	}
 
 	source := "ai"
-	if !validLayouts[output] {
+	if !validLayouts[layout] {
 		logUtil.GetLogger().Warn("[AI Layout] AI 输出无效，使用规则引擎", zap.String("output", output))
-		output = analysis.RuleBasedRecommend()
+		layout, reason = analysis.RuleBasedRecommend()
 		source = "rule"
 	}
 
-	logUtil.GetLogger().Info("[AI Layout] 推荐结果", zap.String("layout", output), zap.String("source", source))
+	logUtil.GetLogger().Info("[AI Layout] 推荐结果", zap.String("layout", layout), zap.String("source", source), zap.String("reason", reason))
 	return &LayoutRecommendResponse{
-		Layout: output,
+		Layout: layout,
 		Source: source,
+		Reason: reason,
 	}, nil
 }
 
@@ -432,42 +453,73 @@ func analyzeMediaFeatures(mediaList []MediaInfo, contentInfo *ContentInfo) *Medi
 }
 
 // inferContentType 根据内容信息推断内容类型
+// 返回类型与规则引擎匹配：
+// - technical, code: 技术/代码内容
+// - photography, art: 摄影/艺术作品
+// - tutorial, guide: 教程/指南
+// - timeline, story: 故事/时间线
+// - discussion, question: 讨论/问题
+// - diary: 日记/生活
+// - social: 社交分享（默认）
 func inferContentType(info *ContentInfo) string {
 	if info == nil {
-		return "unknown"
+		return "social"
 	}
 
-	// 检查标签来推断内容类型
+	content := strings.ToLower(info.Content)
+
+	// 1. 检查标签来推断内容类型
 	for _, tag := range info.Tags {
 		tagLower := strings.ToLower(tag)
-		// 摄影相关标签
-		if strings.Contains(tagLower, "摄影") || strings.Contains(tagLower, "photo") ||
-			strings.Contains(tagLower, "photography") || strings.Contains(tagLower, "风景") ||
-			strings.Contains(tagLower, "portrait") || strings.Contains(tagLower, "街拍") {
+
+		// 摄影/艺术相关
+		if containsAny(tagLower, []string{"摄影", "photo", "photography", "风景", "portrait", "街拍", "随拍", "art", "艺术", "设计", "插画"}) {
 			return "photography"
 		}
-		// 日记相关标签
-		if strings.Contains(tagLower, "日记") || strings.Contains(tagLower, "diary") ||
-			strings.Contains(tagLower, "生活") || strings.Contains(tagLower, "daily") {
-			return "diary"
+		// 教程相关
+		if containsAny(tagLower, []string{"教程", "tutorial", "指南", "guide", "步骤", "how"}) {
+			return "tutorial"
 		}
-		// 技术相关标签
-		if strings.Contains(tagLower, "code") || strings.Contains(tagLower, "编程") ||
-			strings.Contains(tagLower, "技术") || strings.Contains(tagLower, "开发") {
+		// 旅行/故事相关
+		if containsAny(tagLower, []string{"旅行", "travel", "游记", "旅途", "故事", "story"}) {
+			return "timeline"
+		}
+		// 技术相关
+		if containsAny(tagLower, []string{"code", "编程", "技术", "开发", "代码", "程序"}) {
 			return "code"
 		}
 	}
 
-	// 根据内容特征推断
+	// 2. 根据内容特征推断
 	if info.HasCode {
 		return "code"
 	}
 
-	// 根据文本长度推断
-	if info.ContentLength > 500 {
-		return "article"
-	} else if info.ContentLength > 100 {
-		return "diary"
+	// 3. 根据文本内容语义推断
+	// 教程/步骤类
+	if containsAny(content, []string{"第一步", "第二步", "步骤", "如何", "教程", "方法"}) {
+		return "tutorial"
+	}
+	// 问题/讨论类
+	if containsAny(content, []string{"请问", "有人", "怎么", "为什么", "吗？", "呢？"}) {
+		return "discussion"
+	}
+	// 时间线/故事类
+	if containsAny(content, []string{"今天", "昨天", "从...到", "第一天", "一路", "旅途"}) {
+		return "timeline"
+	}
+	// 摄影/展示类（短文本+感叹）
+	if info.ContentLength < 30 && containsAny(content, []string{"拍", "好美", "美丽", "漂亮", "❤", "😍", "🌸"}) {
+		return "photography"
+	}
+
+	// 4. 根据文本长度推断
+	if info.ContentLength > 200 {
+		// 长文本，看是否有结构
+		if info.HasHeaders || info.HasLists {
+			return "tutorial" // 有结构的长文可能是教程
+		}
+		return "diary" // 普通长文当日记
 	}
 
 	return "social"
@@ -536,139 +588,394 @@ func inferTextPosition(info *ContentInfo) string {
 
 // BuildPrompt 构建给 AI 的提示
 func (a *MediaAnalysis) BuildPrompt() string {
-	landscapePercent := 0.0
-	portraitPercent := 0.0
-	squarePercent := 0.0
-	if a.TotalCount > 0 {
-		landscapePercent = float64(a.LandscapeCount) / float64(a.TotalCount) * 100
-		portraitPercent = float64(a.PortraitCount) / float64(a.TotalCount) * 100
-		squarePercent = float64(a.SquareCount) / float64(a.TotalCount) * 100
+	// 构建标签字符串
+	tagsStr := "无"
+	if len(a.Tags) > 0 {
+		tagsStr = strings.Join(a.Tags, ", ")
 	}
 
-	// 构建内容信息部分
-	contentSection := ""
-	if a.ContentLength > 0 || len(a.Tags) > 0 {
-		tagsStr := "无"
-		if len(a.Tags) > 0 {
-			tagsStr = strings.Join(a.Tags, ", ")
-		}
-		contentSection = fmt.Sprintf(`
-## 内容信息
-- 文本长度: %d 字符
-- 行数: %d
-- 段落数: %d
-- 标签: %s
-- 包含代码块: %v
-- 包含链接: %v
-- 包含标题: %v
-- 包含列表: %v
-- 包含引用: %v
-- 内容类型推断: %s
-- 建议文字位置: %s
-`, a.ContentLength, a.LineCount, a.ParagraphCount, tagsStr,
-			a.HasCode, a.HasLinks, a.HasHeaders, a.HasLists, a.HasQuotes,
-			a.ContentType, a.TextPositionHint)
-	}
-
-	// 构建文本内容摘要（如果有的话）
+	// 构建文本内容摘要（放在最前面，最重要）
 	contentPreview := ""
 	if a.Content != "" {
 		preview := a.Content
-		if len(preview) > 200 {
-			preview = preview[:200] + "..."
+		if len(preview) > 300 {
+			preview = preview[:300] + "..."
 		}
-		contentPreview = fmt.Sprintf(`
-## 文本内容摘要
+		contentPreview = fmt.Sprintf(`## 用户发帖内容（最重要的判断依据）
+
 %s
+
 `, preview)
+	} else {
+		contentPreview = `## 用户发帖内容
+
+（无文字内容，仅图片分享）
+
+`
 	}
 
-	prompt := fmt.Sprintf(`请为以下媒体内容推荐最佳布局：
+	// 计算横图占比
+	landscapeRatio := 0.0
+	if a.TotalCount > 0 {
+		landscapeRatio = float64(a.LandscapeCount) / float64(a.TotalCount) * 100
+	}
 
-## 媒体统计
-- 总数量: %d 张/个
-- 横图: %d 张 (%.0f%%)
-- 竖图: %d 张 (%.0f%%)
-- 方图: %d 张 (%.0f%%)
-- 视频: %d 个
+	// 判断比例混合情况
+	ratioMix := "比例一致"
+	if a.LandscapeCount > 0 && a.PortraitCount > 0 {
+		ratioMix = "横竖混合"
+	} else if a.RatioVariance > 0.25 {
+		ratioMix = "比例差异大"
+	}
+
+	prompt := fmt.Sprintf(`%s## 内容特征分析
+- 文本长度: %d 字符
+- 行数/段落数: %d/%d
+- 标签: %s
+- 包含代码块: %v
+- 包含标题/列表/引用: %v/%v/%v
+- 推断的内容类型: %s
+
+## 媒体信息
+- 图片数量: %d 张
+- 横图/竖图/方图: %d/%d/%d（横图占比 %.0f%%）
+- 比例情况: %s
 - 主导类型: %s
 
-## 宽高比分析
-- 平均宽高比: %.2f
-- 最小宽高比: %.2f
-- 最大宽高比: %.2f
-- 宽高比方差: %.3f (方差越大说明图片比例差异越大)
-%s%s
-## 媒体详情
-%s
-
-请根据以上信息，结合四种布局的特点（grid和horizontal文字在上，waterfall和carousel文字在下），
-综合考虑文本长度、内容结构和图片特征，选择最合适的布局。`,
-		a.TotalCount,
-		a.LandscapeCount, landscapePercent,
-		a.PortraitCount, portraitPercent,
-		a.SquareCount, squarePercent,
-		a.VideoCount,
-		a.DominantType,
-		a.AvgRatio, a.MinRatio, a.MaxRatio, a.RatioVariance,
-		contentSection,
+请综合**文本语义**和**图片特征**，推荐最合适的布局。`,
 		contentPreview,
-		strings.Join(a.MediaDetails, "\n"))
+		a.ContentLength, a.LineCount, a.ParagraphCount, tagsStr,
+		a.HasCode, a.HasHeaders, a.HasLists, a.HasQuotes,
+		a.ContentType,
+		a.TotalCount-a.VideoCount,
+		a.LandscapeCount, a.PortraitCount, a.SquareCount, landscapeRatio,
+		ratioMix, a.DominantType)
 
 	return prompt
 }
 
-// RuleBasedRecommend 基于规则的推荐（作为 AI 的兜底）
-// 核心逻辑：
-// - grid/horizontal: 文字在图片上方，适合长文本、代码、结构化内容
-// - waterfall/carousel: 文字在图片下方，适合短文本、摄影、图片为主的内容
-func (a *MediaAnalysis) RuleBasedRecommend() string {
-	// 规则1: 数量 >= 10 → carousel（避免信息过载，逐张浏览）
-	if a.TotalCount >= 10 {
-		return "carousel"
+// RuleBasedRecommend 基于综合评分的推荐
+// 综合评估所有信息，计算每种布局的适合度分数
+//
+// 四种布局特点：
+// - grid: 方形缩略图，最多9张+N，文字在上，适合快速预览
+// - waterfall: 保持原比例，2列错落，文字在下，适合欣赏完整图片
+// - horizontal: 固定高度横滑，文字在上，适合连续浏览
+// - carousel: 一次一张完整显示，文字在下，适合逐张查看
+//
+// 返回: (布局, 理由)
+func (a *MediaAnalysis) RuleBasedRecommend() (string, string) {
+	scores := map[string]float64{
+		"grid":       0,
+		"waterfall":  0,
+		"horizontal": 0,
+		"carousel":   0,
+	}
+	reasons := map[string]string{
+		"grid":       "",
+		"waterfall":  "",
+		"horizontal": "",
+		"carousel":   "",
 	}
 
-	// 规则2: 基于内容决定文字位置
-	// 长文本、代码、结构化内容 → 文字在上（grid/horizontal）
-	needsTextOnTop := a.ContentLength >= 100 || a.HasCode || a.HasHeaders || a.HasLists || a.ParagraphCount >= 2
+	// ============================================
+	// 维度1：文本特征（决定文字是否重要）
+	// ============================================
 
-	// 规则3: 横图主导 (>= 60%) 且数量 >= 3
-	if a.TotalCount >= 3 {
-		landscapeRatio := float64(a.LandscapeCount) / float64(a.TotalCount)
-		if landscapeRatio >= 0.6 {
-			// 横图主导 → horizontal（文字在上，适合故事性内容）
-			return "horizontal"
+	// 代码块 → 强烈需要先读文字 → grid
+	if a.HasCode {
+		scores["grid"] += 35
+		scores["horizontal"] += 10 // horizontal 也是文字在上
+		reasons["grid"] = "代码分享"
+	}
+
+	// 结构化内容（标题/列表/引用）→ 文字重要
+	structureScore := 0.0
+	if a.HasHeaders {
+		structureScore += 10
+	}
+	if a.HasLists {
+		structureScore += 10
+	}
+	if a.HasQuotes {
+		structureScore += 5
+	}
+	if structureScore > 0 {
+		scores["grid"] += structureScore
+		scores["horizontal"] += structureScore * 0.5
+		if reasons["grid"] == "" {
+			reasons["grid"] = "结构内容"
 		}
 	}
 
-	// 规则4: 需要文字在上方的内容
-	if needsTextOnTop {
-		// 文字在上 → grid（经典社交媒体风格）
-		return "grid"
+	// 文本长度评分
+	switch {
+	case a.ContentLength >= 150:
+		// 很长的文本 → 强烈需要先读
+		scores["grid"] += 30
+		scores["horizontal"] += 15
+		if reasons["grid"] == "" {
+			reasons["grid"] = "长文分享"
+		}
+	case a.ContentLength >= 80:
+		// 中长文本
+		scores["grid"] += 20
+		scores["horizontal"] += 10
+		scores["waterfall"] += 5
+	case a.ContentLength >= 30:
+		// 中等文本
+		scores["grid"] += 10
+		scores["waterfall"] += 10
+		scores["horizontal"] += 5
+	case a.ContentLength < 30:
+		// 短文本或无文本 → 图片优先
+		scores["waterfall"] += 25
+		scores["carousel"] += 15
+		if reasons["waterfall"] == "" {
+			reasons["waterfall"] = "图片展示"
+		}
 	}
 
-	// 规则5: 摄影类内容 → waterfall（保持原始比例，文字在下）
-	if a.ContentType == "photography" {
-		return "waterfall"
+	// ============================================
+	// 维度2：图片数量（不同布局对数量的适应性）
+	// ============================================
+
+	switch {
+	case a.TotalCount >= 15:
+		// 非常多的图片 → carousel 逐张或 grid 预览
+		scores["carousel"] += 25
+		scores["grid"] += 15
+		if reasons["carousel"] == "" {
+			reasons["carousel"] = "图片较多"
+		}
+	case a.TotalCount >= 10:
+		// 多图 → carousel 或 grid
+		scores["carousel"] += 20
+		scores["grid"] += 15
+		scores["waterfall"] += 5
+	case a.TotalCount >= 5:
+		// 中等数量
+		scores["grid"] += 15
+		scores["waterfall"] += 10
+		scores["carousel"] += 8
+		scores["horizontal"] += 8
+	case a.TotalCount == 3 || a.TotalCount == 4:
+		// 3-4张 → 各布局都适合
+		scores["waterfall"] += 15
+		scores["grid"] += 12
+		scores["horizontal"] += 10
+	case a.TotalCount == 2:
+		// 2张 → waterfall 错落好看
+		scores["waterfall"] += 18
+		scores["grid"] += 10
+	case a.TotalCount == 1:
+		// 单图 → waterfall 完整展示 或 grid 智能调整
+		scores["waterfall"] += 20
+		scores["grid"] += 12
+		if reasons["waterfall"] == "" {
+			reasons["waterfall"] = "单图展示"
+		}
 	}
 
-	// 规则6: 宽高比差异大 或 横竖混合 → waterfall（保持原始比例）
-	if a.RatioVariance > 0.25 || (a.LandscapeCount > 0 && a.PortraitCount > 0) {
-		return "waterfall"
+	// ============================================
+	// 维度3：图片比例特征（决定是否需要保持原比例）
+	// ============================================
+
+	if a.TotalCount > 0 {
+		landscapeRatio := float64(a.LandscapeCount) / float64(a.TotalCount)
+		portraitRatio := float64(a.PortraitCount) / float64(a.TotalCount)
+		squareRatio := float64(a.SquareCount) / float64(a.TotalCount)
+
+		// 全是横图 → horizontal 最佳
+		if landscapeRatio >= 0.9 && a.TotalCount >= 3 {
+			scores["horizontal"] += 30
+			reasons["horizontal"] = "全横图"
+		} else if landscapeRatio >= 0.7 && a.TotalCount >= 3 {
+			scores["horizontal"] += 25
+			if reasons["horizontal"] == "" {
+				reasons["horizontal"] = "横图为主"
+			}
+		} else if landscapeRatio >= 0.5 {
+			scores["horizontal"] += 15
+		}
+
+		// 全是竖图 → waterfall 保持比例更好
+		if portraitRatio >= 0.8 {
+			scores["waterfall"] += 20
+			if reasons["waterfall"] == "" {
+				reasons["waterfall"] = "竖图展示"
+			}
+		}
+
+		// 全是方图 → grid 裁切无损失
+		if squareRatio >= 0.8 {
+			scores["grid"] += 15
+		}
+
+		// 横竖混合 → waterfall 保持各自比例
+		if a.LandscapeCount > 0 && a.PortraitCount > 0 {
+			mixScore := 20.0
+			// 差异越大越需要 waterfall
+			if a.RatioVariance > 0.3 {
+				mixScore += 10
+			}
+			scores["waterfall"] += mixScore
+			if reasons["waterfall"] == "" {
+				reasons["waterfall"] = "比例混合"
+			}
+		}
+
+		// 宽高比差异大 → waterfall（grid 裁切会损失内容）
+		if a.RatioVariance > 0.25 {
+			scores["waterfall"] += 15
+			scores["grid"] -= 10 // grid 裁切会损失
+		}
 	}
 
-	// 规则7: 全是竖图且数量 >= 3 → waterfall（竖图用瀑布流更好看）
-	if a.PortraitCount == a.TotalCount && a.TotalCount >= 3 {
-		return "waterfall"
+	// ============================================
+	// 维度4：内容类型推断
+	// ============================================
+
+	switch a.ContentType {
+	case "technical", "code":
+		scores["grid"] += 20
+		if reasons["grid"] == "" {
+			reasons["grid"] = "技术内容"
+		}
+	case "photography", "art":
+		scores["waterfall"] += 30
+		reasons["waterfall"] = "摄影作品"
+	case "tutorial", "guide":
+		scores["carousel"] += 25
+		scores["grid"] += 15
+		if reasons["carousel"] == "" {
+			reasons["carousel"] = "教程步骤"
+		}
+	case "timeline", "story":
+		scores["horizontal"] += 25
+		scores["waterfall"] += 15
+		if reasons["horizontal"] == "" {
+			reasons["horizontal"] = "故事过程"
+		}
+	case "discussion", "question":
+		scores["grid"] += 20
+		if reasons["grid"] == "" {
+			reasons["grid"] = "讨论内容"
+		}
 	}
 
-	// 规则8: 短文本或无文本 + 少量图片 → waterfall（图片先行，简洁展示）
-	if a.ContentLength < 50 && a.TotalCount <= 3 {
-		return "waterfall"
+	// ============================================
+	// 维度5：标签分析
+	// ============================================
+
+	for _, tag := range a.Tags {
+		tagLower := strings.ToLower(tag)
+
+		// 摄影/视觉相关 → waterfall
+		if containsAny(tagLower, []string{"摄影", "photo", "风景", "随拍", "设计", "插画", "美食", "穿搭"}) {
+			scores["waterfall"] += 12
+			if reasons["waterfall"] == "" {
+				reasons["waterfall"] = "视觉内容"
+			}
+		}
+
+		// 教程相关 → carousel
+		if containsAny(tagLower, []string{"教程", "tutorial", "步骤", "指南", "how"}) {
+			scores["carousel"] += 12
+			if reasons["carousel"] == "" {
+				reasons["carousel"] = "教程内容"
+			}
+		}
+
+		// 旅行/故事相关 → horizontal
+		if containsAny(tagLower, []string{"旅行", "travel", "游记", "旅途", "全景"}) {
+			scores["horizontal"] += 12
+			if reasons["horizontal"] == "" {
+				reasons["horizontal"] = "旅行记录"
+			}
+		}
+
+		// 技术相关 → grid
+		if containsAny(tagLower, []string{"代码", "code", "技术", "开发", "编程"}) {
+			scores["grid"] += 10
+		}
 	}
 
-	// 默认: grid（经典社交媒体风格，文字在上）
-	return "grid"
+	// ============================================
+	// 维度6：特殊组合加成
+	// ============================================
+
+	// 短文本 + 摄影内容 + 少量图片 → waterfall 强加成
+	if a.ContentLength < 50 && a.ContentType == "photography" && a.TotalCount <= 6 {
+		scores["waterfall"] += 15
+	}
+
+	// 长文本 + 代码 → grid 强加成
+	if a.ContentLength >= 100 && a.HasCode {
+		scores["grid"] += 15
+	}
+
+	// 多张横图 + 故事内容 → horizontal 强加成
+	if a.LandscapeCount >= 3 && a.ContentType == "timeline" {
+		scores["horizontal"] += 15
+	}
+
+	// ============================================
+	// 选择最高分的布局
+	// ============================================
+
+	bestLayout := "grid"
+	bestScore := scores["grid"]
+	for layout, score := range scores {
+		if score > bestScore {
+			bestScore = score
+			bestLayout = layout
+		}
+	}
+
+	// 生成理由
+	reason := reasons[bestLayout]
+	if reason == "" {
+		switch bestLayout {
+		case "grid":
+			reason = "综合推荐"
+		case "waterfall":
+			reason = "完整展示"
+		case "horizontal":
+			reason = "连续浏览"
+		case "carousel":
+			reason = "逐张查看"
+		}
+	}
+
+	return bestLayout, reason
+}
+
+// containsAny 检查字符串是否包含任意一个子串
+func containsAny(s string, subs []string) bool {
+	for _, sub := range subs {
+		if strings.Contains(s, sub) {
+			return true
+		}
+	}
+	return false
+}
+
+// parseLayoutOutput 解析 AI 输出（格式：布局|理由）
+func parseLayoutOutput(output string) (string, string) {
+	output = strings.TrimSpace(output)
+
+	// 尝试按 | 分割
+	if strings.Contains(output, "|") {
+		parts := strings.SplitN(output, "|", 2)
+		layout := strings.ToLower(strings.TrimSpace(parts[0]))
+		reason := strings.TrimSpace(parts[1])
+		return layout, reason
+	}
+
+	// 没有 | 分隔符，尝试提取布局名称
+	layout := extractLayoutFromOutput(output)
+	return layout, ""
 }
 
 // extractLayoutFromOutput 从 AI 输出中提取布局名称
