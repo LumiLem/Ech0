@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { theToast } from '@/utils/toast'
 import { fetchAddEcho, fetchUpdateEcho, fetchAddTodo, fetchGetMusic, fetchGetEchoById } from '@/service/api'
 import { Mode, ExtensionType, ImageSource, ImageLayout } from '@/enums/enums'
@@ -7,6 +7,7 @@ import { useEchoStore, useTodoStore, useInboxStore } from '@/stores'
 import { localStg } from '@/utils/storage'
 import { getImageSize } from '@/utils/other'
 import { useLayoutRecommend } from '@/composables/useLayoutRecommend'
+import { useDebounceFn } from '@vueuse/core'
 
 export const useEditorStore = defineStore('editorStore', () => {
   const echoStore = useEchoStore()
@@ -123,6 +124,164 @@ export const useEditorStore = defineStore('editorStore', () => {
       }
       return null
     }
+  }
+
+  //===============================================================
+  // 检测是否有实际变更（用于更新模式）
+  //===============================================================
+  const hasChanges = (): boolean => {
+    const original = echoStore.echoToUpdate
+    if (!original) return true // 没有原始数据，认为有变更
+
+    // 比较基本内容
+    if (echoToAdd.value.content !== original.content) return true
+    if (echoToAdd.value.private !== original.private) return true
+    if (echoToAdd.value.layout !== original.layout) return true
+
+    // 比较标签
+    const originalTagNames = original.tags?.map((tag) => tag.name).sort() || []
+    const newTagName = tagToAdd.value?.trim() || ''
+    const newTagNames = newTagName ? [newTagName] : []
+    if (originalTagNames.length !== newTagNames.length) return true
+    if (originalTagNames.some((name, index) => name !== newTagNames[index])) return true
+
+    // 比较媒体数量
+    const originalMediaCount = original.media?.length || 0
+    const newMediaCount = mediaListToAdd.value.length
+    if (originalMediaCount !== newMediaCount) return true
+
+    // 比较媒体顺序（通过 URL 比较）
+    const originalMediaUrls = original.media?.map((m) => m.media_url) || []
+    const newMediaUrls = mediaListToAdd.value.map((m) => m.media_url)
+    if (originalMediaUrls.some((url, index) => url !== newMediaUrls[index])) return true
+
+    return false // 没有变更
+  }
+
+  //================================================================
+  // 自动保存逻辑
+  //================================================================
+  const DRAFT_KEY = 'ech0_editor_draft'
+  const isSaving = ref(false)
+  const lastSavedTime = ref('')
+
+  const saveDraft = () => {
+    // 只有在非提交状态时才保存
+    if (isSubmitting.value) return
+
+    // 如果是更新模式，只有当内容发生实际变化时才保存草稿
+    if (isUpdateMode.value && !hasChanges()) {
+      // 如果当前没有变化，但本地存有此 updateId 的草稿，则清理草稿（可能是用户改了又改回去了）
+      const draft = localStg.getItem<any>(DRAFT_KEY)
+      if (draft && draft.isUpdateMode && draft.updateId === echoStore.echoToUpdate?.id) {
+        clearDraft()
+      }
+      return
+    }
+
+    const draftData = {
+      currentMode: currentMode.value,
+      echoToAdd: {
+        content: echoToAdd.value.content,
+        private: echoToAdd.value.private,
+        layout: echoToAdd.value.layout,
+      },
+      mediaListToAdd: mediaListToAdd.value,
+      tagToAdd: tagToAdd.value,
+      todoToAdd: todoToAdd.value,
+      videoURL: videoURL.value,
+      websiteToAdd: websiteToAdd.value,
+      isUpdateMode: isUpdateMode.value,
+      updateId: isUpdateMode.value ? echoStore.echoToUpdate?.id : null,
+      timestamp: Date.now(),
+    }
+
+    // 检查是否为空，如果全是空的则不保存（或清理）
+    if (!isUpdateMode.value) {
+      const isEmpty =
+        !draftData.echoToAdd.content &&
+        draftData.mediaListToAdd.length === 0 &&
+        !draftData.todoToAdd.content &&
+        !draftData.videoURL &&
+        !draftData.websiteToAdd.site
+
+      if (isEmpty) {
+        clearDraft()
+        return
+      }
+    }
+
+    isSaving.value = true
+    localStg.setItem(DRAFT_KEY, draftData)
+    lastSavedTime.value = new Date().toLocaleTimeString()
+
+    setTimeout(() => {
+      isSaving.value = false
+    }, 1000)
+  }
+
+  const debouncedSave = useDebounceFn(saveDraft, 2000)
+
+  // 监听所有相关数据的变化
+  watch(
+    [
+      () => echoToAdd.value.content,
+      () => echoToAdd.value.private,
+      () => echoToAdd.value.layout,
+      () => mediaListToAdd.value,
+      () => tagToAdd.value,
+      () => todoToAdd.value.content,
+      () => videoURL.value,
+      () => websiteToAdd.value.site,
+      () => websiteToAdd.value.title,
+    ],
+    () => {
+      debouncedSave()
+    },
+    { deep: true },
+  )
+
+  const loadDraft = () => {
+    const draft = localStg.getItem<any>(DRAFT_KEY)
+    if (!draft) return false
+
+    // 如果处于更新模式且草稿是关于特定 Echo 的，则需要匹配 ID
+    // 这里的逻辑比较微妙：如果用户打开了编辑器但没进更新模式，我们载入“新建”草稿
+    // 如果进了更新模式，我们只在草稿也是同一个 ID 时载入（或者提示用户）
+
+    // 简便起见，如果是新建模式（!isUpdateMode.value），则载入新建草稿
+    if (!isUpdateMode.value && !draft.isUpdateMode) {
+      echoToAdd.value.content = draft.echoToAdd?.content || ''
+      echoToAdd.value.private = draft.echoToAdd?.private || false
+      echoToAdd.value.layout = draft.echoToAdd?.layout || ImageLayout.AUTO
+      mediaListToAdd.value = draft.mediaListToAdd || []
+      tagToAdd.value = draft.tagToAdd || ''
+      todoToAdd.value.content = draft.todoToAdd?.content || ''
+      videoURL.value = draft.videoURL || ''
+      websiteToAdd.value = draft.websiteToAdd || { title: '', site: '' }
+      currentMode.value = draft.currentMode || Mode.ECH0
+      return true
+    }
+
+    // 如果草稿是更新模式的，且当前也是更新模式且 ID 匹配
+    if (isUpdateMode.value && draft.isUpdateMode && draft.updateId === echoStore.echoToUpdate?.id) {
+      echoToAdd.value.content = draft.echoToAdd?.content || ''
+      echoToAdd.value.private = draft.echoToAdd?.private || false
+      echoToAdd.value.layout = draft.echoToAdd?.layout || ImageLayout.AUTO
+      mediaListToAdd.value = draft.mediaListToAdd || []
+      tagToAdd.value = draft.tagToAdd || ''
+      todoToAdd.value.content = draft.todoToAdd?.content || ''
+      videoURL.value = draft.videoURL || ''
+      websiteToAdd.value = draft.websiteToAdd || { title: '', site: '' }
+      return true
+    }
+
+    return false
+  }
+
+  const clearDraft = () => {
+    localStg.removeItem(DRAFT_KEY)
+    lastSavedTime.value = ''
   }
 
   //================================================================
@@ -258,38 +417,6 @@ export const useEditorStore = defineStore('editorStore', () => {
   }
 
   //===============================================================
-  // 检测是否有实际变更（用于更新模式）
-  //===============================================================
-  const hasChanges = (): boolean => {
-    const original = echoStore.echoToUpdate
-    if (!original) return true // 没有原始数据，认为有变更
-
-    // 比较基本内容
-    if (echoToAdd.value.content !== original.content) return true
-    if (echoToAdd.value.private !== original.private) return true
-    if (echoToAdd.value.layout !== original.layout) return true
-
-    // 比较标签
-    const originalTagNames = original.tags?.map((tag) => tag.name).sort() || []
-    const newTagName = tagToAdd.value?.trim() || ''
-    const newTagNames = newTagName ? [newTagName] : []
-    if (originalTagNames.length !== newTagNames.length) return true
-    if (originalTagNames.some((name, index) => name !== newTagNames[index])) return true
-
-    // 比较媒体数量
-    const originalMediaCount = original.media?.length || 0
-    const newMediaCount = mediaListToAdd.value.length
-    if (originalMediaCount !== newMediaCount) return true
-
-    // 比较媒体顺序（通过 URL 比较）
-    const originalMediaUrls = original.media?.map((m) => m.media_url) || []
-    const newMediaUrls = mediaListToAdd.value.map((m) => m.media_url)
-    if (originalMediaUrls.some((url, index) => url !== newMediaUrls[index])) return true
-
-    return false // 没有变更
-  }
-
-  //===============================================================
   // 添加或更新Echo
   //===============================================================
   const handleAddOrUpdateEcho = async (justSyncMedia: boolean) => {
@@ -364,6 +491,7 @@ export const useEditorStore = defineStore('editorStore', () => {
           success: (res) => {
             if (res.code === 1) {
               clearEditor()
+              clearDraft() // 发布成功清理草稿
               echoStore.refreshEchos()
               setMode(Mode.ECH0)
               echoStore.getTags() // 刷新标签列表
@@ -428,6 +556,7 @@ export const useEditorStore = defineStore('editorStore', () => {
             if (!justSyncMedia) {
               // 完整更新模式的后续处理
               clearEditor()
+              clearDraft() // 更新成功清理草稿
               isUpdateMode.value = false
               echoStore.echoToUpdate = null
               setMode(Mode.ECH0)
@@ -562,6 +691,7 @@ export const useEditorStore = defineStore('editorStore', () => {
       if (res.code === 1) {
         theToast.success('🎉添加成功！')
         todoToAdd.value = { content: '' }
+        clearDraft() // 添加成功清理草稿
         todoStore.getTodos()
       }
     } finally {
@@ -579,6 +709,7 @@ export const useEditorStore = defineStore('editorStore', () => {
     isUpdateMode.value = false
     echoStore.echoToUpdate = null
     clearEditor()
+    clearDraft() // 退出更新模式清理该更新的草稿
     setMode(Mode.ECH0)
     theToast.info('已退出更新模式')
 
@@ -600,6 +731,13 @@ export const useEditorStore = defineStore('editorStore', () => {
 
   const init = () => {
     handleGetPlayingMusic()
+    // 载入草稿
+    setTimeout(() => {
+      const hasRestored = loadDraft()
+      if (hasRestored) {
+        theToast.info('已为你恢复上次未完成的编辑内容！')
+      }
+    }, 500)
   }
 
   return {
@@ -649,5 +787,11 @@ export const useEditorStore = defineStore('editorStore', () => {
     handleUppyUploaded,
     scrollToEditedEcho,
     doRecommendLayout,
+
+    // 自动保存状态
+    isSaving,
+    lastSavedTime,
+    loadDraft,
+    clearDraft,
   }
 })

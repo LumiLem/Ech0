@@ -178,8 +178,13 @@ watch(
       // 6. 回到页面顶部（进入编辑模式）
       window.scrollTo({ top: 0, behavior: 'smooth' })
 
-      // 7. 弹出通知，提示可以编辑了
-      theToast.info('已进入更新模式，请编辑内容后点击更新按钮！')
+      // 7. 检查是否有针对此内容且未提交的草稿
+      const hasRestored = editorStore.loadDraft()
+      if (hasRestored) {
+        theToast.success('已进入更新模式，并自动恢复了你上次未完成的编辑！')
+      } else {
+        theToast.info('已进入更新模式，请编辑内容后点击更新按钮！')
+      }
     } else {
       // 退出更新模式
       echoToUpdate.value = null
