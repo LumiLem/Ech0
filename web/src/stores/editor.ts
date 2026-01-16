@@ -1,11 +1,11 @@
 import { defineStore } from 'pinia'
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, computed } from 'vue'
 import { theToast } from '@/utils/toast'
 import { fetchAddEcho, fetchUpdateEcho, fetchAddTodo, fetchGetMusic, fetchGetEchoById } from '@/service/api'
 import { Mode, ExtensionType, ImageSource, ImageLayout } from '@/enums/enums'
 import { useEchoStore, useTodoStore, useInboxStore } from '@/stores'
 import { localStg } from '@/utils/storage'
-import { getImageSize } from '@/utils/other'
+import { getImageSize } from '@/utils/image'
 import { useLayoutRecommend } from '@/composables/useLayoutRecommend'
 import { useDebounceFn } from '@vueuse/core'
 
@@ -43,6 +43,23 @@ export const useEditorStore = defineStore('editorStore', () => {
     extension: null, // 拓展内容（对于扩展类型所需的数据）
     extension_type: null, // 拓展内容类型（音乐/视频/链接/GITHUB项目）
   })
+
+  const hasContent = computed(() => !!echoToAdd.value.content?.trim()) // 是否已填写内容
+  const hasImage = computed(() => mediaListToAdd.value.length > 0) // 是否已添加图片
+  const hasExtension = computed(() => {
+    // 适合 Music/Video/Github
+    const ext = extensionToAdd.value.extension
+    const extType = extensionToAdd.value.extension_type
+
+    // Website 多一层检测
+    if (extType === ExtensionType.WEBSITE) {
+      const { title, site } = websiteToAdd.value
+      return !!title && !!site
+    }
+
+    return !!ext && !!extType
+  })
+
   //================================================================
   // 编辑器数据状态管理(待添加的Todo)
   //================================================================
@@ -753,6 +770,10 @@ export const useEditorStore = defineStore('editorStore', () => {
 
     echoToAdd,
     todoToAdd,
+
+    hasContent,
+    hasImage,
+    hasExtension,
 
     mediaToAdd,
     mediaListToAdd,

@@ -68,7 +68,7 @@ Ech0 is a new-generation open-source self-hosted platform designed for individua
 
 ## Highlights
 
-☁️ **Atomically Lightweight**: Consumes less than **15MB** of memory with an image size under **40MB**, powered by a single-file SQLite architecture  
+☁️ **Atomically Lightweight**: Consumes less than **15MB** of memory with an image size under **50MB**, powered by a single-file SQLite architecture  
 🚀 **Instant Deployment**: Zero configuration required — from installation to operation in just one command  
 ✍️ **Distraction-Free Writing**: A clean, online Markdown editor with rich plugin support and real-time preview  
 📦 **Data Sovereignty**: All content is stored locally in SQLite, with full RSS feed support  
@@ -339,6 +339,8 @@ Thank you to all the friends who have supported this project! Your contributions
 |       🧑‍💻 [@Rvn0xsy](https://github.com/Rvn0xsy)       | 2025-11-12 | Great project, I will keep following! |
 |                     🧑‍💻 王贼臣                     | 2025-11-20 | Thanks www.cardopt.cn             |
 |       🧑‍💻 [@ljxme](https://github.com/ljxme)    | 2025-11-30 | Doing my humble part 😋             |
+|       🧑‍💻 [@he9ab2l](https://github.com/he9ab2l)    | 2025-12-23 | None            |
+|       🧑‍💻 鸿运当头(windfore)    | 2026-1-6 | Thank you for creating ech0           |
 
 ---
 

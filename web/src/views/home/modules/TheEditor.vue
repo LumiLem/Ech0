@@ -166,10 +166,8 @@ watch(
       }
 
       // 4. 填充标签
-      tagToAdd.value =
-        Array.isArray(echoToUpdate.value?.tags) && echoToUpdate.value.tags.length > 0
-          ? echoToUpdate.value.tags[0]?.name || ''
-          : ''
+      const tags = echoToUpdate.value?.tags
+      tagToAdd.value = Array.isArray(tags) && tags.length > 0 ? (tags[0]?.name ?? '') : ''
 
       // 5. 填充私密状态 && 布局方式
       echoToAdd.value.private = echoToUpdate.value?.private || false

@@ -4,6 +4,15 @@ import { useFetch } from '@vueuse/core'
 import { theToast } from '@/utils/toast'
 import { useConnectStore } from './connect'
 
+// 每个 Hub 的独立状态
+interface HubState {
+  url: string
+  buffer: App.Api.Hub.Echo[] // 缓冲池
+  currentPage: number // 独立分页
+  hasMore: boolean
+  isLoading: boolean
+}
+
 export const useHubStore = defineStore('hubStore', () => {
   /**
    * state
@@ -15,15 +24,62 @@ export const useHubStore = defineStore('hubStore', () => {
   const hubList = ref<App.Api.Hub.HubList>([])
   const hubinfoList = ref<App.Api.Hub.HubInfoList>([])
   const hubInfoMap = ref<Map<string, App.Api.Hub.HubItemInfo>>(new Map())
+  const hubStates = ref<Map<string, HubState>>(new Map()) // 各 Hub 的独立状态
 
   // echo
-  const echoList = ref<App.Api.Hub.Echo[]>([]) // 存储Echo列表
+  const echoList = ref<App.Api.Hub.Echo[]>([]) // 存储Echo列表（展示列表）
+  const existingIds = ref<Set<string>>(new Set()) // 已存在的 Echo ID，用于去重
 
   const isPreparing = ref<boolean>(true) // 是否正在准备数据
   const isLoading = ref<boolean>(false) // 是否正在加载数据
-  const currentPage = ref<number>(1) // 延迟加载的页码，从0开始计数
-  const pageSize = ref<number>(3) // 延迟加载的数量
+  const hasTriedInitialLoad = ref<boolean>(false) // 是否已尝试过首次加载（用于空态展示）
+  const pageSize = ref<number>(10) // 每个 Hub 每次请求的数量
+  const batchSize = ref<number>(10) // 每次归并取数的数量
   const hasMore = ref<boolean>(true) // 是否还有更多数据可加载
+
+  /**
+   * utils
+   */
+
+  // 数据标准化函数：将旧版本的 images 字段转换为 media 字段
+  const normalizeEchoData = (echo: any, serverUrl: string): App.Api.Hub.Echo => {
+    // 如果没有 media 字段或 media 为空，但有 images 字段，则进行转换
+    if ((!echo.media || echo.media.length === 0) && echo.images && Array.isArray(echo.images)) {
+      // 将 images 转换为 media 格式
+      echo.media = echo.images.map((image: any) => ({
+        id: image.id,
+        message_id: image.message_id,
+        media_url: image.image_url || image.media_url, // 兼容两种字段名
+        media_type: 'image' as const, // 旧版本只支持图片
+        media_source: image.image_source || image.media_source, // 兼容两种字段名
+        object_key: image.object_key,
+        width: image.width,
+        height: image.height,
+      }))
+
+      // 开发环境日志
+      if (import.meta.env.DEV) {
+        console.log('[兼容性转换] 检测到旧版本数据格式，已转换 images → media', {
+          echoId: echo.id,
+          serverUrl: serverUrl,
+          imagesCount: echo.images.length,
+        })
+      }
+    }
+
+    // 如果既没有 media 也没有 images，设置为空数组
+    if (!echo.media || !Array.isArray(echo.media)) {
+      echo.media = []
+      if (import.meta.env.DEV && echo.images === undefined) {
+        console.warn('[兼容性转换] Echo 数据缺少 media 和 images 字段', {
+          echoId: echo.id,
+          serverUrl: serverUrl,
+        })
+      }
+    }
+
+    return echo
+  }
 
   /**
    * actions
@@ -32,6 +88,7 @@ export const useHubStore = defineStore('hubStore', () => {
   // 1. 获取hubList
   const getHubList = async () => {
     isPreparing.value = true
+    hasTriedInitialLoad.value = false
     await connectStore.getConnect()
 
     hubList.value = connectStore.connects
@@ -53,9 +110,9 @@ export const useHubStore = defineStore('hubStore', () => {
           : item
         : item.connect_url.endsWith('/')
           ? {
-              ...item,
-              connect_url: item.connect_url.slice(0, -1),
-            }
+            ...item,
+            connect_url: item.connect_url.slice(0, -1),
+          }
           : item
     })
 
@@ -76,32 +133,32 @@ export const useHubStore = defineStore('hubStore', () => {
           }
         }, timeout)
 
-        // 发起请求
-        ;(async () => {
-          try {
-            const { error, data } = await useFetch<App.Api.Response<App.Api.Hub.HubItemInfo>>(
-              `${url}/api/connect`,
-            ).json()
+          // 发起请求
+          ; (async () => {
+            try {
+              const { error, data } = await useFetch<App.Api.Response<App.Api.Hub.HubItemInfo>>(
+                `${url}/api/connect`,
+              ).json()
 
-            clearTimeout(timeoutId)
-            if (!isResolved) {
-              isResolved = true
-              if (error.value || data.value?.code !== 1) {
-                console.warn(`[Hub] 请求失败: ${url}`, error.value)
+              clearTimeout(timeoutId)
+              if (!isResolved) {
+                isResolved = true
+                if (error.value || data.value?.code !== 1) {
+                  console.warn(`[Hub] 请求失败: ${url}`, error.value)
+                  resolve(null)
+                } else {
+                  resolve(data.value?.data || null)
+                }
+              }
+            } catch (err) {
+              clearTimeout(timeoutId)
+              if (!isResolved) {
+                isResolved = true
+                console.error(`[Hub] 请求异常: ${url}`, err)
                 resolve(null)
-              } else {
-                resolve(data.value?.data || null)
               }
             }
-          } catch (err) {
-            clearTimeout(timeoutId)
-            if (!isResolved) {
-              isResolved = true
-              console.error(`[Hub] 请求异常: ${url}`, err)
-              resolve(null)
-            }
-          }
-        })()
+          })()
       })
     }
 
@@ -145,9 +202,9 @@ export const useHubStore = defineStore('hubStore', () => {
     hubList.value = validHubs
 
     // 提示用户
-    if (failedHubs.length > 0) {
-      theToast.warning(`${failedHubs.length} 个实例不可用，已自动排除`)
-    }
+    // if (failedHubs.length > 0) {
+    //   theToast.warning(`${failedHubs.length} 个实例不可用，已自动排除`)
+    // }
 
     // 处理结果
     if (hubList.value.length === 0) {
@@ -156,115 +213,166 @@ export const useHubStore = defineStore('hubStore', () => {
       return
     }
 
+    // 初始化各 Hub 的独立状态
+    hubStates.value.clear()
+    for (const hub of hubList.value) {
+      const url = typeof hub === 'string' ? hub : hub.connect_url
+      hubStates.value.set(url, {
+        url,
+        buffer: [],
+        currentPage: 1,
+        hasMore: true,
+        isLoading: false,
+      })
+    }
+
     isPreparing.value = false
     theToast.success(`成功连接 ${hubList.value.length} 个实例，开始加载 Echos`)
+
+    // 并行请求所有 Hub 的第一页，填充缓冲池
+    await Promise.all(Array.from(hubStates.value.keys()).map((url) => fetchHubPage(url)))
   }
 
-  // 3. 根据 hubList 获取 list 中每个 item 的 echo
-  const loadEchoListPage = async () => {
-    if (!hasMore.value || isLoading.value || isPreparing.value) return
+  // 3. 请求某个 Hub 的下一页数据到其缓冲池
+  const fetchHubPage = async (hubUrl: string): Promise<void> => {
+    const state = hubStates.value.get(hubUrl)
+    if (!state || state.isLoading || !state.hasMore) return
 
-    // 数据标准化函数：将旧版本的 images 字段转换为 media 字段
-    const normalizeEchoData = (echo: any, serverUrl: string): App.Api.Hub.Echo => {
-      // 如果没有 media 字段或 media 为空，但有 images 字段，则进行转换
-      if ((!echo.media || echo.media.length === 0) && echo.images && Array.isArray(echo.images)) {
-        // 将 images 转换为 media 格式
-        echo.media = echo.images.map((image: any) => ({
-          id: image.id,
-          message_id: image.message_id,
-          media_url: image.image_url || image.media_url, // 兼容两种字段名
-          media_type: 'image' as const, // 旧版本只支持图片
-          media_source: image.image_source || image.media_source, // 兼容两种字段名
-          object_key: image.object_key,
-          width: image.width,
-          height: image.height,
-        }))
+    state.isLoading = true
+    try {
+      const { error, data } = await useFetch<App.Api.Response<App.Api.Ech0.PaginationResult>>(
+        hubUrl + '/api/echo/page',
+      )
+        .post({
+          page: state.currentPage,
+          pageSize: pageSize.value,
+        })
+        .json()
 
-        // 开发环境日志
-        if (import.meta.env.DEV) {
-          console.log('[兼容性转换] 检测到旧版本数据格式，已转换 images → media', {
-            echoId: echo.id,
-            serverUrl: serverUrl,
-            imagesCount: echo.images.length,
-          })
-        }
+      if (error.value || data.value?.code !== 1) {
+        console.warn(`[Hub] 请求失败: ${hubUrl}`, error.value)
+        state.hasMore = false
+        return
       }
 
-      // 如果既没有 media 也没有 images，设置为空数组
-      if (!echo.media || !Array.isArray(echo.media)) {
-        echo.media = []
-        if (import.meta.env.DEV && echo.images === undefined) {
-          console.warn('[兼容性转换] Echo 数据缺少 media 和 images 字段', {
-            echoId: echo.id,
-            serverUrl: serverUrl,
-          })
-        }
-      }
+      const items = (data.value?.data.items || []).map((echo: App.Api.Ech0.Echo) => {
+        // 先进行数据标准化（images → media 转换）
+        const normalizedEcho = normalizeEchoData(echo, hubUrl)
 
-      return echo
+        // 然后再添加 Hub 相关字段
+        return {
+          ...normalizedEcho,
+          createdTs: new Date(normalizedEcho.created_at).getTime(),
+          server_name: hubInfoMap.value.get(hubUrl)?.server_name || 'Ech0',
+          server_url: hubUrl,
+          // 设置echo.logo为站点Logo（来自/api/connect接口）
+          logo:
+            hubInfoMap.value.get(hubUrl)?.logo && hubInfoMap.value.get(hubUrl)?.logo !== ''
+              ? hubInfoMap.value.get(hubUrl)?.logo
+              : '/Ech0.svg',
+        }
+      })
+
+      // 按时间降序排序后追加到缓冲池
+      items.sort((a: App.Api.Hub.Echo, b: App.Api.Hub.Echo) => b.createdTs - a.createdTs)
+      state.buffer.push(...items)
+      state.currentPage++
+      state.hasMore = items.length >= pageSize.value
+    } catch (err) {
+      console.error(`[Hub] 请求异常: ${hubUrl}`, err)
+      state.hasMore = false
+    } finally {
+      state.isLoading = false
     }
+  }
+
+  // 4. 归并取数：从各 Hub 缓冲池中按时间顺序取出数据
+  const loadEchoListPage = async () => {
+    if (isLoading.value || isPreparing.value) return
+
+    // 检查是否还有更多数据可加载
+    const canLoadMore = Array.from(hubStates.value.values()).some(
+      (s) => s.hasMore || s.buffer.length > 0,
+    )
+    if (!canLoadMore) {
+      hasMore.value = false
+      hasTriedInitialLoad.value = true
+      return
+    }
+
+
 
     isLoading.value = true
     try {
-      const promises = hubList.value.map(async (item) => {
-        const url = typeof item === 'string' ? item : item.connect_url
-        const { error, data } = await useFetch<App.Api.Response<App.Api.Ech0.PaginationResult>>(
-          url + '/api/echo/page',
-        )
-          .post({
-            page: currentPage.value,
-            pageSize: pageSize.value,
-          })
-          .json()
+      const result: App.Api.Hub.Echo[] = []
+      let attempts = 0
+      const maxAttempts = batchSize.value * 3 // 防止死循环
 
-        if (error.value || data.value?.code !== 1) return []
+      while (result.length < batchSize.value && attempts < maxAttempts) {
+        attempts++
 
-        // 增加必要字段并进行数据标准化
-        return (data.value?.data.items || []).map((echo: App.Api.Ech0.Echo) => {
-          // 先进行数据标准化（images → media 转换）
-          const normalizedEcho = normalizeEchoData(echo, url)
+        // 1. 找出所有缓冲池中时间最新（createdTs 最大）的那条
+        let maxTs = -1
+        let maxHubUrl: string | null = null
 
-          // 然后添加 Hub 相关字段
-          return {
-            ...normalizedEcho,
-            createdTs: new Date(normalizedEcho.created_at).getTime(),
-            server_name: hubInfoMap.value.get(url)?.server_name || 'Ech0',
-            server_url: url,
-            // 设置echo.logo为站点Logo（来自/api/connect接口）
-            logo:
-              hubInfoMap.value.get(url)?.logo && hubInfoMap.value.get(url)?.logo !== ''
-                ? hubInfoMap.value.get(url)?.logo
-                : '/Ech0.svg',
+        for (const [url, state] of hubStates.value) {
+          const head = state.buffer[0]
+          if (head) {
+            const headTs = head.createdTs
+            if (headTs > maxTs) {
+              maxTs = headTs
+              maxHubUrl = url
+            }
           }
-        })
-      })
-
-      const results = await Promise.allSettled(promises)
-      results.forEach((result, index) => {
-        if (result.status === 'fulfilled' && Array.isArray(result.value)) {
-          echoList.value.push(...result.value)
-        } else {
-          console.warn(`加载Hub ${hubList.value[index]} 的Echo数据失败:`)
         }
-      })
-      // 全局时间倒序排序
-      echoList.value.sort((a, b) => b.createdTs - a.createdTs)
 
-      // 检查是否还有更多数据
-      hasMore.value = results.some((result) => {
-        if (result.status === 'fulfilled' && Array.isArray(result.value)) {
-          return result.value.length >= pageSize.value
+        // 2. 如果所有缓冲池都空了，尝试补充
+        if (maxHubUrl === null) {
+          const emptyHubsWithMore = Array.from(hubStates.value.values()).filter(
+            (s) => s.hasMore && !s.isLoading && s.buffer.length === 0,
+          )
+
+          if (emptyHubsWithMore.length === 0) {
+            // 真的没有更多数据了
+            break
+          }
+
+          // 并行补充所有空缓冲池
+          await Promise.all(emptyHubsWithMore.map((s) => fetchHubPage(s.url)))
+          continue
         }
-        return false
-      })
+
+        // 3. 取出这条数据
+        const state = hubStates.value.get(maxHubUrl)!
+        const echo = state.buffer.shift()!
+
+        // 去重检查
+        const key = `${echo.server_url}-${echo.id}`
+        if (!existingIds.value.has(key)) {
+          existingIds.value.add(key)
+          result.push(echo)
+        }
+
+        // 4. 如果这个 Hub 的缓冲池快空了，提前补充（预加载）
+        if (state.buffer.length < 3 && state.hasMore && !state.isLoading) {
+          fetchHubPage(maxHubUrl) // 异步补充，不等待
+        }
+      }
+
+      // 追加到展示列表（不重排序，已经是按时间顺序取出的）
+      echoList.value.push(...result)
+
+      // 更新 hasMore 状态
+      hasMore.value = Array.from(hubStates.value.values()).some(
+        (s) => s.hasMore || s.buffer.length > 0,
+      )
 
       if (!hasMore.value && echoList.value.length > 0) {
         theToast.info('没有更多数据了🙃')
       }
-
-      currentPage.value += 1
     } finally {
       isLoading.value = false
+      hasTriedInitialLoad.value = true
     }
   }
 
@@ -273,10 +381,12 @@ export const useHubStore = defineStore('hubStore', () => {
     hubList,
     hubInfoMap,
     hubinfoList,
+    hubStates,
     isLoading,
     isPreparing,
-    currentPage,
+    hasTriedInitialLoad,
     pageSize,
+    batchSize,
     hasMore,
     getHubList,
     getHubInfoList,

@@ -541,8 +541,8 @@ declare namespace App {
         read: boolean
         read_count: number
         meta?: string
-        read_at?: string
-        created_at: string
+        read_at?: number // Unix时间戳（秒）
+        created_at: number // Unix时间戳（秒）
       }
 
       type InboxListResult = {

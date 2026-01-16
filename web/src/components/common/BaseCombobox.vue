@@ -11,7 +11,7 @@
 
     <!-- Combobox Wrapper -->
     <Combobox
-      v-model="internalValue"
+      :modelValue="internalValue"
       :by="by"
       :multiple="multiple"
       :nullable="true"
@@ -74,6 +74,7 @@
               v-for="item in filteredOptions"
               :key="getOptionLabel(item) || String(item)"
               :value="item"
+              @mousedown="isUserClicking = true"
               class="w-full! max-w-32! truncate text-[var(--text-color-300)] hover:text-[var(--text-color-500)] text-lg cursor-pointer select-none px-4 py-1 whitespace-nowrap text-ellipsis"
             >
               <slot name="option" :option="item"> # {{ getOptionLabel(item) }} </slot>
@@ -133,6 +134,7 @@ const labelField = props.labelField || 'name'
 const allowCreate = props.allowCreate ?? false
 const multiple = props.multiple ?? false
 const isManaging = ref<boolean>(false)
+const isUserClicking = ref(false) // 标记用户是否正在主动点击选项
 const editorStore = useEditorStore()
 
 const toggleManaging = () => {
@@ -152,20 +154,37 @@ watch(internalValue, (val) => {
 })
 
 const onSelect = (val: object | string) => {
-  internalValue.value = val
-  query.value = getOptionLabel(val) // 更新显示
-  dropdownOpen.value = multiple
+  const selectedLabel = getOptionLabel(val)
+
+  // 只有当用户主动点击选项时才接受选择并关闭下拉框
+  if (isUserClicking.value) {
+    internalValue.value = val
+    query.value = selectedLabel
+    dropdownOpen.value = false
+    isUserClicking.value = false
+    return
+  }
+
+  // 自动选择（非用户点击）：只有精确匹配时才接受
+  if (query.value && selectedLabel.toLowerCase() === query.value.toLowerCase()) {
+    internalValue.value = val
+    query.value = selectedLabel
+    // 不关闭下拉框
+    return
+  }
+
+  // 不精确匹配，忽略这次选择，不做任何改变
 }
 
 const onInputChange = (e: Event) => {
   const value = (e.target as HTMLInputElement).value.trim()
   query.value = value
-  dropdownOpen.value = true
 
   // 输入框被清空时 -> 清空绑定值
   if (value === '') {
     internalValue.value = multiple ? [] : null
     emit('update:modelValue', internalValue.value)
+    dropdownOpen.value = true
     return
   }
 
@@ -176,13 +195,15 @@ const onInputChange = (e: Event) => {
   if (matched) {
     internalValue.value = matched
     emit('update:modelValue', matched)
-    dropdownOpen.value = multiple
   } else {
     // 否则表示用户正在输入新的标签
     internalValue.value = value
     emit('create', value) // 可选：通知外部准备创建
     emit('update:modelValue', internalValue.value)
   }
+
+  // 无论如何都保持下拉框打开
+  dropdownOpen.value = true
 }
 
 const onFocusInput = () => {

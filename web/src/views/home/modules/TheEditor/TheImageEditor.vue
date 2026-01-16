@@ -1,7 +1,7 @@
 <template>
   <div>
     <h2 class="text-[var(--text-color-500)] font-bold my-2">插入图片/视频（支持直链、本地、S3存储）</h2>
-    <div v-if="!MediaUploading" class="flex items-center justify-between mb-3">
+    <div v-if="!MediaUploading" class="flex items-center gap-2 mb-3">
       <div class="flex items-center gap-2">
         <span class="text-[var(--text-color-500)]">选择添加方式：</span>
         <!-- 直链 -->
@@ -39,8 +39,8 @@
     </div>
 
     <!-- 布局方式选择 -->
-    <div class="mb-3 flex items-center gap-2">
-      <span class="text-[var(--text-color-500)]">布局方式：</span>
+    <div class="mb-2 flex items-center gap-2">
+      <span class="text-[var(--text-color-500)]">选择布局方式：</span>
       <BaseSelect
         v-model="echoToAdd.layout"
         :options="layoutOptions"
@@ -58,8 +58,14 @@
       />
     </div>
 
+    <!-- 智能压缩 -->
+    <div v-if="mediaToAdd.media_source !== ImageSource.URL" class="mb-3 flex items-center">
+      <span class="text-[var(--text-color-500)]">智能压缩：</span>
+      <BaseSwitch v-model="enableCompressor" />
+    </div>
+
     <!-- 当前上传方式与状态 -->
-    <div class="text-[var(--text-color-300)] text-sm mb-1">
+    <div class="text-[var(--text-color-300)] text-sm mb-2">
       当前上传方式为
       <span class="font-bold">
         {{
@@ -78,15 +84,24 @@
       <TheUppy
         v-if="mediaToAdd.media_source !== ImageSource.URL"
         :TheImageSource="mediaToAdd.media_source"
+        :EnableCompressor="enableCompressor"
       />
 
       <!-- 媒体直链 -->
-      <BaseInput
-        v-if="mediaToAdd.media_source === ImageSource.URL"
-        v-model="mediaToAdd.media_url"
-        class="rounded-lg h-auto w-full"
-        placeholder="请输入图片或视频链接..."
-      />
+      <div v-if="mediaToAdd.media_source === ImageSource.URL" class="flex items-center gap-2">
+        <BaseInput
+          v-model="mediaToAdd.media_url"
+          class="rounded-lg h-auto flex-1"
+          placeholder="请输入图片或视频链接..."
+        />
+        <BaseButton
+          v-if="mediaToAdd.media_url != ''"
+          :icon="Addmore"
+          class="w-8 h-8 sm:w-8 sm:h-8 rounded-md shrink-0"
+          @click="editorStore.handleAddMoreMedia"
+          title="添加更多图片/视频"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -103,6 +118,7 @@ import Addmore from '@/components/icons/addmore.vue'
 import Magic from '@/components/icons/magic.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
 import BaseSelect from '@/components/common/BaseSelect.vue'
+import BaseSwitch from '@/components/common/BaseSwitch.vue'
 import BaseInput from '@/components/common/BaseInput.vue'
 import TheUppy from '@/components/advanced/TheUppy.vue'
 import { localStg } from '@/utils/storage'
@@ -111,6 +127,7 @@ const editorStore = useEditorStore()
 const { mediaToAdd, MediaUploading, echoToAdd, mediaListToAdd } = storeToRefs(editorStore)
 const settingStore = useSettingStore()
 const { S3Setting } = storeToRefs(settingStore)
+const enableCompressor = ref<boolean>(false)
 
 // AI 布局推荐状态
 const isRecommending = ref(false)

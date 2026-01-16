@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h2 class="text-[var(--text-color-500)] font-bold mb-1">欢迎使用音乐播放模式</h2>
+    <h2 class="text-[var(--text-color-500)] font-bold mb-1">音乐播放器模式</h2>
     <div class="mb-1 flex items-center gap-2">
       <p class="text-[var(--text-color-500)]">上传音乐：</p>
       <input

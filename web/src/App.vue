@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { RouterView } from 'vue-router'
+import { RouterView, useRouter } from 'vue-router'
 import { onMounted, ref } from 'vue'
 import { watch } from 'vue'
 import { useSettingStore } from '@/stores'
@@ -13,6 +13,44 @@ import { useBaseDialog } from '@/composables/useBaseDialog'
 
 const { register, title, description, handleConfirm } = useBaseDialog()
 const dialogRef = ref()
+
+// 路由切换动画
+const router = useRouter()
+const transitionName = ref('fade')
+
+// 监听路由变化，根据导航方向选择动画
+router.afterEach((to, from) => {
+  // Panel 子页面之间切换不使用动画
+  const toName = to.name as string
+  const fromName = from.name as string
+  if (toName?.startsWith('panel-') && fromName?.startsWith('panel-')) {
+    transitionName.value = 'none'
+    return
+  }
+
+  // 定义路由层级（用于判断前进/后退）
+  const routeDepth: Record<string, number> = {
+    home: 0,
+    echo: 1,
+    panel: 1,
+    auth: 1,
+    connect: 1,
+    hub: 1,
+    widget: 1,
+    'not-found': 2,
+  }
+
+  const toDepth = routeDepth[toName] ?? 1
+  const fromDepth = routeDepth[fromName] ?? 1
+
+  if (toDepth > fromDepth) {
+    transitionName.value = 'slide-left'
+  } else if (toDepth < fromDepth) {
+    transitionName.value = 'slide-right'
+  } else {
+    transitionName.value = 'fade'
+  }
+})
 
 const settingStore = useSettingStore()
 const { SystemSetting } = storeToRefs(settingStore)
@@ -90,12 +128,64 @@ onMounted(() => {
 </script>
 
 <template>
-  <!-- 路由视图 -->
-  <RouterView />
+  <!-- 路由视图 - 带切换动画 -->
+  <RouterView v-slot="{ Component, route }">
+    <Transition :name="transitionName" mode="out-in">
+      <component :is="Component" :key="route.path" />
+    </Transition>
+  </RouterView>
   <!-- 通知组件 -->
   <Toaster theme="light" position="top-right" :expand="false" richColors />
   <!-- 全局弹窗对话框 -->
   <BaseDialog ref="dialogRef" :title="title" :description="description" @confirm="handleConfirm" />
 </template>
 
-<style scoped></style>
+<style scoped>
+/* 路由切换动画 - 淡入淡出 + 轻微滑动 */
+.fade-enter-active,
+.fade-leave-active {
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.fade-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+/* 滑动动画 - 用于前进后退 */
+.slide-left-enter-active,
+.slide-left-leave-active,
+.slide-right-enter-active,
+.slide-right-leave-active {
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+}
+
+.slide-left-enter-from {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+.slide-left-leave-to {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+.slide-right-enter-from {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+.slide-right-leave-to {
+  opacity: 0;
+  transform: translateX(20px);
+}
+</style>

@@ -18,7 +18,9 @@
     </div>
     <!-- 没有更多 -->
     <div v-if="!hasMore && !loading" class="mx-auto my-5 text-center">
-      <span class="text-xl text-[var(--text-color-400)]">没有啦！🎉</span>
+      <p class="text-xl text-[var(--text-color-400)] flex items-center justify-center">
+        没有啦！<Flowers />
+      </p>
     </div>
     <!-- 加载中 -->
     <div v-if="loading" class="mx-auto my-5 text-center">
@@ -33,6 +35,7 @@ import { useInboxStore } from '@/stores'
 import { fetchMarkInboxRead } from '@/service/api'
 import TheInboxCard from '@/components/advanced/TheInboxCard.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
+import Flowers from '@/components/icons/flowers.vue'
 
 const inboxStore = useInboxStore()
 const { items, hasMore, loading } = storeToRefs(inboxStore)

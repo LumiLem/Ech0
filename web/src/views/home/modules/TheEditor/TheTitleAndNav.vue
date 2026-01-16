@@ -6,6 +6,7 @@
         <img
           :src="siteLogo"
           alt="站点Logo"
+          loading="lazy"
           class="w-6 sm:w-7 h-6 sm:h-7 rounded-lg ring-1 ring-[var(--ring-color)] shadow-sm object-cover"
           @error="handleImageError"
         />
@@ -92,8 +93,10 @@ const handleImageError = (event: Event) => {
   img.src = '/Ech0.svg'
 }
 
-const handleHello = () => {
-  themeStore.toggleTheme()
+const handleHello = async (event: MouseEvent) => {
+  await themeStore.toggleTheme(event)
+
+  // 在主题切换完成后获取正确的模式
   const modeText =
     themeStore.mode === 'system' ? 'Auto' : themeStore.mode === 'light' ? 'Light' : 'Dark'
 

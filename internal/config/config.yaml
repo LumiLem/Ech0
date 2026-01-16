@@ -26,7 +26,6 @@ upload:
     - "image/png"
     - "image/gif"
     - "image/webp"
-    - "image/jpg"
     - "image/svg+xml"
     - "image/avif"
     - "image/heic"

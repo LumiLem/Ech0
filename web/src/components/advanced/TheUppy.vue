@@ -14,6 +14,7 @@ import { theToast } from '@/utils/toast'
 import { storeToRefs } from 'pinia'
 import { ImageSource } from '@/enums/enums'
 import { fetchGetPresignedUrl } from '@/service/api'
+import { isSafari } from '@/utils/other'
 
 import { 
   detectLivePhotoPairs, 
@@ -26,6 +27,7 @@ import {
 /* --------------- 与Uppy相关 ---------------- */
 import Uppy from '@uppy/core'
 import Dashboard from '@uppy/dashboard'
+import Compressor from '@uppy/compressor'
 import XHRUpload from '@uppy/xhr-upload'
 import AwsS3 from '@uppy/aws-s3'
 import '@uppy/core/css/style.min.css'
@@ -38,6 +40,7 @@ let uppy: Uppy | null = null
 
 const props = defineProps<{
   TheImageSource: string
+  EnableCompressor: boolean
 }>()
 // const emit = defineEmits(['uppyUploaded'])
 
@@ -57,6 +60,8 @@ const editorStore = useEditorStore()
 const { isLogin } = storeToRefs(userStore)
 const envURL = import.meta.env.VITE_SERVICE_BASE_URL as string
 const backendURL = envURL.endsWith('/') ? envURL.slice(0, -1) : envURL
+
+const outputMimeType = isSafari() ? 'image/jpeg' : 'image/webp'
 
 // ✨ 监听粘贴事件
 const handlePaste = async (e: ClipboardEvent) => {
@@ -223,6 +228,14 @@ const initUppy = () => {
     locale: zh_CN,
     note: '支持粘贴或选择图片、视频上传哦！',
   })
+
+  // 是否启用智能压缩
+  if (props.EnableCompressor) {
+    uppy.use(Compressor, {
+      mimeType: outputMimeType,
+      convertTypes: ['image/jpeg', 'image/png', 'image/webp'],
+    })
+  }
 
   // 根据 props.TheImageSource 动态切换上传插件
   if (memorySource.value == ImageSource.LOCAL) {
@@ -517,6 +530,27 @@ watch(
         theToast.error('当前有文件正在上传，请稍后再切换上传方式 😢')
       }
     }
+  },
+)
+
+// 监听 props.EnableCompressor 变化
+watch(
+  () => props.EnableCompressor,
+  (newVal, oldVal) => {
+    if (newVal === oldVal) return
+    if (isUploading.value) {
+      theToast.error('正在上传中，无法切换压缩模式')
+      return
+    }
+
+    console.log('EnableCompressor changed:', newVal)
+
+    uppy?.destroy()
+    uppy = null
+    files.value = []
+    tempFiles.value.clear()
+
+    initUppy()
   },
 )
 

@@ -4,12 +4,16 @@
 
     <!-- 当前共有 -->
     <div class="text-[var(--text-color-400)] my-2 font-serif">
-      <p>当前消息共有 {{ total }} 条</p>
+      <p>
+        当前消息共有 <span class="font-bold">{{ total }}</span> 条
+      </p>
     </div>
 
     <!-- 未读消息共有 -->
     <div class="text-[var(--text-color-400)] my-2 font-serif">
-      <p>未读消息共有 {{ unreadItems.length }} 条</p>
+      <p>
+        未读消息共有 <span class="font-bold">{{ unreadItems.length }}</span> 条
+      </p>
     </div>
   </div>
 </template>

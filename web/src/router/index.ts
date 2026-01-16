@@ -1,16 +1,14 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../views/home/HomeView.vue'
-import EchoView from '../views/echo/EchoView.vue'
-import NotFoundView from '../views/404/NotFoundView.vue'
 import { useUserStore } from '@/stores'
 
+// 所有路由组件使用懒加载，优化首屏加载性能
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
       name: 'home',
-      component: HomeView,
+      component: () => import('../views/home/HomeView.vue'),
       meta: {
         title: 'Home',
         optionalAuth: true,
@@ -93,7 +91,7 @@ const router = createRouter({
     {
       path: '/echo/:echoId',
       name: 'echo',
-      component: EchoView,
+      component: () => import('../views/echo/EchoView.vue'),
     },
     // {
     //   path: '/fediverse',
@@ -103,7 +101,7 @@ const router = createRouter({
     {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
-      component: NotFoundView,
+      component: () => import('../views/404/NotFoundView.vue'),
     },
   ],
 })

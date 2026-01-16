@@ -371,6 +371,28 @@ func (commonHandler *CommonHandler) HelloEch0() gin.HandlerFunc {
 	})
 }
 
+// Healthz 健康检查
+//
+//	@Summary		健康检查
+//	@Description	健康检查
+//	@Tags			通用功能
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	res.Response	"健康检查成功"
+//	@Router			/healthz [get]
+func (commonHandler *CommonHandler) Healthz() gin.HandlerFunc {
+	return res.Execute(func(ctx *gin.Context) res.Response {
+		return res.Response{
+			Msg: commonModel.GET_HEALTHZ_SUCCESS,
+			Data: struct {
+				Status string `json:"status"`
+			}{
+				Status: "ok",
+			},
+		}
+	})
+}
+
 // GetS3PresignURL 获取 S3 预签名 URL
 //
 //	@Summary		获取 S3 预签名 URL

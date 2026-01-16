@@ -57,11 +57,21 @@ export const getImageToAddUrl = (image: App.Api.Ech0.ImageToAdd) => {
   }
 }
 
-export const formatDate = (dateString: string) => {
+export const formatDate = (dateInput: string | number) => {
   // 当天则显示（时：分）
   // 非当天但是三内天则显示几天前
   // 超过三天则显示（时：分 年月日）
-  const date = new Date(dateString)
+
+  // 处理 Unix 时间戳（秒或毫秒）和日期字符串
+  let date: Date
+  if (typeof dateInput === 'number') {
+    // 如果是数字，判断是秒级还是毫秒级时间戳
+    // 秒级时间戳通常小于 10^12，毫秒级时间戳通常大于 10^12
+    date = new Date(dateInput < 1e12 ? dateInput * 1000 : dateInput)
+  } else {
+    date = new Date(dateInput)
+  }
+
   const now = new Date()
   const diff = now.getTime() - date.getTime()
   const diffInDays = Math.floor(diff / (1000 * 60 * 60 * 24))
@@ -80,7 +90,7 @@ export const formatDate = (dateString: string) => {
   } else {
     const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
     const weekDay = weekDays[date.getDay()]
-    
+
     // 如果是今年，不显示年份
     const isCurrentYear = date.getFullYear() === now.getFullYear()
     if (isCurrentYear) {
@@ -199,17 +209,17 @@ export const parseMusicURL = (url: string) => {
 export const extractAndCleanMusicURL = (input: string): string | null => {
   const text = input.trim()
 
-  // 1️⃣ 粗暴提取第一个 URL（足够鲁棒）
+  // 粗暴提取第一个 URL（足够鲁棒）
   const urlMatch = text.match(/https?:\/\/[^\s]+/i)
   if (!urlMatch) return null
 
   const rawUrl = urlMatch[0]
 
-  // 2️⃣ 复用统一解析函数
+  // 复用统一解析函数
   const parsed = parseMusicURL(rawUrl)
   if (!parsed) return null
 
-  // 3️⃣ 规范化重组
+  // 规范化重组
   switch (parsed.server) {
     case MusicProvider.NETEASE: {
       // 统一为 PC 可打开的最短链接
@@ -242,20 +252,6 @@ export const extractAndCleanMusicURL = (input: string): string | null => {
   }
 }
 
-// 获取图片尺寸
-export function getImageSize(imgUrl: string): Promise<{ width: number; height: number }> {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    img.onload = () => {
-      resolve({ width: img.width, height: img.height })
-    }
-    img.onerror = (err) => {
-      reject(err)
-    }
-    img.src = imgUrl
-  })
-}
-
 // 获取 HubEcho 的媒体链接（支持图片和视频）
 export const getHubMediaUrl = (media: App.Api.Ech0.Media, baseurl: string) => {
   if (media.media_source === ImageSource.LOCAL) {
@@ -270,7 +266,7 @@ export const getHubMediaUrl = (media: App.Api.Ech0.Media, baseurl: string) => {
   }
 }
 
-// 获取 HubEcho 的图片（保留向后兼容）
+// 获取 HubEcho 的图片
 export const getHubImageUrl = (image: App.Api.Ech0.Image, baseurl: string) => {
   if (image.media_source === ImageSource.LOCAL) {
     return baseurl + '/api' + String(image.media_url)
@@ -288,7 +284,7 @@ export const getHubImageUrl = (image: App.Api.Ech0.Image, baseurl: string) => {
  * Base64URL to Uint8Array
  * 用于解析服务端返回的 WebAuthn publicKey
  */
-export function base64urlToUint8Array(input: string): Uint8Array<ArrayBuffer> {
+export function base64urlToUint8Array(input: string): Uint8Array {
   const base64 = input.replace(/-/g, '+').replace(/_/g, '/')
   const pad = base64.length % 4 === 0 ? '' : '='.repeat(4 - (base64.length % 4))
   const binary = atob(base64 + pad)
@@ -308,4 +304,15 @@ export function uint8ArrayToBase64url(bytes: ArrayBuffer | Uint8Array): string {
   for (let i = 0; i < u8.length; i++) binary += String.fromCharCode(u8[i]!)
   const base64 = btoa(binary)
   return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
+}
+
+export function isSafari(): boolean {
+  const ua = navigator.userAgent
+  // Exclude Chrome, Chromium-based Edge, and iOS Chrome/Firefox
+  return (
+    ua.includes('Safari') &&
+    !ua.includes('Chrome') &&
+    !ua.includes('CriOS') &&
+    !ua.includes('FxiOS')
+  )
 }
