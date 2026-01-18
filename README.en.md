@@ -1,3 +1,188 @@
+<div align="center">
+
+# 🌟 Custom Branch Features
+
+> This branch (`custom`) is an enhanced version based on the original [`main`](https://github.com/lin-snow/Ech0) branch, with many new features and optimizations.
+
+### 🐳 Quick Deployment
+
+```shell
+docker run -d --name ech0 -p 6277:6277 \
+  -v /opt/ech0/data:/app/data \
+  -v /opt/ech0/backup:/app/backup \
+  -e JWT_SECRET="your-secret-key" \
+  lumlime/ech0:latest
+```
+
+> Access `http://ip:6277` after deployment | First registered user becomes admin | [Detailed deployment guide](#-custom-version-deployment)
+
+</div>
+
+<details open>
+<summary><strong>📋 New Features</strong></summary>
+
+### 🎬 Media System Refactoring
+- **Video Upload Support** — Media storage system refactored from `images` to `media`, supporting mixed image and video uploads
+- **Video Configuration** — Backend adds video upload config (max 100MB) and storage path settings
+- **Live Photo Support** — Full iOS/Android Live Photo support:
+  - Auto-detect embedded motion photos and separate into image + video
+  - Auto-pair images and videos with matching filenames
+  - Auto-play live photos in Fancybox preview (configurable auto-play toggle)
+  - Mobile-optimized live photo viewing experience
+  - Dedicated live photo icon and LIVE badge
+- **HEIC/HEIF Format Support** — Auto-convert to JPEG format on upload
+- **Media Drag & Drop Sorting** — Drag to reorder media items, mobile touch threshold to prevent accidental drags
+- **Legacy Data Compatibility** — Auto-migrate `images` to `media` data format
+- **Unsupported Media Type Hint** — Shows friendly placeholder when legacy clients access Echos with video
+
+### 🤖 AI Smart Layout Recommendation
+- **Auto Layout Recommendation** — AI/rule engine intelligently recommends optimal image layout based on media info and content analysis
+- **Deep Content Analysis** — Analyzes text structure (code blocks, links, headers, lists, etc.) to optimize recommendations
+- **Text Semantic Analysis** — AI understands user intent (expressing views, showcasing works, documenting journeys, teaching/comparing)
+- **Recommendation Reasons** — Displays recommendation source (AI/Rule) and specific reasons
+- **New Auto Layout Mode** — Added "Auto" option in layout selector, uses AI recommendation by default
+
+### 📅 Calendar Heatmap
+- **Calendar View Mode** — Heatmap supports switching to calendar view, browse by year/month
+- **Date Filtering** — Click on calendar dates to filter Echos for that day
+- **Year/Month Filtering** — Click year/month title to filter entire month's Echos
+- **Filter Label Display** — Top navigation shows current filter date/month with click-to-cancel
+- **Mobile Gestures** — Long-press to switch view modes, tap to filter with touch interactions
+- **Year/Month Switcher** — Quickly browse historical monthly publishing data
+- **View Mode Memory** — Remembers user's selected heatmap view mode
+
+### ✅ Todo Enhancements
+- **Widget Completion** — Complete todos directly from the todo widget card
+- **Undo Completion** — Undo recently completed todos
+- **Todo Blinking Reminder** — Widget icon blinks when there are pending todos
+- **New Checkbox Component** — Newly designed checkbox component with animations
+
+### 🔔 Hub Update Notifications
+- **Update Badge Display** — Shows red badge with update count when Hub has new content
+- **Per-Site Statistics** — Displays update count for each subscribed site
+- **Tooltip Details** — Hover to show per-site update counts
+- **Mobile Bubble Hint** — Touch to display update details bubble
+- **Background Polling** — Auto-detect updates without manual refresh
+- **Window Focus Refresh** — Auto-check updates when switching back to page
+
+### ⏰ Time Display Optimization
+- **Click to Switch Format** — Click to toggle time display format (relative/absolute)
+- **Smart Time Display** — Auto-select best display format based on time distance
+
+### ✏️ Editor Enhancements
+- **Draft Auto-Save** — Editor content auto-saved locally to prevent accidental loss
+- **Draft Recovery** — Recover drafts after page refresh or accidental close
+- **Update Mode Detection** — Smart detection of actual changes when editing existing Echos
+- **Empty Draft Auto-Cleanup** — Auto-cleanup local drafts when content is empty
+- **Editor Save Status** — Editor toolbar shows draft save status and timestamp
+- **Grid Media Preview** — Editor media preview uses 3x3 grid layout
+- **Editor User Avatar** — Editor title bar shows user avatar and username when logged in
+
+### 🔐 OAuth Login Optimization
+- **QQ Login Re-enabled** — Refactored OAuth2 login flow, re-enabled QQ Connect login
+- **Registration Permission Check** — Auto-check system registration permissions during OAuth login
+- **Dynamic Register Button** — Show/hide register button based on system settings
+
+### 🎨 Site & User Configuration
+- **Independent Site Logo** — Site logo separated from user avatar, supports individual configuration
+- **Echo Shows User Avatar** — Echo detail page shows publisher's avatar instead of site logo
+- **Theme Auto Mode** — Theme follows system settings with current mode status display
+
+### 🏗️ CI/CD & Deployment
+- **Docker Image Auto-Build** — Auto-build and push Docker images on push to custom branch
+- **Dockerfile Optimization** — Simplified build process with unified build (frontend + backend together)
+- **MIME Type Support** — Added mailcap to Docker image for extended MIME type recognition
+
+### 🔧 Other Optimizations
+- **RSS Media Display** — Optimized RSS attachment display based on media type, distinguishing video and image
+- **ActivityPub Video Support** — Fediverse attachment types auto-distinguished as Image/Video/Document
+- **Video Thumbnail Optimization** — Fixed video thumbnail display issues in some browsers
+- **Tag Query Fix** — Fixed tag association query condition errors
+- **Auto-Scroll After Edit** — Auto-scroll to corresponding position after updating Echo
+- **Filter List Sync Update** — Filter list auto-syncs after editing Echo
+- **Auto-Delete Empty Echo** — Auto-delete Echo when all media is removed and content is empty
+- **Atomic Live Photo Deletion** — Deleting live photo also removes associated video
+- **In-App Browser Compatibility** — Optimized link navigation in WeChat and other in-app browsers
+- **Hub Data Caching** — Optimized Hub data requests with caching mechanism to reduce duplicate requests
+
+</details>
+
+<details>
+<summary><strong>📦 Data Structure Changes</strong></summary>
+
+### API Changes
+- `images` field renamed to `media`
+- Added `media_type` field (`image` / `video`)
+- Added `live_video_id` field for live photo associations
+- Added `live_pair_id` field for live photo pairing during upload
+- `image_url` / `image_source` renamed to `media_url` / `media_source`
+- Echo response includes new `user` field with publisher info
+
+### Database Migration
+- `images` table auto-migrated to `media` table
+- Migration auto-sets `media_type` to `image` for all existing images
+
+### Configuration Changes
+- Added `videomaxsize` config (max video upload size)
+- Added `videopath` config (video storage path)
+- `allowedtypes` extended with video formats (mp4, webm, quicktime)
+- `allowedtypes` extended with HEIC/HEIF formats
+
+### Backward Compatibility
+- Frontend auto-handles `images` field from legacy servers
+- Backend Hub connection auto-converts legacy data format
+- Legacy clients see friendly hint when accessing Echos with video
+
+</details>
+
+<details>
+<summary><strong>🐳 Custom Version Deployment</strong></summary>
+
+### Docker Deployment
+
+Custom branch uses an independent Docker image repository:
+
+```shell
+docker run -d \
+  --name ech0 \
+  -p 6277:6277 \
+  -v /opt/ech0/data:/app/data \
+  -v /opt/ech0/backup:/app/backup \
+  -e JWT_SECRET="Hello Echos" \
+  lumlime/ech0:latest
+```
+
+> 💡 After deployment, access `ip:6277` to use  
+> 🚷 It is recommended to change `JWT_SECRET="Hello Echos"` to a secure secret  
+> 📍 The first registered user will be set as administrator  
+> 🎈 Data stored under `/opt/ech0/data`
+
+### Upgrading
+
+```shell
+# Stop the current container
+docker stop ech0
+
+# Remove the container
+docker rm ech0
+
+# Pull the latest image
+docker pull lumlime/ech0:latest
+
+# Start the new version
+docker run -d \
+  --name ech0 \
+  -p 6277:6277 \
+  -v /opt/ech0/data:/app/data \
+  -v /opt/ech0/backup:/app/backup \
+  -e JWT_SECRET="Hello Echos" \
+  lumlime/ech0:latest
+```
+
+</details>
+
+---
+
 <p align="left">
   <a href="https://hellogithub.com/repository/lin-snow/Ech0" target="_blank">
     <img src="https://api.hellogithub.com/v1/widgets/recommend.svg?rid=8f3cafdd6ef3445dbb1c0ed6dd34c8b5&claim_uid=swhbQfnJvKS0t7I&theme=neutral"

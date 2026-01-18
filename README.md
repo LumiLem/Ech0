@@ -1,3 +1,188 @@
+<div align="center">
+
+# 🌟 Custom 分支特性说明
+
+> 本分支 (`custom`) 是基于原版 [`main`](https://github.com/lin-snow/Ech0) 分支的改进版本，新增了多项实用功能和优化。
+
+### 🐳 快速部署
+
+```shell
+docker run -d --name ech0 -p 6277:6277 \
+  -v /opt/ech0/data:/app/data \
+  -v /opt/ech0/backup:/app/backup \
+  -e JWT_SECRET="your-secret-key" \
+  lumlime/ech0:latest
+```
+
+> 部署后访问 `http://ip:6277` | 首次注册用户自动成为管理员 | [详细部署说明](#-custom-版本部署)
+
+</div>
+
+<details open>
+<summary><strong>📋 新增功能列表</strong></summary>
+
+### 🎬 媒体系统重构
+- **视频上传支持** — 媒体存储系统从 `images` 重构为 `media`，支持图片和视频混合上传
+- **视频配置扩展** — 后端新增视频上传配置（最大 100MB）和存储路径设置
+- **实况照片 (Live Photo)** — 完整支持 iOS/Android 实况照片功能：
+  - 自动检测嵌入式实况照片并分离为图片+视频
+  - 支持同名图片与视频文件自动配对
+  - Fancybox 预览时自动播放实况照片（可设置自动播放开关）
+  - 移动端优化的实况照片查看体验
+  - 专属的实况照片图标和 LIVE 标识
+- **HEIC/HEIF 格式支持** — 自动转换为 JPEG 格式上传
+- **媒体拖拽排序** — 支持拖拽调整媒体顺序，移动端增加拖拽阈值防止误触
+- **旧版数据兼容** — 自动处理 `images` 到 `media` 的数据迁移
+- **不支持媒体类型提示** — 当旧版本客户端访问含视频的 Echo 时显示友好提示图
+
+### 🤖 AI 智能布局推荐
+- **自动布局推荐** — 基于媒体信息和内容分析，AI/规则引擎智能推荐最佳图片布局
+- **深度内容分析** — 分析文本结构（代码块、链接、标题、列表等）优化推荐结果
+- **文本语义分析** — AI 理解用户意图（表达观点、展示作品、记录旅程、教学对比）
+- **推荐理由展示** — 显示推荐来源（AI/规则）和具体理由
+- **新增 Auto 布局模式** — 在布局选项中新增"自动"选项，默认使用 AI 推荐
+
+### 📅 日历热力图
+- **日历视图模式** — 热力图支持切换为日历视图，按年月浏览
+- **日期筛选** — 点击日历中的日期直接筛选该日的 Echo
+- **年月筛选** — 点击年月标题筛选整月的 Echo
+- **筛选标签显示** — 顶部导航栏显示当前筛选的日期/年月，支持点击取消
+- **移动端手势** — 支持长按切换视图模式、点击筛选等触摸交互
+- **年月切换器** — 快速浏览历史月份的发布数据
+- **视图模式记忆** — 自动记住用户选择的热力图视图模式
+
+### ✅ 待办事项增强
+- **Widget 完成功能** — 在待办卡片中直接勾选完成待办事项
+- **撤销完成** — 支持撤销刚刚完成的待办事项
+- **待办闪烁提醒** — 有未完成待办时 Widget 图标显示闪烁动画提醒
+- **新增 Checkbox 组件** — 全新设计的复选框组件，带动画效果
+
+### 🔔 Hub 更新提醒
+- **更新红点显示** — Hub 有新内容时显示红点提醒和更新数量
+- **按站点统计** — 显示每个订阅站点的更新数量
+- **Tooltip 详情** — 悬停显示各站点的具体更新数量
+- **移动端气泡提示** — 触摸时显示更新详情气泡
+- **后台轮询** — 自动检测更新，无需手动刷新
+- **窗口焦点刷新** — 切回页面时自动检查更新
+
+### ⏰ 时间显示优化
+- **点击切换格式** — 支持点击切换时间显示格式（相对时间/绝对时间）
+- **智能时间显示** — 根据时间远近自动选择最佳显示格式
+
+### ✏️ 编辑器增强
+- **草稿自动保存** — 编辑内容自动保存到本地，防止意外丢失
+- **草稿恢复** — 刷新页面或意外关闭后可恢复草稿
+- **更新模式检测** — 编辑已有 Echo 时智能检测实际变更
+- **空草稿自动清理** — 内容为空时自动清理本地草稿
+- **编辑器保存状态** — 编辑器工具栏显示草稿保存状态和时间
+- **九宫格媒体预览** — 编辑器中媒体预览改为九宫格网格布局
+- **编辑器用户头像** — 登录后编辑器标题栏显示用户头像和用户名
+
+### 🔐 OAuth 登录优化
+- **QQ 登录重新支持** — 重构 OAuth2 登录流程，重新支持 QQ 互联登录
+- **注册权限检查** — OAuth 登录时自动检查系统注册权限设置
+- **注册按钮动态显示** — 根据系统设置动态显示/隐藏注册按钮
+
+### 🎨 站点与用户配置
+- **站点 Logo 独立** — 站点 Logo 与用户头像分离，支持单独配置
+- **Echo 显示用户头像** — Echo 详情页显示发布用户的头像而非站点 Logo
+- **主题自动模式** — 支持主题自动跟随系统设置，显示当前模式状态
+
+### 🏗️ CI/CD 与部署
+- **Docker 镜像自动构建** — Push 到 custom 分支时自动构建并推送 Docker 镜像
+- **Dockerfile 优化** — 简化构建流程，支持一体化构建（前后端统一构建）
+- **MIME 类型支持** — Docker 镜像中添加 mailcap 支持更多 MIME 类型识别
+
+### 🔧 其他优化
+- **RSS 媒体展示** — 根据媒体类型优化 RSS 附件展示，区分视频和图片
+- **ActivityPub 视频支持** — 联邦宇宙附件类型自动区分 Image/Video/Document
+- **视频缩略图优化** — 解决部分浏览器的视频缩略图显示问题
+- **标签查询修复** — 修复标签关联条件查询错误
+- **编辑后自动定位** — 更新 Echo 后自动滚动到对应位置
+- **过滤列表同步更新** — 编辑 Echo 后过滤列表自动同步更新
+- **空 Echo 自动删除** — 删除所有媒体后如果内容为空则自动删除 Echo
+- **实况照片原子性删除** — 删除实况照片时同时删除关联的视频
+- **App 内浏览器兼容** — 优化在微信等 App 内浏览器中的链接跳转
+- **Hub 数据缓存** — 优化 Hub 数据请求，增加缓存机制减少重复请求
+
+</details>
+
+<details>
+<summary><strong>📦 数据结构变更</strong></summary>
+
+### API 变更
+- `images` 字段重命名为 `media`
+- 新增 `media_type` 字段 (`image` / `video`)
+- 新增 `live_video_id` 字段用于实况照片关联
+- 新增 `live_pair_id` 字段用于上传时的实况照片配对
+- `image_url` / `image_source` 重命名为 `media_url` / `media_source`
+- Echo 响应新增 `user` 字段包含发布者信息
+
+### 数据库迁移
+- `images` 表自动迁移为 `media` 表
+- 迁移时自动设置所有现有图片的 `media_type` 为 `image`
+
+### 配置变更
+- 新增 `videomaxsize` 配置项（视频最大上传限制）
+- 新增 `videopath` 配置项（视频存储路径）
+- `allowedtypes` 新增视频格式支持（mp4、webm、quicktime）
+- `allowedtypes` 新增 HEIC/HEIF 格式支持
+
+### 向后兼容
+- 前端自动处理旧版服务器的 `images` 字段
+- 后端 Hub 连接自动转换旧版数据格式
+- 旧版客户端访问含视频的 Echo 时显示友好提示
+
+</details>
+
+<details>
+<summary><strong>🐳 Custom 版本部署</strong></summary>
+
+### Docker 部署
+
+Custom 分支使用独立的 Docker 镜像仓库：
+
+```shell
+docker run -d \
+  --name ech0 \
+  -p 6277:6277 \
+  -v /opt/ech0/data:/app/data \
+  -v /opt/ech0/backup:/app/backup \
+  -e JWT_SECRET="Hello Echos" \
+  lumlime/ech0:latest
+```
+
+> 💡 部署完成后访问 `ip:6277` 即可使用  
+> 🚷 建议把 `-e JWT_SECRET="Hello Echos"` 里的 `Hello Echos` 改成别的内容以提高安全性  
+> 📍 首次使用注册的账号会被设置为管理员  
+> 🎈 数据存储在 `/opt/ech0/data` 下
+
+### 版本更新
+
+```shell
+# 停止当前的容器
+docker stop ech0
+
+# 移除容器
+docker rm ech0
+
+# 拉取最新的镜像
+docker pull lumlime/ech0:latest
+
+# 启动新版本的容器
+docker run -d \
+  --name ech0 \
+  -p 6277:6277 \
+  -v /opt/ech0/data:/app/data \
+  -v /opt/ech0/backup:/app/backup \
+  -e JWT_SECRET="Hello Echos" \
+  lumlime/ech0:latest
+```
+
+</details>
+
+---
+
 <p align="left">
   <a href="https://hellogithub.com/repository/lin-snow/Ech0" target="_blank">
     <img src="https://api.hellogithub.com/v1/widgets/recommend.svg?rid=8f3cafdd6ef3445dbb1c0ed6dd34c8b5&claim_uid=swhbQfnJvKS0t7I&theme=neutral"
