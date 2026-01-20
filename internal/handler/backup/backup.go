@@ -129,3 +129,35 @@ func (backupHandler *BackupHandler) ImportBackup() gin.HandlerFunc {
 		}
 	})
 }
+
+// SyncLegacy 手动同步数据到原版表 (images)
+func (backupHandler *BackupHandler) SyncLegacy() gin.HandlerFunc {
+	return res.Execute(func(ctx *gin.Context) res.Response {
+		userId := ctx.MustGet("userid").(uint)
+		if err := backupHandler.backupService.SyncToLegacyTable(ctx, userId); err != nil {
+			return res.Response{
+				Err: err,
+			}
+		}
+
+		return res.Response{
+			Msg: "重建原版兼容数据成功！",
+		}
+	})
+}
+
+// CleanLegacy 彻底清理原版兼容表 (images)
+func (backupHandler *BackupHandler) CleanLegacy() gin.HandlerFunc {
+	return res.Execute(func(ctx *gin.Context) res.Response {
+		userId := ctx.MustGet("userid").(uint)
+		if err := backupHandler.backupService.CleanLegacyTable(ctx, userId); err != nil {
+			return res.Response{
+				Err: err,
+			}
+		}
+
+		return res.Response{
+			Msg: "清理原版占用数据成功！",
+		}
+	})
+}

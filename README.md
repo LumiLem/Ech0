@@ -1,23 +1,31 @@
 <div align="center">
+  <h1>🌟 Custom 分支特性说明</h1>
 
-# 🌟 Custom 分支特性说明
+  本分支 (`custom`) 是基于原版 [main](https://github.com/lin-snow/Ech0) 分支的改进版本，新增了多项实用功能和优化。
 
-> 本分支 (`custom`) 是基于原版 [`main`](https://github.com/lin-snow/Ech0) 分支的改进版本，新增了多项实用功能和优化。
+  <p>
+    <a href="#new-features">✨ 新增功能</a> • 
+    <a href="#migration-guide">🔄 迁移指南</a> • 
+    <a href="#docker-deploy">🐳 详细部署</a> • 
+    <a href="#ech0">📖 原版说明</a>
+  </p>
+</div>
 
-### 🐳 快速部署
+### 🐳 快速部署 (Docker)
 
 ```shell
-docker run -d --name ech0 -p 6277:6277 \
+docker run -d \
+  --name ech0 \
+  -p 6277:6277 \
   -v /opt/ech0/data:/app/data \
   -v /opt/ech0/backup:/app/backup \
-  -e JWT_SECRET="your-secret-key" \
+  -e JWT_SECRET="Hello Echos" \
   lumlime/ech0:latest
 ```
 
-> 部署后访问 `http://ip:6277` | 首次注册用户自动成为管理员 | [详细部署说明](#-custom-版本部署)
+> 部署后访问 `http://ip:6277` 即可使用 • [详细部署说明](#docker-deploy) • [原版迁移指南](#migration-guide)
 
-</div>
-
+<div id="new-features"></div>
 <details open>
 <summary><strong>📋 新增功能列表</strong></summary>
 
@@ -135,7 +143,34 @@ docker run -d --name ech0 -p 6277:6277 \
 
 </details>
 
-<details>
+<div id="migration-guide"></div>
+<details open>
+<summary><strong>🔄 分支迁移与原版兼容</strong></summary>
+
+### 1. 从原版 (`main`) 迁移到本分支 (`custom`)
+- **自动迁移**：直接部署本分支镜像并挂载原有的数据库文件。
+- **工作原理**：程序启动时会自动检测旧的 `images` 表记录，并将其**增量同步**到新的 `media` 表中。
+- **无损升级**：原有的图片数据、配置和 Echo 记录将完整保留。
+- **删除同步**：在本分支中删除图片时，会同步删除 `images` 表中的对应记录，确保切回原版时删除操作生效。
+  - ⚠️ **注意**：自动同步是**单向**的。在原版中进行的删除操作**不会**自动同步回本分支。
+  - 💡 **建议**：确定长期使用的版本后，避免频繁切换。目前的同步策略优先保证本分支数据不丢失，因此不支持从原版向本分支同步“删除”操作。
+
+### 2. 从本分支 (`custom`) 回退到原版 (`main`)
+由于本分支引入了视频支持等新结构，回退到原版需要执行以下步骤：
+1. **同步索引**：进入 `管理面板 -> 存储管理 -> 原版数据兼容`，点击 **“重建数据”** 图标。
+2. **同步结果**：系统会将 `media` 表中的图片记录通过 ID 对齐方式写回 `images` 镜像表。
+3. **切换版本**：同步完成后，您可以立即停止当前容器并换回 `main` 分支的镜像。
+4. **⚠️ 限制说明**：由于原版不支持视频，**视频和实况照片**内容将无法在回退后的原版中显示。
+
+### 3. 清理空间
+如果您确定长期使用 `custom` 分支且永不回退，可以在同一页面点击 **“清理数据”** 删除旧表，释放数据库空间。
+
+</details>
+
+</details>
+
+<div id="docker-deploy"></div>
+<details open>
 <summary><strong>🐳 Custom 版本部署</strong></summary>
 
 ### Docker 部署

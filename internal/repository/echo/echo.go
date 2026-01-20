@@ -141,8 +141,18 @@ func (echoRepository *EchoRepository) GetEchosById(id uint) (*model.Echo, error)
 // DeleteEchoById 删除 Echo
 func (echoRepository *EchoRepository) DeleteEchoById(ctx context.Context, id uint) error {
 	var echo model.Echo
-	// 删除外键media
+
+	// 先获取要删除的 media IDs，用于同步删除 images 表
+	var mediaIDs []uint
+	echoRepository.getDB(ctx).Model(&model.Media{}).Where("message_id = ?", id).Pluck("id", &mediaIDs)
+
+	// 删除外键 media
 	echoRepository.getDB(ctx).Where("message_id = ?", id).Delete(&model.Media{})
+
+	// 同步删除 images 表中的对应记录（防止启动时复活）
+	if len(mediaIDs) > 0 && echoRepository.db().Migrator().HasTable("images") {
+		echoRepository.getDB(ctx).Exec("DELETE FROM images WHERE id IN ?", mediaIDs)
+	}
 
 	result := echoRepository.getDB(ctx).Delete(&echo, id)
 	if result.Error != nil {
@@ -239,8 +249,13 @@ func (echoRepository *EchoRepository) UpdateEcho(ctx context.Context, echo *mode
 	// 4. 删除不再需要的媒体（在新列表中不存在的）
 	for url, media := range existingMediaMap {
 		if !newMediaURLs[url] {
+			mediaID := media.ID
 			if err := echoRepository.getDB(ctx).Delete(media).Error; err != nil {
 				return err
+			}
+			// 同步删除 images 表中的对应记录（防止启动时复活）
+			if echoRepository.db().Migrator().HasTable("images") {
+				echoRepository.getDB(ctx).Exec("DELETE FROM images WHERE id = ?", mediaID)
 			}
 		}
 	}

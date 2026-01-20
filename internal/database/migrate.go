@@ -24,35 +24,37 @@ func fixOldEchoLayoutData() error {
 	return nil
 }
 
-// MigrateImageToMedia 将images表迁移到media表
+// MigrateImageToMedia 将 images 表的数据增量同步到 media 表
 func MigrateImageToMedia() error {
 	db := GetDB()
 	if db == nil {
 		return errors.New(commonModel.DATABASE_NOT_INITED)
 	}
 
-	// 检查是否需要迁移（images表是否存在）
+	// 检查 images 表是否存在
 	if !db.Migrator().HasTable("images") {
-		// images表不存在，说明是新安装或已经迁移过，无需处理
 		return nil
 	}
 
-	// images表存在，需要迁移数据到media表
-	// 注意：media表已经由MigrateDB()的AutoMigrate创建
-
-	// 复制数据，将所有现有图片的media_type设置为'image'
-	if err := db.Exec(`
+	// 执行增量同步：仅插入 media 表中不存在的 ID
+	// 这样即使用户切回原版发布了新内容，再切回来时也会自动合入
+	err := db.Exec(`
 		INSERT INTO media (id, message_id, media_url, media_type, media_source, object_key, width, height)
-		SELECT id, message_id, image_url, 'image', image_source, object_key, width, height
-		FROM images
-	`).Error; err != nil {
+		SELECT i.id, i.message_id, i.image_url, 'image', i.image_source, i.object_key, i.width, i.height
+		FROM images i
+		LEFT JOIN media m ON i.id = m.id
+		WHERE m.id IS NULL
+	`).Error
+
+	if err != nil {
 		return err
 	}
 
-	// 删除旧表
-	if err := db.Migrator().DropTable("images"); err != nil {
-		return err
-	}
+	// 【重要】我们不再删除 images 表，以保持分之间的兼容性
+	// 用户可以手动在设置页面清理该表
+	// if err := db.Migrator().DropTable("images"); err != nil {
+	// 	return err
+	// }
 
 	return nil
 }

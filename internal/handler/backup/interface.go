@@ -13,4 +13,8 @@ type BackupHandlerInterface interface {
 
 	// ImportBackup 恢复备份
 	ImportBackup() gin.HandlerFunc
+
+	// Legacy 兼容性同步与清理 (原版)
+	SyncLegacy() gin.HandlerFunc
+	CleanLegacy() gin.HandlerFunc
 }

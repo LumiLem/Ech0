@@ -69,3 +69,23 @@ export function fetchGetWebsiteTitle(websiteURL: string) {
     method: 'GET',
   })
 }
+
+/**
+ * 手动同步数据到原版表 (images)
+ */
+export function fetchSyncLegacy() {
+  return request<App.Api.Response<any>>({
+    url: '/backup/legacy/sync',
+    method: 'POST',
+  })
+}
+
+/**
+ * 彻底清理原版占用数据表 (images)
+ */
+export function fetchCleanLegacy() {
+  return request<App.Api.Response<any>>({
+    url: '/backup/legacy/clean',
+    method: 'POST',
+  })
+}

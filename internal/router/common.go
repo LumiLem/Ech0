@@ -21,4 +21,8 @@ func setupCommonRoutes(appRouterGroup *AppRouterGroup, h *di.Handlers) {
 	appRouterGroup.AuthRouterGroup.GET("/backup", h.BackupHandler.Backup())
 	appRouterGroup.AuthRouterGroup.POST("/backup/import", h.BackupHandler.ImportBackup())
 	appRouterGroup.AuthRouterGroup.PUT("/s3/presign", h.CommonHandler.GetS3PresignURL())
+
+	// 原版兼容维护
+	appRouterGroup.AuthRouterGroup.POST("/backup/legacy/sync", h.BackupHandler.SyncLegacy())
+	appRouterGroup.AuthRouterGroup.POST("/backup/legacy/clean", h.BackupHandler.CleanLegacy())
 }
