@@ -1,8 +1,26 @@
 <div align="center">
+  <h1>🌟 Custom Branch Features</h1>
 
-# 🌟 Custom Branch Features
+  <p>
+    <a href="#new-features">✨ New Features</a> • 
+    <a href="#migration-guide">🔄 Migration Guide</a> • 
+    <a href="#custom-version-deployment">🐳 Deployment</a> •
+    <a href="#ech0">📖 Original Info</a>
+  </p>
+</div>
 
 > This branch (`custom`) is an enhanced version based on the original [`main`](https://github.com/lin-snow/Ech0) branch, with many new features and optimizations.
+>
+> 💡 **Special Notice**
+>
+> This is a **personal customized version**. While maintaining synchronization with the original core, it includes features that may deviate from the original "minimalistic" design philosophy.
+>
+> **Review your needs before choosing:**
+> 1. **Original Recommended**: Use the [original version](https://github.com/lin-snow/Ech0) for the purest Ech0 experience.
+> 2. **Use as Needed**: Choose this version only if you require specific features like Video or Live Photo support.
+> 3. **Seamless Switch**: We provide measures for [Bi-directional Migration](#migration-guide), allowing you to switch back at any time.
+> 4. **Sync Policy**: We track upstream updates promptly. In case of functional conflicts, upstream code takes precedence.
+> 5. **Performance Note**: To ensure compatibility and ease of syncing, some extra logic (e.g., real-time legacy table sync) is implemented, which may cause negligible performance overhead. Please consider this if you have extreme performance requirements.
 
 ### 🐳 Quick Deployment
 
@@ -247,6 +265,32 @@ Ech0 is a new-generation open-source self-hosted platform designed for individua
   - [Star History](#star-history)
   - [Acknowledgements](#acknowledgements)
   - [Support](#support)
+</details>
+
+---
+
+<div id="migration-guide"></div>
+<details open>
+<summary><strong>🔄 Branch Migration & Original Compatibility</strong></summary>
+
+### 1. Migrating from Original (`main`) to this branch (`custom`)
+- **Auto Migration**: Simply deploy this branch's image and mount your existing database files.
+- **How it works**: Upon startup, the program automatically detects records in the legacy `images` table and **incrementally syncs** them to the new `media` table.
+- **Lossless Upgrade**: All your original images, configurations, and Echos will be preserved intact.
+- **Delete Sync**: When you delete an image in this branch, it will also be removed from the legacy `images` table to ensure the deletion takes effect if you switch back.
+  - ⚠️ **Note**: This auto-sync is **one-way**. Deletions made in the original version **will not** be automatically synced back to this branch.
+  - 💡 **Suggestion**: Once you've decided on a version, avoid frequent switching. The current policy prioritizes data safety for this branch, thus "delete" operations from the original version are not back-synced.
+
+### 2. Rolling back from this branch (`custom`) to Original (`main`)
+Since this branch introduces new structures like video support, follow these steps to roll back:
+1. **Sync Database**: Go to `Admin Panel -> Storage -> Original Compatibility` and click the **"Rebuild Data"** icon.
+2. **Sync Result**: The system will write image records from the `media` table back to the legacy `images` table using ID alignment.
+3. **Switch Version**: Once synced, stop the current container and switch back to the `main` branch image.
+4. **⚠️ Limitations**: As the original version does not support videos, **Video and Live Photo** content will not be displayed after rolling back.
+
+### 3. Cleanup Space
+If you decide to stick with the `custom` branch and have no plans to roll back, you can click **"Cleanup Data"** on the same settings page to delete legacy tables and free up database space.
+
 </details>
 
 ---
