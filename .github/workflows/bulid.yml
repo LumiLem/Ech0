@@ -3,8 +3,13 @@ name: Build and Push Docker Image
 on:
   push:
     branches:
-    - 'custom'
+      - 'custom'
+    tags:
+      - 'v*'  # 支持 tag 推送触发，如 v3.1.0-custom.1
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build-docker:
@@ -23,12 +28,50 @@ jobs:
       - name: 📦 Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: 🏷️ Prepare Docker tags
+        id: docker_meta
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            # Tag 推送：使用版本号 + latest
+            echo "TAGS=${{ vars.DOCKERHUB_USERNAME }}/ech0:${{ github.ref_name }},${{ vars.DOCKERHUB_USERNAME }}/ech0:latest" >> $GITHUB_OUTPUT
+          else
+            # 分支推送：使用 dev + sha 标签（不更新 latest）
+            echo "TAGS=${{ vars.DOCKERHUB_USERNAME }}/ech0:dev,${{ vars.DOCKERHUB_USERNAME }}/ech0:${{ github.sha }}" >> $GITHUB_OUTPUT
+          fi
+
       - name: 🐳 Build and push image
         uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64
           push: true
-          tags: |
-            ${{ vars.DOCKERHUB_USERNAME }}/ech0:${{ github.sha }}
-            ${{ vars.DOCKERHUB_USERNAME }}/ech0:latest
+          tags: ${{ steps.docker_meta.outputs.TAGS }}
+
+  # 仅在 tag 推送时创建 Release
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: build-docker
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: 🔄 Checkout source code
+        uses: actions/checkout@v4
+
+      - name: 📦 Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          body: |
+            ## Ech0 Custom 版本 ${{ github.ref_name }}
+            
+            ### 🐳 Docker 部署
+            ```bash
+            docker pull ${{ vars.DOCKERHUB_USERNAME }}/ech0:${{ github.ref_name }}
+            ```
+            
+            ### 📖 更新说明
+            请查看 [README](https://github.com/${{ github.repository }}) 获取更多信息。
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -17,10 +17,10 @@ var latestVersionCache struct {
 	expiresAt time.Time
 }
 
-// GetLatestVersion 获取最新版本
+// GetLatestVersion 获取最新版本（从 custom 版仓库）
 func GetLatestVersion() (string, error) {
-	// 规范化 semver 标签
-	normalizeStableSemver := func(tag string) string {
+	// 规范化 semver 标签（支持 -custom.X 格式）
+	normalizeSemver := func(tag string) string {
 		t := strings.TrimSpace(tag)
 		if t == "" {
 			return ""
@@ -30,10 +30,6 @@ func GetLatestVersion() (string, error) {
 		}
 		t = semver.Canonical(t)
 		if t == "" {
-			return ""
-		}
-		// 只取稳定版本（不含 pre-release）
-		if semver.Prerelease(t) != "" {
 			return ""
 		}
 		return t
@@ -53,18 +49,19 @@ func GetLatestVersion() (string, error) {
 	defer cancel()
 
 	client := github.NewClient(nil)
-	rel, _, err := client.Repositories.GetLatestRelease(ctx, "lin-snow", "Ech0")
+	// 检测 custom 版仓库的更新
+	rel, _, err := client.Repositories.GetLatestRelease(ctx, "LumiLem", "Ech0")
 	if err != nil {
 		return "", fmt.Errorf("get latest release failed: %w", err)
 	}
 
 	tag := strings.TrimSpace(rel.GetTagName())
-	best := normalizeStableSemver(tag)
+	best := normalizeSemver(tag)
 	if best == "" {
 		return "", fmt.Errorf("invalid semver tag from latest release: %q", tag)
 	}
 
-	// 保持与 commonModel.Version 一致：返回不带 v 的 X.Y.Z
+	// 保持与 commonModel.FullVersion 一致：返回不带 v 的版本号
 	result := strings.TrimPrefix(best, "v")
 
 	latestVersionCache.mu.Lock()

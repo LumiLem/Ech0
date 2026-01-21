@@ -63,10 +63,10 @@ func PrintGreetings(port string) {
 	content := lipgloss.JoinVertical(
 		lipgloss.Left,
 		infoStyle.Render(
-			"📦 "+titleStyle.Render("Version")+": "+highlight.Render(commonModel.Version),
+			"📦 "+titleStyle.Render("Version")+": "+highlight.Render(commonModel.FullVersion),
 		),
 		infoStyle.Render("🎈 "+titleStyle.Render("Port")+": "+highlight.Render(port)),
-		infoStyle.Render("🧙 "+titleStyle.Render("Author")+": "+highlight.Render("L1nSn0w")),
+		infoStyle.Render("🧙 "+titleStyle.Render("Author")+": "+highlight.Render("L1nSn0w, Lumlime")),
 		infoStyle.Render(
 			"👉 "+titleStyle.Render("Website")+": "+highlight.Render("https://ech0.app/"),
 		),
@@ -74,7 +74,7 @@ func PrintGreetings(port string) {
 			"👉 "+titleStyle.Render(
 				"GitHub",
 			)+": "+highlight.Render(
-				"https://github.com/lin-snow/Ech0",
+				"https://github.com/LumiLem/Ech0",
 			),
 		),
 	)

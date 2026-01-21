@@ -38,8 +38,8 @@ func (id *InboxDispatcher) Handle(ctx context.Context, e *Event) error {
 }
 
 func (id *InboxDispatcher) handleEch0UpdateCheck(ctx context.Context) error {
-	// 检查 Ech0 版本更新
-	currentVersion := commonModel.Version
+	// 检查 Ech0 版本更新（使用 FullVersion 与 custom 版仓库版本比较）
+	currentVersion := commonModel.FullVersion
 
 	// 获取最新版本
 	latestVersion, err := githubUtil.GetLatestVersion()

@@ -1,9 +1,13 @@
+# 暂时停用该yml（custom 分支使用 bulid.yml）
+
 name: Release with Embedded Frontend
 
 on:
-  push:
-    tags:
-      - "v*" # 触发条件：打 Tag，比如 v1.0.0
+  workflow_dispatch:
+    # 手动触发工作流
+  # push:
+  #   tags:
+  #     - "v*" # 触发条件：打 Tag，比如 v1.0.0
 
 permissions:
   contents: write

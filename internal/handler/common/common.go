@@ -360,8 +360,8 @@ func (commonHandler *CommonHandler) HelloEch0() gin.HandlerFunc {
 			Github  string `json:"github"`
 		}{
 			Hello:   "Hello, Ech0! 👋",
-			Version: commonModel.Version,
-			Github:  "https://github.com/lin-snow/Ech0",
+			Version: commonModel.FullVersion,
+			Github:  "https://github.com/LumiLem/Ech0",
 		}
 
 		return res.Response{

@@ -108,7 +108,7 @@ func DoRestore(backupFilePath string) {
 func DoVersion() {
 	item := struct{ Title, Msg string }{
 		Title: "📦 当前版本",
-		Msg:   "v" + commonModel.Version,
+		Msg:   "v" + commonModel.FullVersion,
 	}
 	tui.PrintCLIWithBox(item)
 }

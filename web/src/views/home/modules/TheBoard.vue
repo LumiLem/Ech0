@@ -11,7 +11,7 @@
           <span class="font-bold">欢迎光临!</span>
         </div>
         <div class="text-[var(--text-color-300)] text-xs italic">
-          Powered by <a href="https://github.com/lin-snow/Ech0">Ech0</a>
+          Powered by <a href="https://github.com/LumiLem/Ech0">Ech0</a>
         </div>
       </div>
     </div>
