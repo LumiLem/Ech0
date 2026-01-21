@@ -47,31 +47,212 @@ jobs:
           push: true
           tags: ${{ steps.docker_meta.outputs.TAGS }}
 
-  # 仅在 tag 推送时创建 Release
+  build-binary:
+    name: Build Binary (linux/amd64)
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Environment
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: "pnpm"
+          cache-dependency-path: "web/pnpm-lock.yaml"
+      - name: Install dependencies and build frontend
+        working-directory: ./web
+        run: pnpm install --frozen-lockfile && pnpm build --mode production
+
+      - name: Setup Go Environment
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.4"
+          cache-dependency-path: "**/go.sum"
+      - name: Set Go proxy
+        run: go env -w GOPROXY=https://proxy.golang.org,direct
+
+      - name: Build backend binary with embedded frontend
+        env:
+          GOOS: linux
+          GOARCH: amd64
+          CGO_ENABLED: 1
+        run: |
+          STATIC_LDFLAGS="-linkmode external -extldflags '-static'"
+          go build -tags netgo -ldflags "$STATIC_LDFLAGS" -o ech0-${{ github.ref_name }}-linux-amd64 ./main.go
+
+      - name: Package binary
+        run: tar -czvf "ech0-${{ github.ref_name }}-linux-amd64.tar.gz" "ech0-${{ github.ref_name }}-linux-amd64"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ech0-binary-asset
+          path: ech0-${{ github.ref_name }}-linux-amd64.tar.gz
+          retention-days: 1
+
   create-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
-    needs: build-docker
+    needs: [build-docker, build-binary]
     if: startsWith(github.ref, 'refs/tags/')
     steps:
       - name: 🔄 Checkout source code
         uses: actions/checkout@v4
+
+      - name: 📥 Download binary artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ech0-binary-asset
+          path: .
+
+      - name: 📦 Create docker-compose.yml for release
+        run: |
+          mkdir -p release-assets
+          cat > release-assets/docker-compose.yml << 'EOF'
+          version: '3.8'
+          services:
+            ech0:
+              image: ${{ vars.DOCKERHUB_USERNAME }}/ech0:latest
+              container_name: ech0
+              restart: unless-stopped
+              ports:
+                - "6277:6277"
+              volumes:
+                - /opt/ech0/data:/app/data
+                - /opt/ech0/backup:/app/backup
+              environment:
+                - JWT_SECRET="Hello Echos"
+          EOF
+          tar -czvf docker-deploy.tar.gz -C release-assets docker-compose.yml
 
       - name: 📦 Create Release
         uses: softprops/action-gh-release@v2
         with:
           name: ${{ github.ref_name }}
           body: |
-            ## Ech0 Custom 版本 ${{ github.ref_name }}
+            ## 🎉 Ech0 Custom 版本 ${{ github.ref_name }}
             
-            ### 🐳 Docker 部署
+            ## 📝 更新内容 (Changelog)
+            
+            > 💡 您可以在发布草稿前在这里手动补充详细的更新说明。
+            
+            ---
+            
+            ## 🏷️ Docker 镜像标签说明
+            
+            | 标签 | 说明 |
+            |------|------|
+            | `latest` | 最新稳定版本（推荐生产环境使用） |
+            | `dev` | 开发版本（包含最新开发进度，可能不稳定） |
+            | `${{ github.ref_name }}` | 特定版本镜像 |
+            
+            ---
+            
+            ## 🐳 Docker 部署
+            
+            ### 快速部署
+            
             ```bash
-            docker pull ${{ vars.DOCKERHUB_USERNAME }}/ech0:${{ github.ref_name }}
+            docker run -d \
+              --name ech0 \
+              -p 6277:6277 \
+              -v /opt/ech0/data:/app/data \
+              -v /opt/ech0/backup:/app/backup \
+              -e JWT_SECRET="Hello Echos" \
+              ${{ vars.DOCKERHUB_USERNAME }}/ech0:latest
             ```
             
-            ### 📖 更新说明
-            请查看 [README](https://github.com/${{ github.repository }}) 获取更多信息。
-          draft: false
+            💡 部署完成后访问 ip:6277 即可使用
+            🚷 建议把 -e JWT_SECRET="Hello Echos" 里的 Hello Echos 改成别的内容以提高安全性
+            📍 首次使用注册的账号会被设置为管理员
+            🎈 数据存储在 /opt/ech0/data 下
+            
+            ### Docker Compose 部署
+            
+            1. 下载本 Release 附带的 `docker-deploy.tar.gz`
+            2. 解压并修改 `docker-compose.yml` 中的 `JWT_SECRET`
+            3. 启动服务：
+            
+            ```bash
+            tar -xzvf docker-deploy.tar.gz
+            docker compose up -d
+            ```
+            
+            ---
+            
+            ## 🔄 更新流程 (Update)
+            
+            ### Docker 更新
+            
+            ```bash
+            # 拉取最新镜像
+            docker pull ${{ vars.DOCKERHUB_USERNAME }}/ech0:latest
+            
+            # 停止并删除旧容器
+            docker stop ech0 && docker rm ech0
+            
+            # 重新启动容器
+            docker run -d \
+              --name ech0 \
+              -p 6277:6277 \
+              -v /opt/ech0/data:/app/data \
+              -v /opt/ech0/backup:/app/backup \
+              -e JWT_SECRET="Hello Echos" \
+              ${{ vars.DOCKERHUB_USERNAME }}/ech0:latest
+            ```
+            
+            ### Docker Compose 更新
+            
+            ```bash
+            # 拉取最新镜像
+            docker compose pull
+            
+            # 重新启动服务（会自动检测新镜像并重启）
+            docker compose up -d
+            
+            # (可选) 清理旧的无用镜像以释放空间
+            docker image prune -f
+            ```
+            
+            ---
+            
+            ## 🚀 从原版迁移 (Migration)
+            
+            如果您之前使用的是原版 Ech0，可以通过以下步骤无损切换到 Custom 版：
+            
+            ### Docker 迁移
+            1. 停止并删除旧容器：`docker stop ech0 && docker rm ech0`
+            2. 使用本版命令重新启动，只需将镜像改为 `${{ vars.DOCKERHUB_USERNAME }}/ech0:latest` 即可。
+            
+            ### Docker Compose 迁移
+            1. 修改 `docker-compose.yml` 中的 `image` 字段为 `${{ vars.DOCKERHUB_USERNAME }}/ech0:latest`。
+            2. 执行 `docker compose up -d` 重新部署。
+            
+            > 📍 **注意**：Custom 版首次启动会自动升级数据库结构。若需切换回原版，请在“系统设置 -> 原版数据兼容”中手动执行数据同步。
+            
+            ---
+            
+            ## 💻 非 Docker 部署
+            
+            下载 `ech0-${{ github.ref_name }}-linux-amd64.tar.gz`，解压后直接运行二进制文件即可。
+            
+            ---
+            
+            ## 📖 更多信息
+            
+            - 📚 [README 文档](https://github.com/${{ github.repository }})
+            - 🐛 [问题反馈](https://github.com/${{ github.repository }}/issues)
+            
+          files: |
+            ech0-${{ github.ref_name }}-linux-amd64.tar.gz
+            docker-deploy.tar.gz
+          draft: true
           prerelease: false
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
