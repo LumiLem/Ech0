@@ -35,8 +35,8 @@ jobs:
             # Tag 推送：使用版本号 + latest
             echo "TAGS=${{ vars.DOCKERHUB_USERNAME }}/ech0:${{ github.ref_name }},${{ vars.DOCKERHUB_USERNAME }}/ech0:latest" >> $GITHUB_OUTPUT
           else
-            # 分支推送：使用 dev + sha 标签（不更新 latest）
-            echo "TAGS=${{ vars.DOCKERHUB_USERNAME }}/ech0:dev,${{ vars.DOCKERHUB_USERNAME }}/ech0:${{ github.sha }}" >> $GITHUB_OUTPUT
+            # 分支推送：使用 sha + dev 标签（不更新 latest）
+            echo "TAGS=${{ vars.DOCKERHUB_USERNAME }}/ech0:${{ github.sha }},${{ vars.DOCKERHUB_USERNAME }}/ech0:dev" >> $GITHUB_OUTPUT
           fi
 
       - name: 🐳 Build and push image
