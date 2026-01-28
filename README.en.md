@@ -111,6 +111,12 @@ docker run -d --name ech0 -p 6277:6277 \
 - **Dockerfile Optimization** — Simplified build process with unified build (frontend + backend together)
 - **MIME Type Support** — Added mailcap to Docker image for extended MIME type recognition
 
+### 📱 PWA & SEO Enhancements
+- **PWA Info Auto-Sync** — Automatically syncs site title, description, and logo to PWA config for a unified installation experience
+- **Smart Logo Cropping** — Automatically performs center-square cropping and resizing upon logo upload for perfect icon display
+- **Dynamic Social Sharing Content** — Deeply optimized OpenGraph support; sharing links on platforms like X (Twitter), Telegram, or Discord now automatically generates rich preview cards with custom text summaries and media
+- **Smart Page Titles** — Title bar automatically reflects the current context, such as Echo details, specific search terms, or date filters, making tab navigation effortless
+
 ### 🔧 Other Optimizations
 - **RSS Media Display** — Optimized RSS attachment display based on media type, distinguishing video and image
 - **ActivityPub Video Support** — Fediverse attachment types auto-distinguished as Image/Video/Document
