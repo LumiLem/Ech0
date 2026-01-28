@@ -67,6 +67,37 @@
           class="w-full py-1!"
         />
       </div>
+      <!-- 站点描述 -->
+      <div
+        class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] gap-2 mb-1"
+      >
+        <h2 class="font-semibold w-26 shrink-0">站点描述:</h2>
+        <span v-if="!editMode">{{
+          SystemSetting?.site_description.length === 0 ? '暂无' : SystemSetting.site_description
+        }}</span>
+        <BaseTextArea
+          v-else
+          v-model="SystemSetting.site_description"
+          placeholder="请输入站点描述 (用于 SEO & OG Meta)"
+          class="w-full py-1!"
+        />
+      </div>
+      <!-- 站点关键词 -->
+      <div
+        class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] gap-2 mb-1"
+      >
+        <h2 class="font-semibold w-26 shrink-0">站点关键词:</h2>
+        <span v-if="!editMode">{{
+          SystemSetting?.site_keywords.length === 0 ? '暂无' : SystemSetting.site_keywords
+        }}</span>
+        <BaseInput
+          v-else
+          v-model="SystemSetting.site_keywords"
+          type="text"
+          placeholder="关键词,用逗号分隔"
+          class="w-full py-1!"
+        />
+      </div>
       <!-- 服务名称 -->
       <div
         class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] gap-2 mb-1"
@@ -177,6 +208,24 @@
           class="w-full py-1!"
         />
       </div>
+      <!-- 自定义 Meta -->
+      <div class="flex flex-row justify-start text-[var(--text-color-next-500)] gap-2 mb-1">
+        <h2 class="font-semibold w-26 shrink-0">自定义 Meta:</h2>
+        <span
+          v-if="!editMode"
+          class="truncate max-w-full inline-block align-middle"
+          :title="SystemSetting.custom_meta"
+          style="vertical-align: middle"
+          >{{ SystemSetting?.custom_meta?.length === 0 ? '暂无' : '******' }}</span
+        >
+        <BaseTextArea
+          v-else
+          v-model="SystemSetting.custom_meta"
+          type="text"
+          placeholder="请输入自定义 Meta 标签"
+          class="w-full py-1!"
+        />
+      </div>
       <!-- 允许注册 -->
       <div class="flex flex-row items-center justify-start text-[var(--text-color-next-500)]">
         <h2 class="font-semibold w-26 shrink-0">允许注册:</h2>
@@ -202,6 +251,7 @@ import { theToast } from '@/utils/toast'
 import { useSettingStore } from '@/stores'
 import { storeToRefs } from 'pinia'
 import { getApiUrl } from '@/service/request/shared'
+import { resizeAndCompressLogo } from '@/utils/other'
 
 const settingStore = useSettingStore()
 const { getSystemSetting } = settingStore
@@ -236,7 +286,10 @@ const handleUploadImage = async (event: Event) => {
   if (!file) return
 
   try {
-    const res = await theToast.promise(fetchUploadImage(file, ImageSource.LOCAL), {
+    // 💡 针对 Logo 进行智能压缩与正方形裁剪 (512x512 是 PWA 的标准高质尺寸)
+    const compressedFile = await resizeAndCompressLogo(file, 512)
+
+    const res = await theToast.promise(fetchUploadImage(compressedFile, ImageSource.LOCAL), {
       loading: '服务器 Logo 上传中...',
       success: '服务器 Logo 上传成功！',
       error: '上传失败，请稍后再试',

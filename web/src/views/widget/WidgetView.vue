@@ -1,5 +1,14 @@
 <script setup lang="ts">
 import WidgetPage from './modules/WidgetPage.vue'
+import { computed } from 'vue'
+import { useHead } from '@unhead/vue'
+import { useSettingStore } from '@/stores'
+
+const settingStore = useSettingStore()
+
+useHead({
+  title: computed(() => `Widgets - ${settingStore.SystemSetting.site_title}`)
+})
 </script>
 
 <template>

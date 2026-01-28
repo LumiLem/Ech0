@@ -62,15 +62,18 @@ type AppConfig struct {
 		VideoPath    string   `yaml:"videopath"`    // 视频文件存储路径
 	} `yaml:"upload"`
 	Setting struct {
-		SiteTitle     string `yaml:"sitetitle"`     // 网站标题
-		ServerLogo    string `yaml:"serverlogo"`    // 服务器Logo
-		Servername    string `yaml:"servername"`    // 服务器名称
-		Serverurl     string `yaml:"serverurl"`     // 服务器 URL
-		AllowRegister bool   `yaml:"allowregister"` // 是否允许注册
-		Icpnumber     string `yaml:"icpnumber"`     // ICP 备案号
-		MetingAPI     string `yaml:"metingapi"`     // Meting API 地址
-		CustomCSS     string `yaml:"customcss"`     // 自定义 CSS 样式
-		CustomJS      string `yaml:"customjs"`      // 自定义 JS 脚本
+		SiteTitle       string `yaml:"sitetitle"`       // 网站标题
+		SiteDescription string `yaml:"sitedescription"` // 网站描述
+		SiteKeywords    string `yaml:"sitekeywords"`    // 网站关键词
+		ServerLogo      string `yaml:"serverlogo"`      // 服务器Logo
+		Servername      string `yaml:"servername"`      // 服务器名称
+		Serverurl       string `yaml:"serverurl"`       // 服务器 URL
+		AllowRegister   bool   `yaml:"allowregister"`   // 是否允许注册
+		Icpnumber       string `yaml:"icpnumber"`       // ICP 备案号
+		MetingAPI       string `yaml:"metingapi"`       // Meting API 地址
+		CustomCSS       string `yaml:"customcss"`       // 自定义 CSS 样式
+		CustomJS        string `yaml:"customjs"`        // 自定义 JS 脚本
+		CustomMeta      string `yaml:"custommeta"`      // 自定义 Meta 标签
 	} `yaml:"setting"`
 	Comment struct {
 		EnableComment bool   `yaml:"enablecomment"` // 是否启用评论

@@ -228,6 +228,8 @@ declare namespace App {
     namespace Setting {
       type SystemSetting = {
         site_title: string
+        site_description: string
+        site_keywords: string
         server_logo: string
         server_name: string
         server_url: string
@@ -236,6 +238,7 @@ declare namespace App {
         meting_api: string
         custom_css: string
         custom_js: string
+        custom_meta: string
       }
 
       type CommentSetting = {

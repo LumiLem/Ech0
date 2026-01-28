@@ -26,23 +26,131 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useHead } from '@unhead/vue'
 import { fetchGetEchoById } from '@/service/api'
-import { ref } from 'vue'
 import TheEchoDetail from '@/components/advanced/TheEchoDetail.vue'
 import TheComment from '@/components/advanced/TheComment.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
 import Arrow from '@/components/icons/arrow.vue'
-import { useEchoStore } from '@/stores'
+import { useEchoStore, useSettingStore, useInboxStore } from '@/stores'
+import { getApiUrl } from '@/service/request/shared'
+import { storeToRefs } from 'pinia'
 
 const router = useRouter()
 const route = useRoute()
 const echoId = route.params.echoId as string
 
 const echoStore = useEchoStore()
+const settingStore = useSettingStore()
+const inboxStore = useInboxStore()
+const { inboxMode } = storeToRefs(inboxStore)
+import { ensureAbsoluteUrl } from '@/utils/other'
+
 const isLoading = ref(true)
 const echo = ref<App.Api.Ech0.Echo | null>(null)
+
+// 动态 Meta 管理
+useHead({
+  title: computed(() => {
+    if (!echo.value) return settingStore.SystemSetting.site_title
+    const d = new Date(echo.value.created_at)
+    const dateStr = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
+    return `${echo.value.username}发表于${dateStr}的动态 - ${settingStore.SystemSetting.site_title}`
+  }),
+  meta: [
+    {
+      name: 'description',
+      content: computed(() => {
+        if (!echo.value) return settingStore.SystemSetting.site_description
+        let desc = echo.value.content?.replace(/<[^>]*>/g, '').replace(/[*#_~`]/g, '').slice(0, 200)
+        if (!desc) {
+          const mediaCount = echo.value.media?.length || 0
+          desc = mediaCount > 0 
+            ? `${echo.value.username}分享了${mediaCount}个媒体文件`
+            : `这是来自${echo.value.username}的一条动态，点击查看详情。`
+        }
+        return desc
+      })
+    },
+    {
+      name: 'author',
+      content: computed(() => echo.value?.username || settingStore.SystemSetting.server_name)
+    },
+    {
+      property: 'og:title',
+      content: computed(() => {
+        if (!echo.value) return settingStore.SystemSetting.site_title
+        const d = new Date(echo.value.created_at)
+        const dateStr = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
+        return `${echo.value.username}发表于${dateStr}的动态 - ${settingStore.SystemSetting.site_title}`
+      })
+    },
+    {
+      property: 'og:image',
+      content: computed(() => {
+        if (echo.value?.media && echo.value.media.length > 0) {
+          const mediaItem = echo.value.media[0]
+          if (mediaItem && mediaItem.media_url) {
+            return ensureAbsoluteUrl(mediaItem.media_url, settingStore.SystemSetting.server_url)
+          }
+        }
+        // 如果动态没图，回退到站点 Logo（绝对路径）
+        const logo = settingStore.SystemSetting.server_logo
+        return ensureAbsoluteUrl(logo || '/Ech0.png', settingStore.SystemSetting.server_url)
+      })
+    },
+    {
+      property: 'og:url',
+      content: computed(() => window.location.href)
+    }
+  ],
+  script: [
+    {
+      id: 'ldjson-schema',
+      key: 'ldjson-schema',
+      type: 'application/ld+json',
+      innerHTML: computed(() => {
+        if (!echo.value) return ''
+        const date = new Date(echo.value.created_at).toISOString()
+        const logo = settingStore.SystemSetting.server_logo
+        const siteLogo = ensureAbsoluteUrl(logo || '/Ech0.png', settingStore.SystemSetting.server_url)
+            
+        // 提前安全处理 Media URL
+        let echoImage = siteLogo
+        if (echo.value.media && echo.value.media.length > 0) {
+          const firstMedia = echo.value.media[0]
+          if (firstMedia && firstMedia.media_url) {
+            echoImage = ensureAbsoluteUrl(firstMedia.media_url, settingStore.SystemSetting.server_url)
+          }
+        }
+
+        const data = {
+          "@context": "https://schema.org",
+          "@type": "BlogPosting",
+          "headline": `${echo.value.username}发表于${date.split('T')[0]}的动态`,
+          "description": echo.value.content?.slice(0, 200),
+          "image": echoImage,
+          "datePublished": date,
+          "author": {
+            "@type": "Person",
+            "name": echo.value.username
+          },
+          "publisher": {
+            "@type": "Organization",
+            "name": settingStore.SystemSetting.site_title,
+            "logo": {
+              "@type": "ImageObject",
+              "url": siteLogo
+            }
+          }
+        }
+        return JSON.stringify(data)
+      })
+    }
+  ]
+})
 
 // 从 echoIndexMap 获取对应的 EchoList索引
 const getEchoFromStore = (): App.Api.Ech0.Echo | null => {

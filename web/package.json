@@ -15,6 +15,7 @@
   "dependencies": {
     "@fancyapps/ui": "^6.1.7",
     "@headlessui/vue": "^1.7.23",
+    "@unhead/vue": "^2.1.2",
     "@uppy/aws-s3": "^5.1.0",
     "@uppy/compressor": "^3.1.0",
     "@uppy/core": "^5.2.0",

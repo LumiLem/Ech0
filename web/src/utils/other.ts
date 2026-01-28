@@ -1,6 +1,100 @@
 import { getApiUrl } from '@/service/request/shared'
 import { ImageSource, MusicProvider } from '@/enums/enums'
 
+/**
+ * 将图片压缩并调整尺寸为正方形 (用于 Logo/PWA 图标)
+ * @param file 原始文件
+ * @param targetSize 目标尺寸 (默认 512, 因为 PWA 建议至少包含一个 512x512)
+ */
+export async function resizeAndCompressLogo(file: File, targetSize: number = 512): Promise<File> {
+  return new Promise((resolve, reject) => {
+    // 只有图片才处理
+    if (!file.type.startsWith('image/')) {
+      return resolve(file)
+    }
+
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const img = new Image()
+      img.onload = () => {
+        // 计算原图的最短边
+        const minSide = Math.min(img.width, img.height)
+
+        // 💡 智能尺寸调整策略：
+        // 1. PWA 至少需要 192x192 才能安装，所以这是“底线”。
+        // 2. 如果原图在 192~512 之间，保持原大，防止拉伸模糊。
+        // 3. 如果原图超过 512，缩减到 512 以进行性能优化。
+        const minPWASize = 192
+        const finalSize = Math.max(minPWASize, Math.min(targetSize, minSide))
+
+        const canvas = document.createElement('canvas')
+        canvas.width = finalSize
+        canvas.height = finalSize
+        const ctx = canvas.getContext('2d')
+
+        if (!ctx) {
+          return resolve(file)
+        }
+
+        // 计算居中裁剪
+        const offsetX = (img.width - minSide) / 2
+        const offsetY = (img.height - minSide) / 2
+
+        // 平滑缩放
+        ctx.imageSmoothingEnabled = true
+        ctx.imageSmoothingQuality = 'high'
+
+        // 绘制并裁剪
+        ctx.drawImage(img, offsetX, offsetY, minSide, minSide, 0, 0, finalSize, finalSize)
+
+        // 导出为 PNG (支持透明度，适合 Logo)
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const newFile = new File([blob], 'logo.png', { type: 'image/png' })
+              resolve(newFile)
+            } else {
+              resolve(file)
+            }
+          },
+          'image/png'
+        )
+      }
+      img.onerror = () => resolve(file)
+      img.src = e.target?.result as string
+    }
+    reader.onerror = () => resolve(file)
+    reader.readAsDataURL(file)
+  })
+}
+
+/**
+ * 确保返回绝对路径 URL
+ * @param urlPath 路径
+ * @param serverUrl 服务器基础地址 (可选，默认使用 window.location.origin)
+ */
+export const ensureAbsoluteUrl = (urlPath: string, serverUrl?: string) => {
+  if (!urlPath || urlPath.startsWith('http')) return urlPath
+  const base = serverUrl?.replace(/\/+$/, '') || window.location.origin
+
+  // 处理本地资源需要补全 /api 的情况 (与后端 ensureAbsoluteURL 逻辑一致)
+  if (urlPath.startsWith('/images/') || urlPath.startsWith('/videos/') || urlPath.startsWith('/audios/')) {
+    // getApiUrl() 在生产环境通常是 "/api" 或 "/"
+    const apiUrl = getApiUrl().replace(/\/+$/, '')
+    // 如果 apiUrl 为空 (即 "/")，则直接拼接路径
+    // 如果 apiUrl 不为空且 urlPath 已包含该前缀，则不再重复拼接
+    if (!apiUrl || urlPath.startsWith(apiUrl)) {
+      return base + urlPath
+    }
+    return base + apiUrl + urlPath
+  }
+
+  // 特殊处理 Ech0.svg 回退
+  if (urlPath === '/Ech0.svg') return base + '/Ech0.png'
+
+  return base + (urlPath.startsWith('/') ? urlPath : '/' + urlPath)
+}
+
 // 获取媒体链接（支持图片和视频）
 export const getMediaUrl = (media: App.Api.Ech0.Media) => {
   if (media.media_source === ImageSource.LOCAL) {

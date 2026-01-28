@@ -26,6 +26,8 @@ export const useSettingStore = defineStore('settingStore', () => {
   const isSystemReady = ref<boolean>(false)
   const SystemSetting = ref<App.Api.Setting.SystemSetting>({
     site_title: import.meta.env.VITE_APP_TITLE,
+    site_description: '',
+    site_keywords: '',
     server_logo: '/Ech0.svg',
     server_name: import.meta.env.VITE_APP_NAME,
     server_url: '',
@@ -34,6 +36,7 @@ export const useSettingStore = defineStore('settingStore', () => {
     meting_api: '',
     custom_css: '',
     custom_js: '',
+    custom_meta: '',
   })
   const CommentSetting = ref<App.Api.Setting.CommentSetting>({
     enable_comment: false,

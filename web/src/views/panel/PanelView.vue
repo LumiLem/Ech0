@@ -1,7 +1,15 @@
 <script setup lang="ts">
 import PanelPage from './modules/PanelPage.vue'
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { theToast } from '@/utils/toast'
+import { useHead } from '@unhead/vue'
+import { useSettingStore } from '@/stores'
+
+const settingStore = useSettingStore()
+
+useHead({
+  title: computed(() => `控制面板 - ${settingStore.SystemSetting.site_title}`)
+})
 
 onMounted(() => {
   const url = new URL(window.location.href)

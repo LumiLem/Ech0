@@ -1,29 +1,45 @@
 package handler
 
 import (
+	"encoding/json"
+	"fmt"
 	"io/fs"
 	"mime"
 	"net/http"
 	"path"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	authModel "github.com/lin-snow/ech0/internal/model/auth"
+	settingModel "github.com/lin-snow/ech0/internal/model/setting"
+	echoService "github.com/lin-snow/ech0/internal/service/echo"
+	settingService "github.com/lin-snow/ech0/internal/service/setting"
 	"github.com/lin-snow/ech0/template"
 )
 
-type WebHandler struct{}
+type WebHandler struct {
+	settingService settingService.SettingServiceInterface
+	echoService    echoService.EchoServiceInterface
+}
 
 // NewWebHandler WebHandler 的构造函数
-func NewWebHandler() *WebHandler {
-	return &WebHandler{}
+func NewWebHandler(
+	settingService settingService.SettingServiceInterface,
+	echoService echoService.EchoServiceInterface,
+) *WebHandler {
+	return &WebHandler{
+		settingService: settingService,
+		echoService:    echoService,
+	}
 }
 
 // Templates 返回一个处理前端编译后文件的 gin.HandlerFunc
 func (webHandler *WebHandler) Templates() gin.HandlerFunc {
 	// 提取 dist 子目录
 	subFS, _ := fs.Sub(template.WebFS, "dist")
-	fileServer := http.FS(subFS)
 
 	return func(ctx *gin.Context) {
 		requestPath := ctx.Request.URL.Path
@@ -36,53 +52,216 @@ func (webHandler *WebHandler) Templates() gin.HandlerFunc {
 			return
 		}
 
-		fullPath := path.Clean("." + requestPath)
-		f, err := fileServer.Open(fullPath)
-		if err != nil {
-			// fallback 到 index.html
-			fallback, err := fileServer.Open("index.html")
-			if err != nil {
-				ctx.Status(http.StatusNotFound)
-				return
-			}
-			defer func() { _ = fallback.Close() }()
-			fallbackStat, _ := fallback.Stat()
-			ctx.Header("Content-Type", "text/html; charset=utf-8")
-			http.ServeContent(
-				ctx.Writer,
-				ctx.Request,
-				"index.html",
-				fallbackStat.ModTime(),
-				fallback,
-			)
+		// 处理特殊的动态 Meta 注入请求 (index.html 及其 fallback)
+		// 如果是访问 SPA 的页面路由 (没有扩展名或者是 .html)，通常会走向 index.html
+		ext := filepath.Ext(requestPath)
+		if ext == "" || ext == ".html" {
+			webHandler.handleHTMLRequest(ctx, subFS)
 			return
 		}
-		defer func() { _ = f.Close() }()
 
-		// 获取文件信息
-		stat, _ := f.Stat()
-
-		// 适配资源压缩Gzip 算法
-		encoding := ctx.GetHeader("Accept-Encoding")
-		if strings.Contains(encoding, "gzip") {
-			gzPath := fullPath + ".gz"
-			gzFile, err := fileServer.Open(gzPath)
-			if err == nil {
-				defer func() { _ = gzFile.Close() }()
-				stat, _ := gzFile.Stat()
-				ctx.Header("Content-Encoding", "gzip")
-				ctx.Header("Content-Type", getMimeType(fullPath))
-				http.ServeContent(ctx.Writer, ctx.Request, gzPath, stat.ModTime(), gzFile)
-				return
-			}
+		// 处理 PWA Manifest 动态注入
+		if requestPath == "/app.webmanifest" {
+			webHandler.handleManifestRequest(ctx, subFS)
+			return
 		}
 
-		ctx.Header("Content-Type", getMimeType(fullPath))
-		http.ServeContent(ctx.Writer, ctx.Request, fullPath, stat.ModTime(), f)
+		// 正常静态资源处理
+		webHandler.handleStaticRequest(ctx, subFS, requestPath)
 	}
 }
 
-// getMimeType 根据文件扩展名返回 MIME 类型，带默认值
+// handleManifestRequest 处理 PWA Manifest 请求并注入动态信息
+func (webHandler *WebHandler) handleManifestRequest(ctx *gin.Context, subFS fs.FS) {
+	// 读取 app.webmanifest
+	content, err := fs.ReadFile(subFS, "app.webmanifest")
+	if err != nil {
+		ctx.Status(http.StatusNotFound)
+		return
+	}
+
+	manifest := string(content)
+
+	// 获取系统设置
+	var settings settingModel.SystemSetting
+	_ = webHandler.settingService.GetSetting(&settings)
+
+	// 注入站点标题和描述
+	if settings.SiteTitle != "" {
+		// 使用正则兼容不同的缩进和空格格式
+		reName := regexp.MustCompile(`"name":\s*"Ech0"`)
+		manifest = reName.ReplaceAllString(manifest, fmt.Sprintf(`"name": "%s"`, settings.SiteTitle))
+
+		reShortName := regexp.MustCompile(`"short_name":\s*"Ech0"`)
+		manifest = reShortName.ReplaceAllString(manifest, fmt.Sprintf(`"short_name": "%s"`, settings.SiteTitle))
+	}
+	if settings.SiteDescription != "" {
+		// 匹配原有描述字段并替换
+		reDesc := regexp.MustCompile(`"description":\s*"[^"]*"`)
+		description := truncate(settings.SiteDescription, 200)
+		manifest = reDesc.ReplaceAllString(manifest, fmt.Sprintf(`"description": "%s"`, description))
+	}
+
+	// 注入 PWA 图标 (使用系统 Logo 重建 icons 数组)
+	if settings.ServerLogo != "" {
+		logo := webHandler.ensureRelativeURL(settings.ServerLogo)
+		mimeType := getMimeType(logo)
+
+		// 构造符合要求的 PWA 图标数组 (将 any 和 maskable 分开声明以消除浏览器警告)
+		newIcons := fmt.Sprintf(`[
+    {
+      "src": "%s",
+      "sizes": "192x192 512x512",
+      "type": "%s",
+      "purpose": "any"
+    },
+    {
+      "src": "%s",
+      "sizes": "192x192 512x512",
+      "type": "%s",
+      "purpose": "maskable"
+    }
+  ]`, logo, mimeType, logo, mimeType)
+
+		// 替换整个 icons 块
+		reIconsBlock := regexp.MustCompile(`(?is)"icons":\s*\[.*?]`)
+		manifest = reIconsBlock.ReplaceAllString(manifest, fmt.Sprintf(`"icons": %s`, newIcons))
+	}
+
+	ctx.Header("Content-Type", "application/manifest+json; charset=utf-8")
+	ctx.String(http.StatusOK, manifest)
+}
+
+// handleHTMLRequest 处理 HTML 请求并注入动态 Meta
+func (webHandler *WebHandler) handleHTMLRequest(ctx *gin.Context, subFS fs.FS) {
+	requestPath := ctx.Request.URL.Path
+
+	// 读取 index.html
+	htmlContent, err := fs.ReadFile(subFS, "index.html")
+	if err != nil {
+		ctx.Status(http.StatusNotFound)
+		return
+	}
+
+	html := string(htmlContent)
+
+	// 获取系统设置
+	var settings settingModel.SystemSetting
+	_ = webHandler.settingService.GetSetting(&settings)
+
+	// 默认 Meta 信息 (从系统设置获取)
+	title := settings.SiteTitle
+	description := settings.SiteDescription
+	keywords := settings.SiteKeywords
+	author := settings.ServerName
+	serverURL := strings.TrimRight(settings.ServerURL, "/")
+	image := webHandler.ensureAbsoluteURL(settings.ServerLogo, serverURL)
+	url := serverURL + requestPath
+	pageType := "website"
+
+	// 如果是 Echo 详情页，抓取动态内容
+	echoIDRegex := regexp.MustCompile(`/echo/(\d+)`)
+	matches := echoIDRegex.FindStringSubmatch(requestPath)
+	if len(matches) > 1 {
+		id, _ := strconv.ParseUint(matches[1], 10, 64)
+		// 使用匿名用户权限获取公开 Echo
+		echo, err := webHandler.echoService.GetEchoById(authModel.NO_USER_LOGINED, uint(id))
+		if err == nil && echo != nil {
+			author = echo.Username
+			// 转换为 2006年1月2日 格式
+			dateCN := fmt.Sprintf("%d年%d月%d日", echo.CreatedAt.Year(), int(echo.CreatedAt.Month()), echo.CreatedAt.Day())
+
+			// Title 优化：作者 + 日期 + 站点名 (稳健且符合社媒风格)
+			title = fmt.Sprintf("%s发表于%s的动态 - %s", author, dateCN, settings.SiteTitle)
+
+			// Description 优化：正文摘要，若为空则描述媒体
+			description = truncate(echo.Content, 200)
+			if description == "" {
+				mediaCount := len(echo.Media)
+				if mediaCount > 0 {
+					description = fmt.Sprintf("%s分享了%d个媒体文件", author, mediaCount)
+				} else {
+					description = fmt.Sprintf("这是来自%s的一条动态，点击查看详情。", author)
+				}
+			}
+
+			if len(echo.Media) > 0 {
+				image = webHandler.ensureAbsoluteURL(echo.Media[0].MediaURL, serverURL)
+			}
+			pageType = "article"
+		}
+	}
+
+	// 1. 替换标题
+	titleTagRegex := regexp.MustCompile(`(?i)<title>.*?</title>`)
+	html = titleTagRegex.ReplaceAllString(html, "<title>"+title+"</title>")
+
+	// 2. 注入自定义全局 Meta (如果用户在后台配置了)
+	if settings.CustomMeta != "" {
+		html = strings.Replace(html, "</head>", settings.CustomMeta+"\n</head>", 1)
+	}
+
+	// 3. 替换或注入 SEO Meta 标签
+	html = replaceOrInjectMeta(html, "description", description)
+	html = replaceOrInjectMeta(html, "keywords", keywords)
+	html = replaceOrInjectMeta(html, "author", author)
+
+	// 4. 替换或注入 OpenGraph Meta 标签
+	html = replaceOrInjectProperty(html, "og:title", title)
+	html = replaceOrInjectProperty(html, "og:description", description)
+	html = replaceOrInjectProperty(html, "og:image", image)
+	html = replaceOrInjectProperty(html, "og:url", url)
+	html = replaceOrInjectProperty(html, "og:type", pageType)
+	html = replaceOrInjectProperty(html, "og:site_name", settings.SiteTitle)
+
+	// 5. 替换或注入 Canonical URL
+	html = replaceOrInjectCanonical(html, url)
+
+	// 5.5 替换或注入 Favicon
+	favicon := webHandler.ensureRelativeURL(settings.ServerLogo)
+	html = replaceOrInjectFavicon(html, favicon)
+
+	// 6. 替换或注入 JSON-LD (Schema.org)
+	logoURL := webHandler.ensureAbsoluteURL(settings.ServerLogo, serverURL)
+	ldJson := generateLDJson(settings, echoIDRegex.MatchString(requestPath), title, description, image, url, author, logoURL)
+	html = replaceOrInjectJSONLD(html, ldJson)
+
+	ctx.Header("Content-Type", "text/html; charset=utf-8")
+	ctx.String(http.StatusOK, html)
+}
+
+// handleStaticRequest 处理静态资源
+func (webHandler *WebHandler) handleStaticRequest(ctx *gin.Context, subFS fs.FS, requestPath string) {
+	fileServer := http.FS(subFS)
+	fullPath := path.Clean("." + requestPath)
+	f, err := fileServer.Open(fullPath)
+	if err != nil {
+		// 如果没找到静态资源，fallback 到 HTML 处理以便 SPA 路由正常工作
+		webHandler.handleHTMLRequest(ctx, subFS)
+		return
+	}
+	defer func() { _ = f.Close() }()
+
+	stat, _ := f.Stat()
+	encoding := ctx.GetHeader("Accept-Encoding")
+	if strings.Contains(encoding, "gzip") {
+		gzPath := fullPath + ".gz"
+		gzFile, err := fileServer.Open(gzPath)
+		if err == nil {
+			defer func() { _ = gzFile.Close() }()
+			gzStat, _ := gzFile.Stat()
+			ctx.Header("Content-Encoding", "gzip")
+			ctx.Header("Content-Type", getMimeType(fullPath))
+			http.ServeContent(ctx.Writer, ctx.Request, gzPath, gzStat.ModTime(), gzFile)
+			return
+		}
+	}
+
+	ctx.Header("Content-Type", getMimeType(fullPath))
+	http.ServeContent(ctx.Writer, ctx.Request, fullPath, stat.ModTime(), f)
+}
+
+// getMimeType 根据扩展名获取 MIME
 func getMimeType(path string) string {
 	ext := filepath.Ext(path)
 	mimeType := mime.TypeByExtension(ext)
@@ -90,4 +269,192 @@ func getMimeType(path string) string {
 		mimeType = "application/octet-stream"
 	}
 	return mimeType
+}
+
+// replaceOrInjectMeta 替换或注入 <meta name="...">
+func replaceOrInjectMeta(html, name, content string) string {
+	if content == "" {
+		return html
+	}
+	// 匹配 <meta ... name="description" ... > 或 <meta ... name='description' ... >
+	// 允许跨行和不固定顺序
+	re := regexp.MustCompile(fmt.Sprintf(`(?is)<meta[^>]*?name=["']%s["'][^>]*?>`, regexp.QuoteMeta(name)))
+	newMeta := fmt.Sprintf(`<meta name="%s" content="%s" />`, name, content)
+	if re.MatchString(html) {
+		return re.ReplaceAllString(html, newMeta)
+	}
+	return strings.Replace(html, "</head>", newMeta+"\n</head>", 1)
+}
+
+// replaceOrInjectProperty 替换或注入 <meta property="...">
+func replaceOrInjectProperty(html, property, content string) string {
+	if content == "" {
+		return html
+	}
+	// 匹配 <meta ... property="og:title" ... >
+	re := regexp.MustCompile(fmt.Sprintf(`(?is)<meta[^>]*?property=["']%s["'][^>]*?>`, regexp.QuoteMeta(property)))
+	newMeta := fmt.Sprintf(`<meta property="%s" content="%s" />`, property, content)
+	if re.MatchString(html) {
+		return re.ReplaceAllString(html, newMeta)
+	}
+	return strings.Replace(html, "</head>", newMeta+"\n</head>", 1)
+}
+
+// replaceOrInjectCanonical 替换或注入 <link rel="canonical" href="...">
+func replaceOrInjectCanonical(html, url string) string {
+	if url == "" {
+		return html
+	}
+	// 匹配 <link ... rel="canonical" ... >
+	re := regexp.MustCompile(`(?is)<link[^>]*?rel=["']canonical["'][^>]*?>`)
+	newLink := fmt.Sprintf(`<link rel="canonical" href="%s" />`, url)
+	if re.MatchString(html) {
+		return re.ReplaceAllString(html, newLink)
+	}
+	return strings.Replace(html, "</head>", newLink+"\n</head>", 1)
+}
+
+// replaceOrInjectFavicon 替换或注入 <link ... rel="icon" ... >
+func replaceOrInjectFavicon(html, faviconURL string) string {
+	if faviconURL == "" {
+		return html
+	}
+	// 匹配带有 id="favicon" 的链接标签
+	re := regexp.MustCompile(`(?is)<link[^>]*?id=["']favicon["'][^>]*?>`)
+	newLink := fmt.Sprintf(`<link rel="icon" href="%s" id="favicon" />`, faviconURL)
+	if re.MatchString(html) {
+		return re.ReplaceAllString(html, newLink)
+	}
+
+	// 如果没有 id="favicon"，退而求其次匹配普通的 rel="icon"
+	reRel := regexp.MustCompile(`(?is)<link[^>]*?rel=["'](?:shortcut )?icon["'][^>]*?>`)
+	if reRel.MatchString(html) {
+		return reRel.ReplaceAllString(html, newLink)
+	}
+
+	return strings.Replace(html, "</head>", newLink+"\n</head>", 1)
+}
+
+// replaceOrInjectJSONLD 替换或注入 <script type="application/ld+json">
+func replaceOrInjectJSONLD(html, content string) string {
+	if content == "" {
+		return html
+	}
+	re := regexp.MustCompile(`(?is)<script\s+id=["']ldjson-schema["'][^>]*?>.*?</script>`)
+	newScript := fmt.Sprintf(`<script type="application/ld+json" id="ldjson-schema">%s</script>`, content)
+	if re.MatchString(html) {
+		return re.ReplaceAllString(html, newScript)
+	}
+	// Fallback to type regex if id not found (for legacy/initial injection)
+	reType := regexp.MustCompile(`(?is)<script\s+type=["']application/ld\+json["'][^>]*?>.*?</script>`)
+	if reType.MatchString(html) {
+		return reType.ReplaceAllString(html, newScript)
+	}
+	return strings.Replace(html, "</head>", newScript+"\n</head>", 1)
+}
+
+// generateLDJson 生成针对不同页面的 JSON-LD
+func generateLDJson(settings settingModel.SystemSetting, isEchoPage bool, title, description, image, url, author, logoURL string) string {
+	var data map[string]interface{}
+
+	if isEchoPage {
+		// Echo 详情页使用 Article / BlogPosting
+		data = map[string]interface{}{
+			"@context":    "https://schema.org",
+			"@type":       "BlogPosting",
+			"headline":    title,
+			"description": description,
+			"image":       image,
+			"url":         url,
+			"author": map[string]interface{}{
+				"@type": "Person",
+				"name":  author,
+			},
+			"publisher": map[string]interface{}{
+				"@type": "Organization",
+				"name":  settings.SiteTitle,
+				"logo": map[string]interface{}{
+					"@type": "ImageObject",
+					"url":   logoURL,
+				},
+			},
+		}
+	} else {
+		// 首页使用 WebSite
+		data = map[string]interface{}{
+			"@context":    "https://schema.org",
+			"@type":       "WebSite",
+			"name":        settings.SiteTitle,
+			"url":         url,
+			"description": settings.SiteDescription,
+			"publisher": map[string]interface{}{
+				"@type": "Organization",
+				"name":  settings.ServerName,
+				"logo": map[string]interface{}{
+					"@type": "ImageObject",
+					"url":   logoURL,
+				},
+			},
+		}
+	}
+
+	res, _ := json.MarshalIndent(data, "      ", "  ")
+	return "\n      " + string(res) + "\n    "
+}
+
+// ensureAbsoluteURL 确保路径为绝对 URL，并处理 /api 前缀逻辑
+func (webHandler *WebHandler) ensureAbsoluteURL(urlPath, serverURL string) string {
+	if urlPath == "" || strings.HasPrefix(urlPath, "http") {
+		return urlPath
+	}
+
+	// 如果是本地数据路径 (/images/, /videos/, /audios/)，需要补全 /api
+	// 对应 internal/router/router.go 中的 r.Static("api/images", ...)
+	if strings.HasPrefix(urlPath, "/images/") ||
+		strings.HasPrefix(urlPath, "/videos/") ||
+		strings.HasPrefix(urlPath, "/audios/") {
+		return serverURL + "/api" + urlPath
+	}
+
+	// 特殊情况：/Ech0.svg 回退为 /Ech0.png 因为有些社交平台不识别 svg
+	if urlPath == "/Ech0.svg" {
+		return serverURL + "/Ech0.png"
+	}
+
+	// 否则，直接拼接服务器地址 (针对 template/dist 里的静态资源)
+	return serverURL + urlPath
+}
+
+// ensureRelativeURL 确保路径为相对根路径 (/api/...)，不带域名
+func (webHandler *WebHandler) ensureRelativeURL(urlPath string) string {
+	if urlPath == "" || strings.HasPrefix(urlPath, "http") {
+		return urlPath
+	}
+
+	if strings.HasPrefix(urlPath, "/images/") ||
+		strings.HasPrefix(urlPath, "/videos/") ||
+		strings.HasPrefix(urlPath, "/audios/") {
+		return "/api" + urlPath
+	}
+
+	if urlPath == "/Ech0.svg" {
+		return "/Ech0.png"
+	}
+
+	return urlPath
+}
+
+// truncate 截短字符串并简单清理 HTML/MD
+func truncate(s string, maxLen int) string {
+	// 简单的清理
+	s = regexp.MustCompile(`<[^>]*>`).ReplaceAllString(s, "")       // 移除 HTML
+	s = regexp.MustCompile(`[*#_~`+"`"+`]`).ReplaceAllString(s, "") // 移除 MD
+	s = strings.ReplaceAll(s, "\n", " ")
+	s = strings.TrimSpace(s)
+
+	runes := []rune(s)
+	if len(runes) > maxLen {
+		return string(runes[:maxLen]) + "..."
+	}
+	return s
 }

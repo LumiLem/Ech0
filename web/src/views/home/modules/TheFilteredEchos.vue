@@ -66,7 +66,8 @@
 
 <script setup lang="ts">
 import TheEchoCard from '@/components/advanced/TheEchoCard.vue'
-import { onMounted, watch } from 'vue'
+import { computed, onMounted, watch } from 'vue'
+import { useHead } from '@unhead/vue'
 import { useEchoStore, useSettingStore } from '@/stores'
 import BaseButton from '@/components/common/BaseButton.vue'
 import TheBackTop from '@/components/advanced/TheBackTop.vue'
@@ -75,7 +76,56 @@ import { storeToRefs } from 'pinia'
 const echoStore = useEchoStore()
 const settingStore = useSettingStore()
 const { SystemSetting } = storeToRefs(settingStore)
-const { filteredTag, filteredDate, filteredYearMonth } = storeToRefs(echoStore)
+const { filteredTag, filteredDate, filteredYearMonth, searchValue, searchingMode } = storeToRefs(echoStore)
+
+// 动态 Meta 管理
+useHead({
+  title: computed(() => {
+    let prefix = ''
+    if (searchingMode.value && searchValue.value) {
+      prefix = `搜索: ${searchValue.value}`
+    } else if (filteredTag.value) {
+      prefix = `#${filteredTag.value.name}标签下的动态`
+    } else if (filteredDate.value) {
+      const parts = filteredDate.value.split('-')
+      if (parts.length === 3 && parts[0] && parts[1] && parts[2]) {
+        prefix = `${parts[0]}年${parseInt(parts[1])}月${parseInt(parts[2])}日的动态`
+      } else {
+        prefix = `${filteredDate.value}的动态`
+      }
+    } else if (filteredYearMonth.value) {
+      prefix = `${filteredYearMonth.value.year}年${filteredYearMonth.value.month}月的动态`
+    }
+    
+    if (prefix) return `${prefix} - ${settingStore.SystemSetting.site_title}`
+    return settingStore.SystemSetting.site_title
+  }),
+  meta: [
+    {
+      property: 'og:title',
+      content: computed(() => {
+        let prefix = ''
+        if (searchingMode.value && searchValue.value) {
+          prefix = `搜索: ${searchValue.value}`
+        } else if (filteredTag.value) {
+          prefix = `#${filteredTag.value.name}标签下的动态`
+        } else if (filteredDate.value) {
+          const parts = filteredDate.value.split('-')
+          if (parts.length === 3 && parts[0] && parts[1] && parts[2]) {
+            prefix = `${parts[0]}年${parseInt(parts[1])}月${parseInt(parts[2])}日的动态`
+          } else {
+            prefix = `${filteredDate.value}的动态`
+          }
+        } else if (filteredYearMonth.value) {
+          prefix = `${filteredYearMonth.value.year}年${filteredYearMonth.value.month}月的动态`
+        }
+        
+        if (prefix) return `${prefix} - ${settingStore.SystemSetting.site_title}`
+        return settingStore.SystemSetting.site_title
+      })
+    }
+  ]
+})
 
 // 列表入场动画钩子 - 交错入场效果
 const onBeforeEnter = (el: Element) => {

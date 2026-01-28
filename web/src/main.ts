@@ -59,14 +59,17 @@ import BaseDialog from '@/components/common/BaseDialog.vue'
 
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
+import { createHead } from '@unhead/vue/client'
 
 import App from './App.vue'
 import router from './router'
 
 const app = createApp(App)
 const pinia = createPinia()
+const head = createHead()
 
 app.use(pinia)
+app.use(head)
 
 // init
 await initStores().catch((e) => {

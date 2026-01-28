@@ -61,6 +61,8 @@ func (settingService *SettingService) GetSetting(setting *model.SystemSetting) e
 		if err != nil {
 			// 数据库中不存在数据，手动添加初始数据
 			setting.SiteTitle = config.Config.Setting.SiteTitle
+			setting.SiteDescription = config.Config.Setting.SiteDescription
+			setting.SiteKeywords = config.Config.Setting.SiteKeywords
 			setting.ServerLogo = config.Config.Setting.ServerLogo
 			setting.ServerName = config.Config.Setting.Servername
 			setting.ServerURL = config.Config.Setting.Serverurl
@@ -69,6 +71,7 @@ func (settingService *SettingService) GetSetting(setting *model.SystemSetting) e
 			setting.MetingAPI = config.Config.Setting.MetingAPI
 			setting.CustomCSS = config.Config.Setting.CustomCSS
 			setting.CustomJS = config.Config.Setting.CustomJS
+			setting.CustomMeta = config.Config.Setting.CustomMeta
 
 			// 处理 URL
 			setting.ServerURL = httpUtil.TrimURL(setting.ServerURL)
@@ -115,6 +118,8 @@ func (settingService *SettingService) UpdateSetting(
 
 		var setting model.SystemSetting
 		setting.SiteTitle = newSetting.SiteTitle
+		setting.SiteDescription = newSetting.SiteDescription
+		setting.SiteKeywords = newSetting.SiteKeywords
 		setting.ServerLogo = newSetting.ServerLogo
 		setting.ServerName = newSetting.ServerName
 		setting.ServerURL = httpUtil.TrimURL(newSetting.ServerURL)
@@ -123,6 +128,7 @@ func (settingService *SettingService) UpdateSetting(
 		setting.MetingAPI = httpUtil.TrimURL(newSetting.MetingAPI)
 		setting.CustomCSS = newSetting.CustomCSS
 		setting.CustomJS = newSetting.CustomJS
+		setting.CustomMeta = newSetting.CustomMeta
 
 		// 序列化为 JSON
 		settingToJSON, err := jsonUtil.JSONMarshal(setting)

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { RouterView, useRouter } from 'vue-router'
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { watch } from 'vue'
+import { useHead } from '@unhead/vue'
 import { useSettingStore } from '@/stores'
 import { storeToRefs } from 'pinia'
 import { Toaster } from 'vue-sonner'
@@ -55,44 +56,65 @@ router.afterEach((to, from) => {
 const settingStore = useSettingStore()
 const { SystemSetting } = storeToRefs(settingStore)
 
-const DEFAULT_FAVICON = '/favicon.ico'
 const API_URL = getApiUrl()
+import { ensureAbsoluteUrl } from '@/utils/other'
 
-const updateFavicon = (logo?: string) => {
-  const head = document.head
-  if (!head) return
-
-  const href = logo?.trim() ? API_URL + logo : DEFAULT_FAVICON
-  const iconLinks = head.querySelectorAll<HTMLLinkElement>('link[rel*="icon"]')
-
-  if (iconLinks.length > 0) {
-    iconLinks.forEach((link) => {
-      link.href = href
-    })
-    return
-  }
-
-  const newFavicon = document.createElement('link')
-  newFavicon.rel = 'icon'
-  newFavicon.href = href
-  head.appendChild(newFavicon)
-}
-
-watch(
-  () => SystemSetting.value.site_title,
-  (title) => {
-    if (title) document.title = title
-  },
-  { immediate: true },
-)
-
-watch(
-  () => SystemSetting.value.server_logo,
-  (logo) => {
-    updateFavicon(logo)
-  },
-  { immediate: true },
-)
+// 使用 unhead 管理全局 Meta
+useHead({
+  title: computed(() => SystemSetting.value.site_title || 'Ech0'),
+  meta: [
+    {
+      name: 'description',
+      content: computed(() => SystemSetting.value.site_description)
+    },
+    {
+      name: 'keywords',
+      content: computed(() => SystemSetting.value.site_keywords)
+    },
+    {
+      name: 'author',
+      content: computed(() => SystemSetting.value.server_name || 'Ech0 Team')
+    },
+    // OpenGraph 基础配置
+    {
+      property: 'og:title',
+      content: computed(() => SystemSetting.value.site_title)
+    },
+    {
+      property: 'og:description',
+      content: computed(() => SystemSetting.value.site_description)
+    },
+    {
+      property: 'og:image',
+      content: computed(() => {
+        const logo = SystemSetting.value.server_logo
+        return ensureAbsoluteUrl(logo || '/Ech0.png', SystemSetting.value.server_url)
+      })
+    },
+    {
+      property: 'og:url',
+      content: computed(() => window.location.href)
+    },
+    {
+      property: 'og:site_name',
+      content: computed(() => SystemSetting.value.site_title)
+    }
+  ],
+  link: [
+    {
+      id: 'favicon',
+      rel: 'icon',
+      href: computed(() => {
+        const logo = SystemSetting.value.server_logo
+        if (!logo?.trim()) return '/favicon.ico'
+        if (logo === '/Ech0.svg') return '/Ech0.png'
+        if (logo.startsWith('http')) return logo
+        // 本地上传的资源，使用相对路径 /api/images/...
+        return '/api' + logo
+      })
+    }
+  ]
+})
 
 const injectCustomContent = () => {
   // 注入自定义 CSS

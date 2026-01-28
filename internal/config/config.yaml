@@ -41,6 +41,8 @@ upload:
 
 setting:
   sitetitle: "Ech0"
+  sitedescription: "Ech0 is a next-generation open-source, self-hosted, lightweight federated publishing platform focused on personal idea sharing."
+  sitekeywords: "Ech0, open-source, fediverse, sharing, thoughts, text, links, privacy, data control, platform, web app"
   serverlogo: "/Ech0.svg"
   servername: "Ech0"
   serverurl: "https://ech0.example.com"
@@ -49,6 +51,7 @@ setting:
   metingapi: ""
   customcss: ""
   customjs: ""
+  custommeta: ""
 
 comment:
   enablecomment: false

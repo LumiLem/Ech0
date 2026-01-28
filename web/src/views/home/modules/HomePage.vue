@@ -51,9 +51,10 @@ import TheTodoCard from '@/components/advanced/TheTodoCard.vue'
 import TheRecentCard from '@/components/advanced/TheRecentCard.vue'
 import TheStatusCard from '@/components/advanced/TheStatusCard.vue'
 import TheHeatMap from '@/components/advanced/TheHeatMap.vue'
-import { onMounted, ref, onBeforeUnmount } from 'vue'
+import { onMounted, ref, onBeforeUnmount, computed } from 'vue'
 import { useUserStore, useTodoStore, useEchoStore, useSettingStore, useInboxStore, useEditorStore } from '@/stores'
 import { storeToRefs } from 'pinia'
+import { useHead } from '@unhead/vue'
 import TheAudioCard from '@/components/advanced/TheAudioCard.vue'
 import TheBackTop from '@/components/advanced/TheBackTop.vue'
 
@@ -66,9 +67,30 @@ const inboxStore = useInboxStore()
 const { getTodos } = todoStore
 const { todoMode, todos } = storeToRefs(todoStore)
 const { isLogin } = storeToRefs(userStore)
-const { isFilteringMode } = storeToRefs(echoStore)
+const { isFilteringMode, searchingMode, searchValue } = storeToRefs(echoStore)
 const { AgentSetting } = storeToRefs(settingStore)
 const { inboxMode } = storeToRefs(inboxStore)
+
+// 动态 Meta 管理
+useHead({
+  title: computed(() => {
+    if (todoMode.value) return `待办事项 - ${settingStore.SystemSetting.site_title}`
+    if (inboxMode.value) return `收件箱 - ${settingStore.SystemSetting.site_title}`
+    if (searchingMode.value && searchValue.value) return `搜索: ${searchValue.value} - ${settingStore.SystemSetting.site_title}`
+    return settingStore.SystemSetting.site_title
+  }),
+  meta: [
+    {
+      property: 'og:title',
+      content: computed(() => {
+        if (todoMode.value) return `待办事项 - ${settingStore.SystemSetting.site_title}`
+        if (inboxMode.value) return `收件箱 - ${settingStore.SystemSetting.site_title}`
+        if (searchingMode.value && searchValue.value) return `搜索: ${searchValue.value} - ${settingStore.SystemSetting.site_title}`
+        return settingStore.SystemSetting.site_title
+      })
+    }
+  ]
+})
 
 const mainColumn = ref<HTMLElement | null>(null)
 const backTopStyle = ref({ right: '100px' }) // 默认 fallback
