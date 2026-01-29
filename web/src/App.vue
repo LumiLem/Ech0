@@ -107,10 +107,19 @@ useHead({
       href: computed(() => {
         const logo = SystemSetting.value.server_logo
         if (!logo?.trim()) return '/favicon.ico'
-        if (logo === '/Ech0.svg') return '/Ech0.png'
         if (logo.startsWith('http')) return logo
-        // 本地上传的资源，使用相对路径 /api/images/...
-        return '/api' + logo
+        // 使用后端动态缩放接口，指定 ico 格式以获得最佳兼容性
+        return '/api/icon?s=32&fmt=ico'
+      })
+    },
+    {
+      rel: 'apple-touch-icon',
+      href: computed(() => {
+        const logo = SystemSetting.value.server_logo
+        if (!logo?.trim()) return '/apple-touch-icon.png'
+        if (logo.startsWith('http')) return logo
+        // 使用 180 规格，后端会自动进行白底填充，防止 iOS 下变黑
+        return '/api/icon?s=180'
       })
     }
   ]

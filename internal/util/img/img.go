@@ -4,12 +4,17 @@ import (
 	"bytes"
 	"fmt"
 	"image"
+	"image/color"
+	stdDraw "image/draw"
 	_ "image/gif"
 	_ "image/jpeg"
-	_ "image/png"
+	"image/png"
 	"io"
 	"mime/multipart"
 	"os"
+	"strings"
+
+	"golang.org/x/image/draw"
 )
 
 // var (
@@ -78,6 +83,130 @@ func GetImageSizeFromReader(reader io.Reader) (width, height int, err error) {
 	// defer img.Close()
 
 	// return img.Width(), img.Height(), nil
+}
+
+// IconOptions 动态图标生成选项
+type IconOptions struct {
+	Size    int    // 目标尺寸
+	Padding int    // 内边距百分比 (0-50)
+	BgColor string // 背景色 Hex (如 ffffff)
+	IosFill bool   // 是否在 180 尺寸下自动填白
+	Format  string // 输出格式 (png, ico)
+}
+
+// ProcessIcon 处理图标：执行正方形裁剪、缩放、边距调整和背景填充
+func ProcessIcon(src io.Reader, opts IconOptions) ([]byte, string, error) {
+	srcImg, _, err := image.Decode(src)
+	if err != nil {
+		return nil, "", err
+	}
+
+	// 1. 正方形居中裁剪
+	bounds := srcImg.Bounds()
+	w, h := bounds.Dx(), bounds.Dy()
+	var rect image.Rectangle
+	if w > h {
+		offset := (w - h) / 2
+		rect = image.Rect(bounds.Min.X+offset, bounds.Min.Y, bounds.Min.X+offset+h, bounds.Max.Y)
+	} else {
+		offset := (h - w) / 2
+		rect = image.Rect(bounds.Min.X, bounds.Min.Y+offset, bounds.Max.X, bounds.Min.Y+offset+w)
+	}
+
+	type subImager interface {
+		SubImage(r image.Rectangle) image.Image
+	}
+	var croppedImg image.Image
+	if si, ok := srcImg.(subImager); ok {
+		croppedImg = si.SubImage(rect)
+	} else {
+		dst := image.NewRGBA(image.Rect(0, 0, rect.Dx(), rect.Dy()))
+		stdDraw.Draw(dst, dst.Bounds(), srcImg, rect.Min, stdDraw.Src)
+		croppedImg = dst
+	}
+
+	// 2. 准备画布并处理背景
+	outputCanvas := image.NewRGBA(image.Rect(0, 0, opts.Size, opts.Size))
+
+	var fillTarget color.Color
+	if opts.BgColor != "" {
+		if c, err := parseHexColor(opts.BgColor); err == nil {
+			fillTarget = c
+		}
+	}
+	// 默认兜底：针对 iOS 规格默认填充白色 (除非明确停用)
+	if fillTarget == nil && (opts.Size == 180 || opts.Size == 192) && opts.IosFill {
+		fillTarget = color.White
+	}
+
+	if fillTarget != nil {
+		stdDraw.Draw(outputCanvas, outputCanvas.Bounds(), &image.Uniform{fillTarget}, image.Point{}, stdDraw.Src)
+	}
+
+	// 3. 处理边距并绘制 Logo
+	contentRatio := 1.0 - (float64(opts.Padding) / 100.0 * 2.0)
+	paddingPixels := int(float64(opts.Size) * contentRatio)
+	offset := (opts.Size - paddingPixels) / 2
+	innerRect := image.Rect(offset, offset, offset+paddingPixels, offset+paddingPixels)
+	draw.BiLinear.Scale(outputCanvas, innerRect, croppedImg, croppedImg.Bounds(), stdDraw.Over, nil)
+
+	// 4. 编码输出
+	var buf bytes.Buffer
+	contentType := "image/png"
+
+	if opts.Format == "ico" {
+		header := []byte{
+			0, 0, 1, 0, 1, 0, // ICONDIR
+		}
+
+		w, h := opts.Size, opts.Size
+		if w >= 256 {
+			w, h = 0, 0
+		}
+
+		var pngBuf bytes.Buffer
+		_ = png.Encode(&pngBuf, outputCanvas)
+		pngBytes := pngBuf.Bytes()
+		pngSize := uint32(len(pngBytes))
+
+		// ICONDIRENTRY: Width, Height, Colors, Res, Planes(2), BitCount(2), Size(4), Offset(4)
+		entry := []byte{
+			byte(w), byte(h), 0, 0, 1, 0, 32, 0,
+			byte(pngSize), byte(pngSize >> 8), byte(pngSize >> 16), byte(pngSize >> 24),
+			22, 0, 0, 0,
+		}
+
+		buf.Write(header)
+		buf.Write(entry)
+		buf.Write(pngBytes)
+		contentType = "image/x-icon"
+	} else {
+		_ = png.Encode(&buf, outputCanvas)
+	}
+
+	return buf.Bytes(), contentType, nil
+}
+
+// parseHexColor 解析十六进制颜色字符串
+func parseHexColor(s string) (color.Color, error) {
+	s = strings.TrimPrefix(s, "#")
+	var r, g, b, a uint8
+	a = 255
+	switch len(s) {
+	case 3:
+		fmt.Sscanf(s, "%1x%1x%1x", &r, &g, &b)
+		r, g, b = r*17, g*17, b*17
+	case 4:
+		fmt.Sscanf(s, "%1x%1x%1x%1x", &r, &g, &b, &a)
+		r, g, b, a = r*17, g*17, b*17, a*17
+	case 6:
+		fmt.Sscanf(s, "%02x%02x%02x", &r, &g, &b)
+	case 8:
+		fmt.Sscanf(s, "%02x%02x%02x%02x", &r, &g, &b, &a)
+	default:
+		return nil, fmt.Errorf("invalid color format")
+	}
+	return color.RGBA{r, g, b, a}, nil
 }
 
 // // ConvertImage 转换图片格式

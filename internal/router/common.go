@@ -12,6 +12,7 @@ func setupCommonRoutes(appRouterGroup *AppRouterGroup, h *di.Handlers) {
 	appRouterGroup.PublicRouterGroup.GET("/hello", h.CommonHandler.HelloEch0())
 	appRouterGroup.PublicRouterGroup.GET("/backup/export", h.BackupHandler.ExportBackup())
 	appRouterGroup.PublicRouterGroup.GET("/website/title", h.CommonHandler.GetWebsiteTitle())
+	appRouterGroup.PublicRouterGroup.GET("/icon", h.WebHandler.HandleDynamicIcon)
 
 	// Auth
 	appRouterGroup.AuthRouterGroup.POST("/images/upload", h.CommonHandler.UploadImage())

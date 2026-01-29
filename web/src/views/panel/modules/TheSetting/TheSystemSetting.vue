@@ -251,7 +251,6 @@ import { theToast } from '@/utils/toast'
 import { useSettingStore } from '@/stores'
 import { storeToRefs } from 'pinia'
 import { getApiUrl } from '@/service/request/shared'
-import { resizeAndCompressLogo } from '@/utils/other'
 
 const settingStore = useSettingStore()
 const { getSystemSetting } = settingStore
@@ -286,10 +285,7 @@ const handleUploadImage = async (event: Event) => {
   if (!file) return
 
   try {
-    // 💡 针对 Logo 进行智能压缩与正方形裁剪 (512x512 是 PWA 的标准高质尺寸)
-    const compressedFile = await resizeAndCompressLogo(file, 512)
-
-    const res = await theToast.promise(fetchUploadImage(compressedFile, ImageSource.LOCAL), {
+    const res = await theToast.promise(fetchUploadImage(file, ImageSource.LOCAL), {
       loading: '服务器 Logo 上传中...',
       success: '服务器 Logo 上传成功！',
       error: '上传失败，请稍后再试',

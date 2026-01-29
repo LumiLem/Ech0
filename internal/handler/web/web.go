@@ -1,11 +1,13 @@
 package handler
 
 import (
+	"crypto/md5"
 	"encoding/json"
 	"fmt"
 	"io/fs"
 	"mime"
 	"net/http"
+	"os"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -17,6 +19,7 @@ import (
 	settingModel "github.com/lin-snow/ech0/internal/model/setting"
 	echoService "github.com/lin-snow/ech0/internal/service/echo"
 	settingService "github.com/lin-snow/ech0/internal/service/setting"
+	imgUtil "github.com/lin-snow/ech0/internal/util/img"
 	"github.com/lin-snow/ech0/template"
 )
 
@@ -107,26 +110,59 @@ func (webHandler *WebHandler) handleManifestRequest(ctx *gin.Context, subFS fs.F
 		manifest = reDesc.ReplaceAllString(manifest, fmt.Sprintf(`"description": "%s"`, description))
 	}
 
-	// 注入 PWA 图标 (使用系统 Logo 重建 icons 数组)
+	// 注入 PWA 图标 (使用动态图标接口)
 	if settings.ServerLogo != "" {
-		logo := webHandler.ensureRelativeURL(settings.ServerLogo)
-		mimeType := getMimeType(logo)
-
-		// 构造符合要求的 PWA 图标数组 (将 any 和 maskable 分开声明以消除浏览器警告)
-		newIcons := fmt.Sprintf(`[
+		// 定义 manifest 要求的各种标准尺寸 (使用 mode=maskable 触发后端 Padding 算法)
+		newIcons := `[
     {
-      "src": "%s",
-      "sizes": "192x192 512x512",
-      "type": "%s",
+      "src": "/api/icon?s=96",
+      "sizes": "96x96",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "%s",
-      "sizes": "192x192 512x512",
-      "type": "%s",
+      "src": "/api/icon?s=144",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/api/icon?s=180",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/api/icon?s=192",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/api/icon?s=192&mode=maskable",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/api/icon?s=384",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/api/icon?s=512",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/api/icon?s=512&mode=maskable",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "maskable"
     }
-  ]`, logo, mimeType, logo, mimeType)
+  ]`
 
 		// 替换整个 icons 块
 		reIconsBlock := regexp.MustCompile(`(?is)"icons":\s*\[.*?]`)
@@ -231,11 +267,14 @@ func (webHandler *WebHandler) handleHTMLRequest(ctx *gin.Context, subFS fs.FS) {
 	html = replaceOrInjectProperty(html, "og:site_name", ogSiteName)
 
 	// 5. 替换或注入 Canonical URL
-	html = replaceOrInjectCanonical(html, url)
+	html = replaceOrInjectLink(html, "canonical", url)
 
-	// 5.5 替换或注入 Favicon
-	favicon := webHandler.ensureRelativeURL(settings.ServerLogo)
+	// 5.5 替换或注入 Favicon/Apple Touch Icon
+	favicon := "/api/icon?s=32&fmt=ico"
 	html = replaceOrInjectFavicon(html, favicon)
+
+	appleIcon := "/api/icon?s=180"
+	html = replaceOrInjectLink(html, "apple-touch-icon", appleIcon)
 
 	// 6. 替换或注入 JSON-LD (Schema.org)
 	logoURL := webHandler.ensureAbsoluteURL(settings.ServerLogo, serverURL)
@@ -244,6 +283,134 @@ func (webHandler *WebHandler) handleHTMLRequest(ctx *gin.Context, subFS fs.FS) {
 
 	ctx.Header("Content-Type", "text/html; charset=utf-8")
 	ctx.String(http.StatusOK, html)
+}
+
+// HandleDynamicIcon 处理动态图标生成请求 (具备规范化的 API 参数体系)
+func (webHandler *WebHandler) HandleDynamicIcon(ctx *gin.Context) {
+	sizeStr := ctx.DefaultQuery("s", "512")
+	mode := ctx.DefaultQuery("mode", "any")
+	fmtStr := ctx.DefaultQuery("fmt", "png")
+	paddingStr := ctx.DefaultQuery("p", "0")
+	bgStr := ctx.Query("bg")
+	fillStr := ctx.DefaultQuery("fill", "on")
+
+	size, _ := strconv.Atoi(sizeStr)
+	if size <= 0 || size > 1024 {
+		size = 512
+	}
+
+	padding, _ := strconv.Atoi(paddingStr)
+	if padding < 0 || padding > 50 {
+		padding = 0
+	}
+	// 模式预设：如果是 maskable 且没传 padding，默认应用 18% 标准边距
+	if mode == "maskable" && padding == 0 {
+		padding = 18
+	}
+
+	// 🎨 尺寸规范化
+	standardSizes := []int{16, 32, 48, 64, 72, 96, 128, 144, 180, 192, 256, 384, 512, 1024}
+	finalSize := 1024
+	for _, s := range standardSizes {
+		if size <= s {
+			finalSize = s
+			break
+		}
+	}
+
+	// 获取系统设置中的 Logo
+	var settings settingModel.SystemSetting
+	_ = webHandler.settingService.GetSetting(&settings)
+	if settings.ServerLogo == "" {
+		ctx.Status(http.StatusNotFound)
+		return
+	}
+
+	// 1. 解析源图片路径
+	logoPath := settings.ServerLogo
+	var fullPath string
+	if strings.HasPrefix(logoPath, "/images/") {
+		fullPath = filepath.Join("data", "images", strings.TrimPrefix(logoPath, "/images/"))
+	} else if strings.HasPrefix(logoPath, "http") {
+		ctx.Redirect(http.StatusFound, logoPath)
+		return
+	} else {
+		fullPath = filepath.Join("template", "dist", strings.TrimPrefix(logoPath, "/"))
+	}
+
+	sourceStat, err := os.Stat(fullPath)
+	if err != nil {
+		ctx.Status(http.StatusNotFound)
+		return
+	}
+
+	// 2. 生成指纹 (包含所有规范化后的参数)
+	id := fmt.Sprintf("%s-%d-%d-%d-%s-%s-%d-%s-%s", fullPath, sourceStat.ModTime().Unix(), sourceStat.Size(), finalSize, mode, fmtStr, padding, bgStr, fillStr)
+	fingerprint := fmt.Sprintf("%x", md5.Sum([]byte(id)))
+	etag := fmt.Sprintf(`W/"%s"`, fingerprint)
+
+	// 3. 浏览器协商缓存
+	ctx.Header("ETag", etag)
+	ctx.Header("Cache-Control", "no-cache")
+
+	if ctx.GetHeader("If-None-Match") == etag {
+		ctx.Status(http.StatusNotModified)
+		return
+	}
+
+	// 4. 物理缓存路径
+	outExt := "png"
+	if fmtStr == "ico" {
+		outExt = "ico"
+	}
+	cacheDir := filepath.Join("data", "cache", "icons")
+	_ = os.MkdirAll(cacheDir, 0755)
+	cachePath := filepath.Join(cacheDir, fmt.Sprintf("%s.%s", fingerprint, outExt))
+
+	if _, err := os.Stat(cachePath); err == nil {
+		if fmtStr == "ico" {
+			ctx.Header("Content-Type", "image/x-icon")
+		} else {
+			ctx.Header("Content-Type", "image/png")
+		}
+		ctx.File(cachePath)
+		return
+	}
+
+	// 5. 缓存不命中，调用核心引擎处理
+	f, err := os.Open(fullPath)
+	if err != nil {
+		ctx.Status(http.StatusInternalServerError)
+		return
+	}
+	defer f.Close()
+
+	// 准备处理选项
+	opts := imgUtil.IconOptions{
+		Size:    finalSize,
+		Padding: padding,
+		BgColor: bgStr,
+		IosFill: fillStr != "off",
+		Format:  fmtStr,
+	}
+
+	// 调用重构后的核心引擎
+	data, contentType, err := imgUtil.ProcessIcon(f, opts)
+	if err != nil {
+		// 修改点：确保回退跳转的 URL 是带 /api 前缀的可访问路径
+		ctx.Redirect(http.StatusFound, webHandler.ensureRelativeURL(logoPath))
+		return
+	}
+
+	// 6. 原子化写入并输出
+	tmpPath := cachePath + ".tmp"
+	if err := os.WriteFile(tmpPath, data, 0644); err == nil {
+		_ = os.Rename(tmpPath, cachePath)
+	}
+
+	ctx.Header("Content-Type", contentType)
+	ctx.Header("Cache-Control", "no-cache")
+	_, _ = ctx.Writer.Write(data)
 }
 
 // handleStaticRequest 处理静态资源
@@ -288,18 +455,23 @@ func getMimeType(path string) string {
 }
 
 // replaceOrInjectMeta 替换或注入 <meta name="...">
+// replaceOrInjectTag 核心辅助函数：匹配正则则替换，否则注入到 </head> 之前
+func replaceOrInjectTag(html, pattern, newTag string) string {
+	re := regexp.MustCompile(pattern)
+	if re.MatchString(html) {
+		return re.ReplaceAllString(html, newTag)
+	}
+	return strings.Replace(html, "</head>", newTag+"\n</head>", 1)
+}
+
+// replaceOrInjectMeta 替换或注入 <meta name="...">
 func replaceOrInjectMeta(html, name, content string) string {
 	if content == "" {
 		return html
 	}
-	// 匹配 <meta ... name="description" ... > 或 <meta ... name='description' ... >
-	// 允许跨行和不固定顺序
-	re := regexp.MustCompile(fmt.Sprintf(`(?is)<meta[^>]*?name=["']%s["'][^>]*?>`, regexp.QuoteMeta(name)))
-	newMeta := fmt.Sprintf(`<meta name="%s" content="%s" />`, name, content)
-	if re.MatchString(html) {
-		return re.ReplaceAllString(html, newMeta)
-	}
-	return strings.Replace(html, "</head>", newMeta+"\n</head>", 1)
+	pattern := fmt.Sprintf(`(?is)<meta[^>]*?name=["']%s["'][^>]*?>`, regexp.QuoteMeta(name))
+	tag := fmt.Sprintf(`<meta name="%s" content="%s" />`, name, content)
+	return replaceOrInjectTag(html, pattern, tag)
 }
 
 // replaceOrInjectProperty 替换或注入 <meta property="...">
@@ -307,27 +479,19 @@ func replaceOrInjectProperty(html, property, content string) string {
 	if content == "" {
 		return html
 	}
-	// 匹配 <meta ... property="og:title" ... >
-	re := regexp.MustCompile(fmt.Sprintf(`(?is)<meta[^>]*?property=["']%s["'][^>]*?>`, regexp.QuoteMeta(property)))
-	newMeta := fmt.Sprintf(`<meta property="%s" content="%s" />`, property, content)
-	if re.MatchString(html) {
-		return re.ReplaceAllString(html, newMeta)
-	}
-	return strings.Replace(html, "</head>", newMeta+"\n</head>", 1)
+	pattern := fmt.Sprintf(`(?is)<meta[^>]*?property=["']%s["'][^>]*?>`, regexp.QuoteMeta(property))
+	tag := fmt.Sprintf(`<meta property="%s" content="%s" />`, property, content)
+	return replaceOrInjectTag(html, pattern, tag)
 }
 
-// replaceOrInjectCanonical 替换或注入 <link rel="canonical" href="...">
-func replaceOrInjectCanonical(html, url string) string {
-	if url == "" {
+// replaceOrInjectLink 替换或注入 <link ... rel="...">
+func replaceOrInjectLink(html, rel, href string) string {
+	if href == "" {
 		return html
 	}
-	// 匹配 <link ... rel="canonical" ... >
-	re := regexp.MustCompile(`(?is)<link[^>]*?rel=["']canonical["'][^>]*?>`)
-	newLink := fmt.Sprintf(`<link rel="canonical" href="%s" />`, url)
-	if re.MatchString(html) {
-		return re.ReplaceAllString(html, newLink)
-	}
-	return strings.Replace(html, "</head>", newLink+"\n</head>", 1)
+	pattern := fmt.Sprintf(`(?is)<link[^>]*?rel=["']%s["'][^>]*?>`, regexp.QuoteMeta(rel))
+	tag := fmt.Sprintf(`<link rel="%s" href="%s" />`, rel, href)
+	return replaceOrInjectTag(html, pattern, tag)
 }
 
 // replaceOrInjectFavicon 替换或注入 <link ... rel="icon" ... >
