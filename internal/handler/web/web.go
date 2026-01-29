@@ -115,8 +115,26 @@ func (webHandler *WebHandler) handleManifestRequest(ctx *gin.Context, subFS fs.F
 		// 定义 manifest 要求的各种标准尺寸 (使用 mode=maskable 触发后端 Padding 算法)
 		newIcons := `[
     {
+      "src": "/api/icon?s=32",
+      "sizes": "32x32",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/api/icon?s=64",
+      "sizes": "64x64",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
       "src": "/api/icon?s=96",
       "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/api/icon?s=128",
+      "sizes": "128x128",
       "type": "image/png",
       "purpose": "any"
     },
@@ -387,11 +405,12 @@ func (webHandler *WebHandler) HandleDynamicIcon(ctx *gin.Context) {
 
 	// 准备处理选项
 	opts := imgUtil.IconOptions{
-		Size:    finalSize,
-		Padding: padding,
-		BgColor: bgStr,
-		IosFill: fillStr != "off",
-		Format:  fmtStr,
+		Size:     finalSize,
+		Padding:  padding,
+		BgColor:  bgStr,
+		AutoFill: fillStr != "off",
+		Maskable: mode == "maskable",
+		Format:   fmtStr,
 	}
 
 	// 调用重构后的核心引擎

@@ -87,11 +87,12 @@ func GetImageSizeFromReader(reader io.Reader) (width, height int, err error) {
 
 // IconOptions 动态图标生成选项
 type IconOptions struct {
-	Size    int    // 目标尺寸
-	Padding int    // 内边距百分比 (0-50)
-	BgColor string // 背景色 Hex (如 ffffff)
-	IosFill bool   // 是否在 180 尺寸下自动填白
-	Format  string // 输出格式 (png, ico)
+	Size     int    // 目标尺寸
+	Padding  int    // 内边距百分比 (0-50)
+	BgColor  string // 背景色 Hex (如 ffffff)
+	AutoFill bool   // 是否自动填充背景色 (针对 iOS/PWA 规格)
+	Maskable bool   // 是否为 maskable 模式
+	Format   string // 输出格式 (png, ico)
 }
 
 // ProcessIcon 处理图标：执行正方形裁剪、缩放、边距调整和背景填充
@@ -134,9 +135,16 @@ func ProcessIcon(src io.Reader, opts IconOptions) ([]byte, string, error) {
 			fillTarget = c
 		}
 	}
-	// 默认兜底：针对 iOS 规格默认填充白色 (除非明确停用)
-	if fillTarget == nil && (opts.Size == 180 || opts.Size == 192) && opts.IosFill {
-		fillTarget = color.White
+	// 默认兜底背景填充逻辑：
+	if fillTarget == nil && opts.AutoFill {
+		// 1. 规范要求：Maskable 图标严禁透明，否则系统会强行填充（可能导致黑底）
+		if opts.Maskable {
+			fillTarget = color.White
+		} else if opts.Size == 180 {
+			// 2. 苹果标准：iOS 桌面图标不支持透明，如果不填白在 iOS 下会变黑
+			fillTarget = color.White
+		}
+		// 其他情况（如 192, 512 的 any 模式）保持透明，以便在任务栏等场景自然融入
 	}
 
 	if fillTarget != nil {
