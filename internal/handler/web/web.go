@@ -112,75 +112,78 @@ func (webHandler *WebHandler) handleManifestRequest(ctx *gin.Context, subFS fs.F
 
 	// 注入 PWA 图标 (使用动态图标接口)
 	if settings.ServerLogo != "" {
+		// 💡 提取文件名作为版本号
+		v := filepath.Base(settings.ServerLogo)
+
 		// 定义 manifest 要求的各种标准尺寸 (使用 mode=maskable 触发后端 Padding 算法)
-		newIcons := `[
+		newIcons := fmt.Sprintf(`[
     {
-      "src": "/api/icon?s=32",
+      "src": "/api/icon?s=32&v=%s",
       "sizes": "32x32",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/api/icon?s=64",
+      "src": "/api/icon?s=64&v=%s",
       "sizes": "64x64",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/api/icon?s=96",
+      "src": "/api/icon?s=96&v=%s",
       "sizes": "96x96",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/api/icon?s=128",
+      "src": "/api/icon?s=128&v=%s",
       "sizes": "128x128",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/api/icon?s=144",
+      "src": "/api/icon?s=144&v=%s",
       "sizes": "144x144",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/api/icon?s=180",
+      "src": "/api/icon?s=180&v=%s",
       "sizes": "180x180",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/api/icon?s=192",
+      "src": "/api/icon?s=192&v=%s",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/api/icon?s=192&mode=maskable",
+      "src": "/api/icon?s=192&mode=maskable&v=%s",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/api/icon?s=384",
+      "src": "/api/icon?s=384&v=%s",
       "sizes": "384x384",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/api/icon?s=512",
+      "src": "/api/icon?s=512&v=%s",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/api/icon?s=512&mode=maskable",
+      "src": "/api/icon?s=512&mode=maskable&v=%s",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
     }
-  ]`
+  ]`, v, v, v, v, v, v, v, v, v, v, v)
 
 		// 替换整个 icons 块
 		reIconsBlock := regexp.MustCompile(`(?is)"icons":\s*\[.*?]`)
@@ -289,9 +292,15 @@ func (webHandler *WebHandler) handleHTMLRequest(ctx *gin.Context, subFS fs.FS) {
 
 	// 5.5 替换或注入 Favicon/Apple Touch Icon
 	favicon := "/api/icon?s=32&fmt=ico"
-	html = replaceOrInjectFavicon(html, favicon)
-
 	appleIcon := "/api/icon?s=180"
+
+	if settings.ServerLogo != "" {
+		v := filepath.Base(settings.ServerLogo)
+		favicon = fmt.Sprintf("/api/icon?s=32&fmt=ico&v=%s", v)
+		appleIcon = fmt.Sprintf("/api/icon?s=180&v=%s", v)
+	}
+
+	html = replaceOrInjectFavicon(html, favicon)
 	html = replaceOrInjectLink(html, "apple-touch-icon", appleIcon)
 
 	// 6. 替换或注入 JSON-LD (Schema.org)
