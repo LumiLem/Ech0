@@ -104,23 +104,25 @@ useHead({
     {
       id: 'favicon',
       rel: 'icon',
-      href: computed(() => {
-        const logo = SystemSetting.value.server_logo
-        if (!logo?.trim()) return '/favicon.ico'
-        if (logo.startsWith('http')) return logo
-        // 使用后端动态缩放接口，指定 ico 格式以获得最佳兼容性
-        return '/api/icon?s=32&fmt=ico'
-      })
+        href: computed(() => {
+          const logo = SystemSetting.value.server_logo
+          if (!logo?.trim()) return '/favicon.ico'
+          if (logo.startsWith('http')) return logo
+          // 💡 提取文件名作为版本号，强制触发浏览器 Favicon 更新
+          const v = logo.split('/').pop() || ''
+          return `/api/icon?s=32&fmt=ico&v=${v}`
+        })
     },
     {
       rel: 'apple-touch-icon',
-      href: computed(() => {
-        const logo = SystemSetting.value.server_logo
-        if (!logo?.trim()) return '/apple-touch-icon.png'
-        if (logo.startsWith('http')) return logo
-        // 使用 180 规格，后端会自动进行白底填充，防止 iOS 下变黑
-        return '/api/icon?s=180'
-      })
+        href: computed(() => {
+          const logo = SystemSetting.value.server_logo
+          if (!logo?.trim()) return '/apple-touch-icon.png'
+          if (logo.startsWith('http')) return logo
+          // 同步应用版本号
+          const v = logo.split('/').pop() || ''
+          return `/api/icon?s=180&v=${v}`
+        })
     }
   ]
 })
