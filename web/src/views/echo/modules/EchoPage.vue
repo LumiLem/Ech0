@@ -91,12 +91,13 @@ useHead({
       property: 'og:image',
       content: computed(() => {
         if (echo.value?.media && echo.value.media.length > 0) {
-          const mediaItem = echo.value.media[0]
-          if (mediaItem && mediaItem.media_url) {
-            return ensureAbsoluteUrl(mediaItem.media_url, settingStore.SystemSetting.server_url)
+          // 💡 只寻找图片类型，视频/音频无法被识别为预览图
+          const firstImage = echo.value.media.find(m => m.media_type === 'image')
+          if (firstImage?.media_url) {
+            return ensureAbsoluteUrl(firstImage.media_url, settingStore.SystemSetting.server_url)
           }
         }
-        // 如果动态没图，回退到站点 Logo（绝对路径）
+        // 如果动态没图（或只有视频），回退到站点 Logo（绝对路径）
         const logo = settingStore.SystemSetting.server_logo
         return ensureAbsoluteUrl(logo || '/Ech0.png', settingStore.SystemSetting.server_url)
       })
@@ -117,14 +118,12 @@ useHead({
         const logo = settingStore.SystemSetting.server_logo
         const siteLogo = ensureAbsoluteUrl(logo || '/Ech0.png', settingStore.SystemSetting.server_url)
             
-        // 提前安全处理 Media URL
-        let echoImage = siteLogo
-        if (echo.value.media && echo.value.media.length > 0) {
-          const firstMedia = echo.value.media[0]
-          if (firstMedia && firstMedia.media_url) {
-            echoImage = ensureAbsoluteUrl(firstMedia.media_url, settingStore.SystemSetting.server_url)
-          }
-        }
+        // 提前安全处理 Media URL (严格限制为图片类型)
+        const previewImageUrl = echo.value.media?.find(m => m.media_type === 'image')?.media_url 
+        
+        const echoImage = previewImageUrl 
+          ? ensureAbsoluteUrl(previewImageUrl, settingStore.SystemSetting.server_url)
+          : siteLogo
 
         const data = {
           "@context": "https://schema.org",
@@ -139,7 +138,7 @@ useHead({
           },
           "publisher": {
             "@type": "Organization",
-            "name": settingStore.SystemSetting.site_title,
+            "name": settingStore.SystemSetting.server_name || settingStore.SystemSetting.site_title,
             "logo": {
               "@type": "ImageObject",
               "url": siteLogo

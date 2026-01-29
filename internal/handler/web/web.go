@@ -86,14 +86,19 @@ func (webHandler *WebHandler) handleManifestRequest(ctx *gin.Context, subFS fs.F
 	var settings settingModel.SystemSetting
 	_ = webHandler.settingService.GetSetting(&settings)
 
-	// 注入站点标题和描述
-	if settings.SiteTitle != "" {
+	// 注入站点名称和描述 (PWA 名称优先使用服务名)
+	pwaName := settings.ServerName
+	if pwaName == "" {
+		pwaName = settings.SiteTitle
+	}
+
+	if pwaName != "" {
 		// 使用正则兼容不同的缩进和空格格式
 		reName := regexp.MustCompile(`"name":\s*"Ech0"`)
-		manifest = reName.ReplaceAllString(manifest, fmt.Sprintf(`"name": "%s"`, settings.SiteTitle))
+		manifest = reName.ReplaceAllString(manifest, fmt.Sprintf(`"name": "%s"`, pwaName))
 
 		reShortName := regexp.MustCompile(`"short_name":\s*"Ech0"`)
-		manifest = reShortName.ReplaceAllString(manifest, fmt.Sprintf(`"short_name": "%s"`, settings.SiteTitle))
+		manifest = reShortName.ReplaceAllString(manifest, fmt.Sprintf(`"short_name": "%s"`, pwaName))
 	}
 	if settings.SiteDescription != "" {
 		// 匹配原有描述字段并替换
@@ -186,7 +191,13 @@ func (webHandler *WebHandler) handleHTMLRequest(ctx *gin.Context, subFS fs.FS) {
 			}
 
 			if len(echo.Media) > 0 {
-				image = webHandler.ensureAbsoluteURL(echo.Media[0].MediaURL, serverURL)
+				// 💡 只有确认是图片类型才作为预览图，视频/音频无法直接被社交平台抓取为图片
+				for _, m := range echo.Media {
+					if m.MediaType == "image" {
+						image = webHandler.ensureAbsoluteURL(m.MediaURL, serverURL)
+						break
+					}
+				}
 			}
 			pageType = "article"
 		}
@@ -212,7 +223,12 @@ func (webHandler *WebHandler) handleHTMLRequest(ctx *gin.Context, subFS fs.FS) {
 	html = replaceOrInjectProperty(html, "og:image", image)
 	html = replaceOrInjectProperty(html, "og:url", url)
 	html = replaceOrInjectProperty(html, "og:type", pageType)
-	html = replaceOrInjectProperty(html, "og:site_name", settings.SiteTitle)
+
+	ogSiteName := settings.ServerName
+	if ogSiteName == "" {
+		ogSiteName = settings.SiteTitle
+	}
+	html = replaceOrInjectProperty(html, "og:site_name", ogSiteName)
 
 	// 5. 替换或注入 Canonical URL
 	html = replaceOrInjectCanonical(html, url)
@@ -357,6 +373,12 @@ func replaceOrInjectJSONLD(html, content string) string {
 func generateLDJson(settings settingModel.SystemSetting, isEchoPage bool, title, description, image, url, author, logoURL string) string {
 	var data map[string]interface{}
 
+	// 统一获取服务/组织名称
+	serviceName := settings.ServerName
+	if serviceName == "" {
+		serviceName = settings.SiteTitle
+	}
+
 	if isEchoPage {
 		// Echo 详情页使用 Article / BlogPosting
 		data = map[string]interface{}{
@@ -372,7 +394,7 @@ func generateLDJson(settings settingModel.SystemSetting, isEchoPage bool, title,
 			},
 			"publisher": map[string]interface{}{
 				"@type": "Organization",
-				"name":  settings.SiteTitle,
+				"name":  serviceName,
 				"logo": map[string]interface{}{
 					"@type": "ImageObject",
 					"url":   logoURL,
@@ -384,12 +406,12 @@ func generateLDJson(settings settingModel.SystemSetting, isEchoPage bool, title,
 		data = map[string]interface{}{
 			"@context":    "https://schema.org",
 			"@type":       "WebSite",
-			"name":        settings.SiteTitle,
+			"name":        serviceName,
 			"url":         url,
 			"description": settings.SiteDescription,
 			"publisher": map[string]interface{}{
 				"@type": "Organization",
-				"name":  settings.ServerName,
+				"name":  serviceName,
 				"logo": map[string]interface{}{
 					"@type": "ImageObject",
 					"url":   logoURL,

@@ -97,7 +97,7 @@ useHead({
     },
     {
       property: 'og:site_name',
-      content: computed(() => SystemSetting.value.site_title)
+      content: computed(() => SystemSetting.value.server_name || SystemSetting.value.site_title)
     }
   ],
   link: [
