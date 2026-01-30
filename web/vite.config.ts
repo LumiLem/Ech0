@@ -22,7 +22,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
       workbox: {
+        // 💡 优化：明确不缓存 .webmanifest 和 .xml 等动态生成的后端资源
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2}'],
+        globIgnores: ['**/app.webmanifest', '**/rss*', '**/sitemap*', '**/robots.txt'],
         // 增加缓存容量限制，防止大资源无法缓存 (5MB)
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         // 排除掉后端特有的路由，防止被 Service Worker 错误地拦截并重定向到 index.html
@@ -33,6 +35,12 @@ export default defineConfig({
           /^\/ws/,
           /^\/swagger/,
           /^\/healthz/,
+          /^\/robots\.txt/,
+          /^\/sitemap.*/,
+          /^\/\.well-known\//, // Fediverse 发现协议
+          /^\/users\//,        // ActivityPub Actor 路由
+          /^\/objects\//,      // ActivityPub 对象路由
+          /app\.webmanifest$/,
         ],
       },
       // 由于 Ech0 使用后端动态注入 PWA 属性 (Manifest/Icons)，我们在此仅处理 Service Worker 逻辑
