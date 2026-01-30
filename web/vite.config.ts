@@ -5,6 +5,7 @@ import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import UnoCSS from 'unocss/vite'
 import viteCompression from 'vite-plugin-compression';
+import { VitePWA } from 'vite-plugin-pwa'
 
 import { welcomePlugin } from './src/plugins/welcome-plugin'
 
@@ -16,6 +17,17 @@ export default defineConfig({
     UnoCSS(),
     viteCompression({
       deleteOriginFile: false,
+    }),
+    VitePWA({
+      registerType: 'autoUpdate',
+      injectRegister: 'auto',
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2}'],
+        // 增加缓存容量限制，防止大资源无法缓存 (5MB)
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+      },
+      // 由于 Ech0 使用后端动态注入 PWA 属性 (Manifest/Icons)，我们在此仅处理 Service Worker 逻辑
+      manifest: false,
     }),
 
     welcomePlugin() // 欢迎横幅插件

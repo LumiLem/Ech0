@@ -40,7 +40,8 @@
     "vue": "^3.5.26",
     "vue-echarts": "^8.0.1",
     "vue-router": "^4.6.4",
-    "vue-sonner": "^2.0.9"
+    "vue-sonner": "^2.0.9",
+    "workbox-window": "^7.4.0"
   },
   "devDependencies": {
     "@tsconfig/node22": "^22.0.5",
@@ -61,6 +62,7 @@
     "unocss": "66.5.2",
     "vite": "^7.3.1",
     "vite-plugin-compression": "^0.5.1",
+    "vite-plugin-pwa": "^1.2.0",
     "vite-plugin-vue-devtools": "^8.0.5",
     "vue-tsc": "^3.2.2"
   },

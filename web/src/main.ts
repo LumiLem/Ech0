@@ -83,6 +83,10 @@ app.component('BaseDialog', BaseDialog)
 
 app.mount('#app')
 
+// 注册 PWA Service Worker
+import { registerSW } from 'virtual:pwa-register'
+registerSW({ immediate: true })
+
 // 移除启动加载动画
 const appLoader = document.getElementById('app-loader')
 if (appLoader) {
