@@ -22,9 +22,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
       workbox: {
-        // 💡 恢复 .html 预缓存，作为离线时的最后一道防线
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2}'],
-        globIgnores: ['**/app.webmanifest', '**/rss*', '**/sitemap*', '**/robots.txt'],
+        globPatterns: ['**/*.{js,css,ico,png,svg,webp,woff2}'],
+        globIgnores: ['**/app.webmanifest', '**/rss*', '**/sitemap*', '**/robots.txt', '**/index.html'],
         // 增加缓存容量限制，防止大资源无法缓存 (5MB)
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
 
