@@ -4,8 +4,8 @@ import { request, requestWithDirectUrlAndData } from '../request'
 export function fetchGetEchosByPage(searchParams: App.Api.Ech0.ParamsByPagination) {
   return request<App.Api.Ech0.PaginationResult>({
     url: `/echo/page`,
-    method: 'POST',
-    data: searchParams,
+    method: 'GET',
+    query: searchParams,
   })
 }
 

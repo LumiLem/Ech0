@@ -64,7 +64,7 @@ func (webHandler *WebHandler) Templates() gin.HandlerFunc {
 		}
 
 		// 处理 PWA Manifest 动态注入
-		if requestPath == "/app.webmanifest" {
+		if strings.HasSuffix(requestPath, "/app.webmanifest") {
 			webHandler.handleManifestRequest(ctx, subFS)
 			return
 		}

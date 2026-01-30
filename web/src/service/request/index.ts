@@ -11,6 +11,7 @@ interface RequestOptions {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE'
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data?: any
+  query?: any
 }
 
 const ofetchInstance = ofetch.create({
@@ -62,6 +63,7 @@ export const request = async <T>(requestOptions: RequestOptions): Promise<App.Ap
   return ofetchInstance<App.Api.Response<T>>(requestOptions.url, {
     method: requestOptions.method,
     body: requestOptions.data,
+    query: requestOptions.query,
   }).then((res) => {
     if (res.code !== 1) {
       if (isSystemReady) {
@@ -85,6 +87,7 @@ export const requestWithDirectUrl = async <T>(
     {
       method: requestOptions.method,
       body: requestOptions.data,
+      query: requestOptions.query,
     },
   ).then((res) => {
     if (res.code !== 1) {
@@ -128,6 +131,7 @@ export const downloadFile = async (requestOptions: RequestOptions): Promise<Blob
   return ofetchInstance<Blob>(requestOptions.url, {
     method: requestOptions.method,
     body: requestOptions.data,
+    query: requestOptions.query,
   }).then((res) => {
     if (res instanceof Blob) {
       return res
