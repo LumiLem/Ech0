@@ -22,20 +22,39 @@ export default defineConfig({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
       workbox: {
-        globPatterns: ['**/*.{js,css,ico,png,svg,webp,woff2}'],
-        globIgnores: ['**/app.webmanifest', '**/rss*', '**/sitemap*', '**/robots.txt', '**/index.html'],
+        // 💡 允许 index.html 回归预缓存清单
+        // 但我们要强制禁止 Workbox 自动生成 index.html 的 NavigationRoute (它会锁死动态 HTML)
+        // 💡 保证 index.html 在预缓存中，但通过 navigateFallback: null 禁用自动拦截
+        globPatterns: ['**/*.{css,js,html,svg,png,ico,webp,woff2}'],
+        navigateFallback: null,
+        globIgnores: ['**/app.webmanifest', '**/rss*', '**/sitemap*', '**/robots.txt'],
         // 增加缓存容量限制，防止大资源无法缓存 (5MB)
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
 
         // 💡 优化后的 PWA 多媒体与 S3 专项策略
         runtimeCaching: [
-          // 1. 首页 HTML 导航
+          // 1. 首页与动态页面导航 (SEO + 离线兜底)
           {
             urlPattern: ({ request }) => request.mode === 'navigate',
             handler: 'NetworkFirst',
             options: {
               cacheName: 'html-cache',
               cacheableResponse: { statuses: [0, 200] },
+              // 💡 核心秘诀：离线兜底插件
+              plugins: [
+                {
+                  // 当网络请求失败且本地也没有该特定 URL 的缓存时触发
+                  handlerDidError: async () => {
+                    const ctx = (globalThis as any);
+                    if (!ctx.caches) return;
+                    // 💡 关键：使用 ignoreSearch 忽略预缓存的版本号，并尝试多个可能的 Key
+                    const options = { ignoreSearch: true };
+                    return (await ctx.caches.match('index.html', options)) ||
+                      (await ctx.caches.match('/index.html', options)) ||
+                      (await ctx.caches.match('/', options));
+                  }
+                }
+              ]
             },
           },
           // 2. 视觉媒体缓存 (Images/Avatars): 涵盖本地与外部 S3/Fediverse 内容
@@ -66,7 +85,7 @@ export default defineConfig({
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-core-config-cache',
-              expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 },
+              expiration: { maxEntries: 60, maxAgeSeconds: 86400 },
               cacheableResponse: { statuses: [0, 200] },
             },
           },
@@ -80,14 +99,56 @@ export default defineConfig({
             handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'api-aux-config-cache',
-              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 7 },
+              expiration: { maxEntries: 100, maxAgeSeconds: 604800 },
               cacheableResponse: { statuses: [0, 200] },
             },
           },
-          // 6. 动态流内容读取 (NetworkFirst): 首页动态、收件箱、待办、AI近况、热力图
+          // 6. 首页列表拆解器 (Scheme A): 当用户刷首页时，自动把每一条动态的详情 API 预填进缓存
+          {
+            urlPattern: ({ url }) => url.pathname.includes('/echo/page'),
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api-content-cache',
+              expiration: { maxEntries: 200, maxAgeSeconds: 86400 },
+              cacheableResponse: { statuses: [0, 200] },
+              plugins: [
+                {
+                  fetchDidSucceed: async ({ response }) => {
+                    const ctx = (globalThis as any);
+                    if (!ctx.caches || !ctx.Response) return response;
+                    const clone = response.clone();
+                    // 在后台执行拆解注入，不阻塞当前列表返回
+                    (async () => {
+                      try {
+                        const json = (await clone.json()) as any;
+                        if (json && json.code === 1 && json.data?.items) {
+                          const cache = await ctx.caches.open('api-content-cache');
+                          for (const item of json.data.items) {
+                            // 构造详情页 API 的 URL Key
+                            const detailUrl = new URL(`/api/echo/${item.id}`, ctx.location.origin).href;
+                            // 构造符合后端定义的标准响应结构
+                            const detailRes = new ctx.Response(JSON.stringify({
+                              code: 1,
+                              msg: "OK",
+                              data: item
+                            }), {
+                              headers: { 'Content-Type': 'application/json' }
+                            });
+                            await cache.put(detailUrl, detailRes);
+                          }
+                        }
+                      } catch (e) { }
+                    })();
+                    return response;
+                  }
+                }
+              ]
+            },
+          },
+          // 7. 动态详情、收件箱等其他读请求
           {
             urlPattern: ({ url }) =>
-              url.pathname.includes('/echo/page') ||
+              /^\/api\/echo\//.test(url.pathname) ||
               url.pathname.includes('/timeline') ||
               url.pathname.includes('/inbox') ||
               url.pathname.includes('/heatmap') ||
@@ -96,7 +157,7 @@ export default defineConfig({
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-content-cache',
-              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 },
+              expiration: { maxEntries: 200, maxAgeSeconds: 86400 },
               cacheableResponse: { statuses: [0, 200] },
             },
           },
