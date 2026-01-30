@@ -25,6 +25,15 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2}'],
         // 增加缓存容量限制，防止大资源无法缓存 (5MB)
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        // 排除掉后端特有的路由，防止被 Service Worker 错误地拦截并重定向到 index.html
+        navigateFallbackDenylist: [
+          /^\/rss/,
+          /^\/api/,
+          /^\/oauth/,
+          /^\/ws/,
+          /^\/swagger/,
+          /^\/healthz/,
+        ],
       },
       // 由于 Ech0 使用后端动态注入 PWA 属性 (Manifest/Icons)，我们在此仅处理 Service Worker 逻辑
       manifest: false,
