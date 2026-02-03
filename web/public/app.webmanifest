@@ -79,5 +79,14 @@
       "sizes": "640x1136",
       "type": "image/png"
     }
-  ]
+  ],
+  "share_target": {
+    "action": "/?share=true",
+    "method": "GET",
+    "params": {
+      "title": "share_title",
+      "text": "share_text",
+      "url": "share_url"
+    }
+  }
 }

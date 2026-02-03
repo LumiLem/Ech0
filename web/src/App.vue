@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { RouterView, useRouter } from 'vue-router'
+import { RouterView, useRouter, useRoute } from 'vue-router'
 import { computed, onMounted, ref } from 'vue'
 import { watch } from 'vue'
 import { useHead } from '@unhead/vue'
-import { useSettingStore } from '@/stores'
+import { useSettingStore, useEditorStore, useUserStore } from '@/stores'
 import { storeToRefs } from 'pinia'
 import { Toaster } from 'vue-sonner'
 import { getApiUrl } from './service/request/shared'
@@ -17,6 +17,7 @@ const dialogRef = ref()
 
 // 路由切换动画
 const router = useRouter()
+const route = useRoute()
 const transitionName = ref('fade')
 
 // 监听路由变化，根据导航方向选择动画
@@ -58,6 +59,10 @@ const { SystemSetting } = storeToRefs(settingStore)
 
 const API_URL = getApiUrl()
 import { ensureAbsoluteUrl } from '@/utils/other'
+
+const editorStore = useEditorStore()
+const userStore = useUserStore()
+const { isLogin } = storeToRefs(userStore)
 
 // 使用 unhead 管理全局 Meta
 useHead({
@@ -157,6 +162,31 @@ onMounted(() => {
 
   // 初始注入
   register(dialogRef.value) // 全局注册弹窗对话框
+
+  // 处理 PWA 分享目标 (Web Share Target)
+  // 如果 URL 包含 share=true，说明是从系统分享跳转过来的
+  router.isReady().then(() => {
+    if (route.query.share === 'true' && isLogin.value) {
+      const params = {
+        title: route.query.share_title as string,
+        text: route.query.share_text as string,
+        url: route.query.share_url as string,
+      }
+
+      if (params.title || params.text || params.url) {
+        editorStore.handleIncomingShare(params)
+
+        // 清理 URL 参数，避免刷新时重复填入
+        const newQuery = { ...route.query }
+        delete newQuery.share
+        delete newQuery.share_title
+        delete newQuery.share_text
+        delete newQuery.share_url
+
+        router.replace({ query: newQuery })
+      }
+    }
+  })
 })
 </script>
 

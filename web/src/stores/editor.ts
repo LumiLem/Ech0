@@ -751,6 +751,41 @@ export const useEditorStore = defineStore('editorStore', () => {
     else handleAddOrUpdateEcho(false)
   }
 
+  //===============================================================
+  // 处理来自系统的分享 (Web Share Target)
+  //===============================================================
+  const handleIncomingShare = (params: { title?: string; text?: string; url?: string }) => {
+    const { title, text, url } = params
+    let content = ''
+
+    // 1. 处理标题 (过滤掉默认值和无意义的标题)
+    const cleanTitle = title?.trim()
+    if (cleanTitle && cleanTitle !== 'Ech0' && cleanTitle !== 'Home' && cleanTitle !== text?.trim() && cleanTitle !== url?.trim()) {
+      content += `### ${cleanTitle}\n\n`
+    }
+
+    // 2. 处理文本和链接 (防重复逻辑，适配 Android)
+    const cleanText = text?.trim() || ''
+    const cleanUrl = url?.trim() || ''
+
+    if (cleanText) {
+      content += cleanText
+      // 如果 URL 不包含在文本内，且不为空，则追加到末尾
+      if (cleanUrl && !cleanText.includes(cleanUrl)) {
+        content += `\n\n${cleanUrl}`
+      }
+    } else if (cleanUrl) {
+      // 只有 URL 时直接填入
+      content += cleanUrl
+    }
+
+    if (content.trim()) {
+      echoToAdd.value.content = content.trim()
+      setMode(Mode.ECH0)
+      theToast.info('已为你填入分享的内容')
+    }
+  }
+
   const init = () => {
     handleGetPlayingMusic()
     // 载入草稿
@@ -813,6 +848,7 @@ export const useEditorStore = defineStore('editorStore', () => {
     handleUppyUploaded,
     scrollToEditedEcho,
     doRecommendLayout,
+    handleIncomingShare,
 
     // 自动保存状态
     isSaving,
