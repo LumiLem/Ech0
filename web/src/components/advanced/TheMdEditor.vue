@@ -93,6 +93,8 @@ const themeStore = useThemeStore()
 const content = computed<string>({
   get: () => editorStore.echoToAdd.content,
   set: (val: string) => {
+    // 💡 用户开始编辑时，解除分享锁定，允许正常保存草稿
+    editorStore.confirmShareContent()
     editorStore.echoToAdd.content = val
   },
 })

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
+  <!-- 背景 - 延伸到边缘 -->
+  <rect width="96" height="96" fill="#ffffff"/>
+  <!-- 图标 - 居中在安全区域内 (中心80% = 约77x77，偏移约9.5) -->
+  <g transform="translate(24, 24) scale(2)">
+    <path fill="#666666" d="M10 20v-6h4v6h5v-8h3L12 3L2 12h3v8z"/>
+  </g>
+</svg>

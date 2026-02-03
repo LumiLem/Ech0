@@ -36,7 +36,14 @@
         {
           "src": "icons/shortcut-home.png",
           "sizes": "96x96",
-          "type": "image/png"
+          "type": "image/png",
+          "purpose": "any"
+        },
+        {
+          "src": "icons/shortcut-home-maskable.png",
+          "sizes": "96x96",
+          "type": "image/png",
+          "purpose": "maskable"
         }
       ]
     },
@@ -49,7 +56,14 @@
         {
           "src": "icons/shortcut-hub.png",
           "sizes": "96x96",
-          "type": "image/png"
+          "type": "image/png",
+          "purpose": "any"
+        },
+        {
+          "src": "icons/shortcut-hub-maskable.png",
+          "sizes": "96x96",
+          "type": "image/png",
+          "purpose": "maskable"
         }
       ]
     },
@@ -62,7 +76,14 @@
         {
           "src": "icons/shortcut-settings.png",
           "sizes": "96x96",
-          "type": "image/png"
+          "type": "image/png",
+          "purpose": "any"
+        },
+        {
+          "src": "icons/shortcut-settings-maskable.png",
+          "sizes": "96x96",
+          "type": "image/png",
+          "purpose": "maskable"
         }
       ]
     }

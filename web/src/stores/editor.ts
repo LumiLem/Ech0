@@ -254,6 +254,8 @@ export const useEditorStore = defineStore('editorStore', () => {
       () => websiteToAdd.value.title,
     ],
     () => {
+      // 💡 如果正在处理外部分享内容，跳过自动保存草稿，避免覆盖用户原有草稿
+      if (isIncomingSharing.value) return
       debouncedSave()
     },
     { deep: true },
@@ -299,6 +301,15 @@ export const useEditorStore = defineStore('editorStore', () => {
   const clearDraft = () => {
     localStg.removeItem(DRAFT_KEY)
     lastSavedTime.value = ''
+    // 💡 清除草稿时解除分享锁定
+    isIncomingSharing.value = false
+  }
+
+  // 💡 用户确认开始编辑分享内容时调用，解除锁定并开始正常保存草稿
+  const confirmShareContent = () => {
+    if (isIncomingSharing.value) {
+      isIncomingSharing.value = false
+    }
   }
 
   //================================================================
@@ -799,10 +810,11 @@ export const useEditorStore = defineStore('editorStore', () => {
 
       theToast.info('已为你填入分享的内容')
 
-      // 短暂锁定后解除（防止极端情况下的覆盖）
-      setTimeout(() => {
-        isIncomingSharing.value = false
-      }, 1000)
+      // 💡 分享锁定保持开启，直到用户主动操作：
+      // - 发布/更新内容 → clearDraft() 中解锁
+      // - 清空编辑器 → clearDraft() 中解锁  
+      // - 开始编辑内容 → 调用 confirmShareContent() 解锁
+      // 在此之前，分享内容不会被保存为草稿，用户原有草稿得以保留
     }
   }
 
@@ -869,6 +881,8 @@ export const useEditorStore = defineStore('editorStore', () => {
     scrollToEditedEcho,
     doRecommendLayout,
     handleIncomingShare,
+    confirmShareContent,
+    isIncomingSharing,
 
     // 自动保存状态
     isSaving,
