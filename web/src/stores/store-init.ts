@@ -5,6 +5,7 @@ import { useTodoStore } from './todo'
 import { useEchoStore } from './echo'
 import { useEditorStore } from './editor'
 import { useInboxStore } from './inbox'
+import { usePwaStore } from './pwa'
 
 export async function initStores() {
   const themeStore = useThemeStore()
@@ -14,6 +15,7 @@ export async function initStores() {
   const echoStore = useEchoStore()
   const editorStore = useEditorStore()
   const inboxStore = useInboxStore()
+  const pwaStore = usePwaStore()
 
   themeStore.init()
   await userStore.init()
@@ -22,4 +24,8 @@ export async function initStores() {
   editorStore.init()
   echoStore.init()
   inboxStore.init()
+  pwaStore.init()
+
+  // PWA: 基于访问次数的自动提示检查（在所有 store 初始化完成后）
+  pwaStore.checkAutoPrompt()
 }

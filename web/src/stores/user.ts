@@ -6,6 +6,7 @@ import { localStg } from '@/utils/storage'
 import { theToast } from '@/utils/toast'
 import router from '@/router'
 import { useEchoStore } from './echo'
+import { usePwaStore } from './pwa'
 
 export const useUserStore = defineStore('userStore', () => {
   /**
@@ -33,6 +34,10 @@ export const useUserStore = defineStore('userStore', () => {
         // 登录成功
         theToast.success('登录成功,欢迎回来！🎉')
 
+        // PWA: 登录成功后触发安装提示
+        const pwaStore = usePwaStore()
+        pwaStore.onUserLoggedIn()
+
         // 清除echo数据
         const echoStore = useEchoStore()
         echoStore.clearEchos()
@@ -54,6 +59,10 @@ export const useUserStore = defineStore('userStore', () => {
 
       // 登录成功
       theToast.success('登录成功,欢迎回来！🎉')
+
+      // PWA: 登录成功后触发安装提示
+      const pwaStore = usePwaStore()
+      pwaStore.onUserLoggedIn()
 
       // 清除echo数据
       const echoStore = useEchoStore()

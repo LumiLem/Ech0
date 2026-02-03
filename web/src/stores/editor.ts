@@ -3,7 +3,7 @@ import { ref, watch, onMounted, computed } from 'vue'
 import { theToast } from '@/utils/toast'
 import { fetchAddEcho, fetchUpdateEcho, fetchAddTodo, fetchGetMusic, fetchGetEchoById } from '@/service/api'
 import { Mode, ExtensionType, ImageSource, ImageLayout } from '@/enums/enums'
-import { useEchoStore, useTodoStore, useInboxStore } from '@/stores'
+import { useEchoStore, useTodoStore, useInboxStore, usePwaStore } from '@/stores'
 import { localStg } from '@/utils/storage'
 import { getImageSize } from '@/utils/image'
 import { useLayoutRecommend } from '@/composables/useLayoutRecommend'
@@ -512,6 +512,11 @@ export const useEditorStore = defineStore('editorStore', () => {
               echoStore.refreshEchos()
               setMode(Mode.ECH0)
               echoStore.getTags() // 刷新标签列表
+
+              // PWA: 发布 Echo 成功后触发安装提示
+              const pwaStore = usePwaStore()
+              pwaStore.onEchoPublished()
+
               return '🎉发布成功！'
             } else {
               return '😭发布失败，请稍后再试！'

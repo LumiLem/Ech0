@@ -29,6 +29,24 @@
           title="返回首页"
         >
         </BaseButton>
+        <!-- PWA 安装应用 - 移动端 -->
+        <BaseButton
+          v-if="pwaStore.canShowInstall"
+          :icon="Install"
+          @click="() => pwaStore.installApp()"
+          class="w-9 h-9 rounded-md"
+          title="安装应用"
+        >
+        </BaseButton>
+        <!-- iOS 安装引导 - 移动端 -->
+        <BaseButton
+          v-else-if="pwaStore.isIOS && !pwaStore.isInstalled"
+          :icon="Install"
+          @click="pwaStore.showIOSInstallGuide"
+          class="w-9 h-9 rounded-md"
+          title="安装应用"
+        >
+        </BaseButton>
         <!-- 退出登录 -->
         <BaseButton
           v-if="userStore.isLogin"
@@ -155,6 +173,28 @@
           登录
         </BaseButton>
 
+        <!-- PWA 安装应用 - 只在未安装且支持安装时显示 -->
+        <BaseButton
+          v-if="pwaStore.canShowInstall"
+          :icon="Install"
+          @click="() => pwaStore.installApp()"
+          :class="getBottomButtonClasses()"
+          title="安装应用"
+        >
+          安装应用
+        </BaseButton>
+
+        <!-- iOS 安装引导 - 只在 iOS 未安装时显示 -->
+        <BaseButton
+          v-else-if="pwaStore.isIOS && !pwaStore.isInstalled"
+          :icon="Install"
+          @click="pwaStore.showIOSInstallGuide"
+          :class="getBottomButtonClasses()"
+          title="安装应用"
+        >
+          安装应用
+        </BaseButton>
+
         <div class="text-[var(--text-color-next-300)] font-serif my-2 ml-3">
           Version: {{ settingStore.hello?.version }}
         </div>
@@ -182,8 +222,9 @@ import Setting from '@/components/icons/setting.vue'
 import Storage from '@/components/icons/storage.vue'
 import Sso from '@/components/icons/sso.vue'
 import Logout from '@/components/icons/logout.vue'
+import Install from '@/components/icons/install.vue'
 import { computed, ref, watch } from 'vue'
-import { useUserStore, useSettingStore } from '@/stores'
+import { useUserStore, useSettingStore, usePwaStore } from '@/stores'
 import { useRouter, useRoute } from 'vue-router'
 import { theToast } from '@/utils/toast'
 import { useBaseDialog } from '@/composables/useBaseDialog'
@@ -192,6 +233,7 @@ const { openConfirm } = useBaseDialog()
 
 const userStore = useUserStore()
 const settingStore = useSettingStore()
+const pwaStore = usePwaStore()
 const router = useRouter()
 const route = useRoute()
 
