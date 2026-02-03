@@ -104,10 +104,13 @@ func (webHandler *WebHandler) handleManifestRequest(ctx *gin.Context, subFS fs.F
 		manifest = reShortName.ReplaceAllString(manifest, fmt.Sprintf(`"short_name": "%s"`, pwaName))
 	}
 	if settings.SiteDescription != "" {
-		// 匹配原有描述字段并替换
+		// 匹配原有描述字段并替换 (仅替换第一个，避免影响 shortcuts)
 		reDesc := regexp.MustCompile(`"description":\s*"[^"]*"`)
 		description := truncate(settings.SiteDescription, 200)
-		manifest = reDesc.ReplaceAllString(manifest, fmt.Sprintf(`"description": "%s"`, description))
+		loc := reDesc.FindStringIndex(manifest)
+		if loc != nil {
+			manifest = manifest[:loc[0]] + fmt.Sprintf(`"description": "%s"`, description) + manifest[loc[1]:]
+		}
 	}
 
 	// 注入 PWA 图标 (使用动态图标接口)
@@ -116,7 +119,7 @@ func (webHandler *WebHandler) handleManifestRequest(ctx *gin.Context, subFS fs.F
 		v := filepath.Base(settings.ServerLogo)
 
 		// 定义 manifest 要求的各种标准尺寸 (使用 mode=maskable 触发后端 Padding 算法)
-		newIcons := fmt.Sprintf(`[
+		newIcons := fmt.Sprintf(`"icons": [
     {
       "src": "/api/icon?s=32&v=%s",
       "sizes": "32x32",
@@ -185,9 +188,12 @@ func (webHandler *WebHandler) handleManifestRequest(ctx *gin.Context, subFS fs.F
     }
   ]`, v, v, v, v, v, v, v, v, v, v, v)
 
-		// 替换整个 icons 块
+		// 替换第一个 icons 块 (顶层图标)，避免影响 shortcuts 里的图标
 		reIconsBlock := regexp.MustCompile(`(?is)"icons":\s*\[.*?]`)
-		manifest = reIconsBlock.ReplaceAllString(manifest, fmt.Sprintf(`"icons": %s`, newIcons))
+		loc := reIconsBlock.FindStringIndex(manifest)
+		if loc != nil {
+			manifest = manifest[:loc[0]] + newIcons + manifest[loc[1]:]
+		}
 	}
 
 	ctx.Header("Content-Type", "application/manifest+json; charset=utf-8")
