@@ -35,7 +35,19 @@ export default defineConfig({
         runtimeCaching: [
           // 1. 首页与动态页面导航 (SEO + 离线兜底)
           {
-            urlPattern: ({ request }) => request.mode === 'navigate',
+            urlPattern: ({ request, url }) => {
+              // 💡 只有导航请求才进入此缓存
+              if (request.mode !== 'navigate') return false
+
+              // 💡 绝对不要缓存带有敏感查询参数的 HTML (Token 或 分享内容)
+              if (url.searchParams.has('token') || url.searchParams.has('share') || url.searchParams.has('code')) {
+                return false
+              }
+
+              // 💡 排除认证相关路径
+              const blackList = ['/auth', '/login', '/oauth', '/logout']
+              return !blackList.some(path => url.pathname.startsWith(path))
+            },
             handler: 'NetworkFirst',
             options: {
               cacheName: 'html-cache',
@@ -168,6 +180,8 @@ export default defineConfig({
           /^\/rss/,
           /^\/api/,
           /^\/oauth/,
+          /^\/auth/,
+          /^\/login/,
           /^\/ws/,
           /^\/swagger/,
           /^\/healthz/,

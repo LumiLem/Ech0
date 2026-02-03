@@ -96,12 +96,16 @@ func (webHandler *WebHandler) handleManifestRequest(ctx *gin.Context, subFS fs.F
 	}
 
 	if pwaName != "" {
-		// 使用正则兼容不同的缩进和空格格式
+		// 使用正则匹配第一个 "name" 和 "short_name"，避免影响 shortcuts 或参数
 		reName := regexp.MustCompile(`"name":\s*"Ech0"`)
-		manifest = reName.ReplaceAllString(manifest, fmt.Sprintf(`"name": "%s"`, pwaName))
+		if loc := reName.FindStringIndex(manifest); loc != nil {
+			manifest = manifest[:loc[0]] + fmt.Sprintf(`"name": "%s"`, pwaName) + manifest[loc[1]:]
+		}
 
 		reShortName := regexp.MustCompile(`"short_name":\s*"Ech0"`)
-		manifest = reShortName.ReplaceAllString(manifest, fmt.Sprintf(`"short_name": "%s"`, pwaName))
+		if loc := reShortName.FindStringIndex(manifest); loc != nil {
+			manifest = manifest[:loc[0]] + fmt.Sprintf(`"short_name": "%s"`, pwaName) + manifest[loc[1]:]
+		}
 	}
 	if settings.SiteDescription != "" {
 		// 匹配原有描述字段并替换 (仅替换第一个，避免影响 shortcuts)
