@@ -81,7 +81,7 @@
     }
   ],
   "share_target": {
-    "action": "/?share=true",
+    "action": "/",
     "method": "GET",
     "params": {
       "title": "share_title",

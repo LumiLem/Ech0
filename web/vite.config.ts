@@ -39,14 +39,13 @@ export default defineConfig({
               // 💡 只有导航请求才进入此缓存
               if (request.mode !== 'navigate') return false
 
-              // 💡 绝对不要缓存带有敏感查询参数的 HTML (Token 或 分享内容)
-              if (url.searchParams.has('token') || url.searchParams.has('share') || url.searchParams.has('code')) {
-                return false
-              }
+              // 💡 绝对不要缓存带有敏感查询参数的 HTML (Token、OAuth Code 或 分享内容)
+              const sensitiveParams = ['token', 'code', 'share', 'share_text', 'share_title', 'share_url']
+              if (sensitiveParams.some(p => url.searchParams.has(p))) return false
 
-              // 💡 排除认证相关路径
-              const blackList = ['/auth', '/login', '/oauth', '/logout']
-              return !blackList.some(path => url.pathname.startsWith(path))
+              // 💡 排除认证相关路径，这些必须直通后端
+              const authPaths = ['/auth', '/login', '/oauth', '/logout']
+              return !authPaths.some(path => url.pathname.startsWith(path))
             },
             handler: 'NetworkFirst',
             options: {
@@ -69,12 +68,13 @@ export default defineConfig({
               ]
             },
           },
+
           // 2. 视觉媒体缓存 (Images/Avatars): 涵盖本地与外部 S3/Fediverse 内容
           {
             urlPattern: ({ url }) =>
               /\.(?:png|jpg|jpeg|svg|gif|webp|avif)$/i.test(url.pathname) ||
               url.pathname.startsWith('/api/icon') ||
-              url.pathname.includes('/images/'),
+              url.pathname.startsWith('/images/'),
             handler: 'CacheFirst',
             options: {
               cacheName: 'api-media-cache',
@@ -85,15 +85,13 @@ export default defineConfig({
               cacheableResponse: { statuses: [0, 200] }, // 支持 Opaque 响应
             },
           },
-          // 4. 核心启动与元数据 (NetworkFirst): 保证 initStores 加载的数据【即时更新】
+
+          // 3. 核心启动与元数据 (NetworkFirst): 保证 initStores 加载的数据【即时更新】
           {
-            urlPattern: ({ url }) =>
-              url.pathname.includes('/settings') || // 系统、S3、评论、存储设置
-              url.pathname.includes('/info') ||     // Agent 信息
-              url.pathname.includes('/user') ||     // 登录态
-              url.pathname.includes('/tags') ||     // 标签列表 (UI 筛选核心)
-              url.pathname.includes('/status') ||   // 准备状态
-              url.pathname.includes('/hello'),      // 基础属性
+            urlPattern: ({ url }) => {
+              const coreApis = ['/api/settings', '/api/info', '/api/user', '/api/tags', '/api/status', '/api/hello']
+              return coreApis.some(api => url.pathname.startsWith(api))
+            },
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-core-config-cache',
@@ -101,13 +99,14 @@ export default defineConfig({
               cacheableResponse: { statuses: [0, 200] },
             },
           },
-          // 5. 辅助功能与身份清单 (StaleWhileRevalidate): 保证 App 身份识别秒开
+
+          // 4. 辅助功能与身份清单 (StaleWhileRevalidate): 保证 App 身份识别秒开
           {
-            urlPattern: ({ url }) =>
-              url.pathname.includes('/connect') ||
-              url.pathname.includes('/passkeys') ||
-              url.pathname.includes('/getmusic') ||
-              url.pathname.endsWith('.webmanifest'),
+            urlPattern: ({ url }) => {
+              const auxApis = ['/api/connect', '/api/passkeys', '/api/getmusic']
+              return auxApis.some(api => url.pathname.startsWith(api)) ||
+                url.pathname.endsWith('.webmanifest')
+            },
             handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'api-aux-config-cache',
@@ -115,9 +114,10 @@ export default defineConfig({
               cacheableResponse: { statuses: [0, 200] },
             },
           },
-          // 6. 首页列表拆解器 (Scheme A): 当用户刷首页时，自动把每一条动态的详情 API 预填进缓存
+
+          // 5. 首页列表拆解器 (Scheme A): 当用户刷首页时，自动把每一条动态的详情 API 预填进缓存
           {
-            urlPattern: ({ url }) => url.pathname.includes('/echo/page'),
+            urlPattern: ({ url }) => url.pathname.startsWith('/api/echo/page'),
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-content-cache',
@@ -133,19 +133,15 @@ export default defineConfig({
                     (async () => {
                       try {
                         const json = (await clone.json()) as any;
-                        if (json && json.code === 1 && json.data?.items) {
+                        if (json?.code === 1 && json.data?.items) {
                           const cache = await ctx.caches.open('api-content-cache');
                           for (const item of json.data.items) {
                             // 构造详情页 API 的 URL Key
                             const detailUrl = new URL(`/api/echo/${item.id}`, ctx.location.origin).href;
                             // 构造符合后端定义的标准响应结构
                             const detailRes = new ctx.Response(JSON.stringify({
-                              code: 1,
-                              msg: "OK",
-                              data: item
-                            }), {
-                              headers: { 'Content-Type': 'application/json' }
-                            });
+                              code: 1, msg: "OK", data: item
+                            }), { headers: { 'Content-Type': 'application/json' } });
                             await cache.put(detailUrl, detailRes);
                           }
                         }
@@ -157,15 +153,13 @@ export default defineConfig({
               ]
             },
           },
-          // 7. 动态详情、收件箱等其他读请求
+
+          // 6. 动态详情、收件箱等其他读请求
           {
-            urlPattern: ({ url }) =>
-              /^\/api\/echo\//.test(url.pathname) ||
-              url.pathname.includes('/timeline') ||
-              url.pathname.includes('/inbox') ||
-              url.pathname.includes('/heatmap') ||
-              url.pathname.includes('/todo') ||
-              url.pathname.includes('/agent/recent'),
+            urlPattern: ({ url }) => {
+              const contentApis = ['/api/echo/', '/api/timeline', '/api/inbox', '/api/heatmap', '/api/todo', '/api/agent/recent']
+              return contentApis.some(api => url.pathname.startsWith(api))
+            },
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-content-cache',

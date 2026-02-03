@@ -163,34 +163,78 @@ onMounted(() => {
   register(dialogRef.value) // 全局注册弹窗对话框
 
   // 处理 PWA 分享目标 (Web Share Target)
+  const hasProcessedShare = ref(false)
+  
   watch(
     [() => route.query, isLogin],
     ([query, loggedIn]) => {
-      if (query.share === 'true' && loggedIn) {
-        const params = {
-          title: query.share_title as string,
-          text: query.share_text as string,
-          url: query.share_url as string,
-        }
+      // 防止重复处理
+      if (hasProcessedShare.value) return
 
-        if (params.title || params.text || params.url) {
-          console.log('[PWA Share] Detected incoming share:', params)
-          
-          // 确保已经在首页，如果不在则跳转
-          if (route.name !== 'home') {
-            router.push({ name: 'home' })
+      // 检测是否有分享参数
+      const hasShareParams = query.share === 'true' || 
+        query.share_title || 
+        query.share_text || 
+        query.share_url
+
+      if (!hasShareParams) {
+        // 🔄 尝试从 sessionStorage 恢复（用户刚登录后）
+        const savedShare = sessionStorage.getItem('pending_share')
+        if (savedShare && loggedIn) {
+          try {
+            const params = JSON.parse(savedShare)
+            sessionStorage.removeItem('pending_share')
+            hasProcessedShare.value = true
+            
+            if (route.name !== 'home') {
+              router.push({ name: 'home' })
+            }
+            editorStore.handleIncomingShare(params)
+          } catch (e) {
+            sessionStorage.removeItem('pending_share')
           }
-
-          editorStore.handleIncomingShare(params)
-
-          // 清理 URL 参数
-          const newQuery = { ...query }
-          delete newQuery.share
-          delete newQuery.share_title
-          delete newQuery.share_text
-          delete newQuery.share_url
-          router.replace({ query: newQuery })
         }
+        return
+      }
+
+      const params = {
+        title: query.share_title as string,
+        text: query.share_text as string,
+        url: query.share_url as string,
+      }
+
+      // 确保有实际内容
+      if (!params.title && !params.text && !params.url) return
+
+      if (loggedIn) {
+        // ✅ 已登录：直接处理分享
+        hasProcessedShare.value = true
+        console.log('[PWA Share] Processing incoming share:', params)
+        
+        if (route.name !== 'home') {
+          router.push({ name: 'home' })
+        }
+        editorStore.handleIncomingShare(params)
+
+        // 清理 URL 参数
+        const newQuery = { ...query }
+        delete newQuery.share
+        delete newQuery.share_title
+        delete newQuery.share_text
+        delete newQuery.share_url
+        router.replace({ query: newQuery })
+      } else {
+        // ⏳ 未登录：保存到 sessionStorage，等待登录后恢复
+        console.log('[PWA Share] User not logged in, saving share for later:', params)
+        sessionStorage.setItem('pending_share', JSON.stringify(params))
+        
+        // 清理 URL 参数（避免敏感内容暴露在地址栏）
+        const newQuery = { ...query }
+        delete newQuery.share
+        delete newQuery.share_title
+        delete newQuery.share_text
+        delete newQuery.share_url
+        router.replace({ query: newQuery })
       }
     },
     { immediate: true }

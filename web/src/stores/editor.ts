@@ -786,7 +786,10 @@ export const useEditorStore = defineStore('editorStore', () => {
     }
 
     if (content.trim()) {
-      isIncomingSharing.value = true // 锁定，防止被 loadDraft 覆盖
+      // 💡 标记正在处理分享（阻止 loadDraft 覆盖）
+      // 注意：不主动 clearDraft，避免用户原有草稿丢失
+      isIncomingSharing.value = true
+
       echoToAdd.value.content = content.trim()
       setMode(Mode.ECH0)
 
@@ -796,10 +799,10 @@ export const useEditorStore = defineStore('editorStore', () => {
 
       theToast.info('已为你填入分享的内容')
 
-      // 3秒后解除锁定
+      // 短暂锁定后解除（防止极端情况下的覆盖）
       setTimeout(() => {
         isIncomingSharing.value = false
-      }, 3000)
+      }, 1000)
     }
   }
 
