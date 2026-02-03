@@ -7,6 +7,11 @@
   "display": "standalone",
   "background_color": "#f4f1ec",
   "theme_color": "#f4f1ec",
+  "categories": [
+    "social",
+    "productivity",
+    "lifestyle"
+  ],
   "icons": [
     {
       "src": "web-app-manifest-192x192.png",
@@ -19,6 +24,47 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "首页",
+      "short_name": "首页",
+      "description": "查看最新动态",
+      "url": "/",
+      "icons": [
+        {
+          "src": "icons/shortcut-home.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Hub",
+      "short_name": "Hub",
+      "description": "浏览联邦宇宙内容",
+      "url": "/hub",
+      "icons": [
+        {
+          "src": "icons/shortcut-hub.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "设置",
+      "short_name": "设置",
+      "description": "管理您的 Ech0",
+      "url": "/panel",
+      "icons": [
+        {
+          "src": "icons/shortcut-settings.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
     }
   ],
   "screenshots": [
