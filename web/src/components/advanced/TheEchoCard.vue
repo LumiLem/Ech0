@@ -305,33 +305,13 @@ const handleExpandEcho = (echoId: number) => {
 }
 
 const handleShareEcho = async () => {
-  // 1. 生成标题 (同步其 og:title 逻辑)
-  const d = new Date(props.echo.created_at)
-  const dateStr = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
-  const shareTitle = `${props.echo.username}发表于${dateStr}的动态 - ${settingStore.SystemSetting.site_title}`
-
-  // 2. 生成描述 (同步其 og:description 逻辑)
-  let shareDesc = props.echo.content
-    ?.replace(/<[^>]*>/g, '') // 删 HTML
-    .replace(/[*#_~`]/g, '') // 删 MD 符号
-    .slice(0, 200) // 截取 200 字
-    .trim()
-
-  if (!shareDesc) {
-    const mediaCount = props.echo.media?.length || 0
-    shareDesc = mediaCount > 0
-      ? `${props.echo.username}分享了 ${mediaCount} 个媒体文件`
-      : `这是来自 ${props.echo.username} 的一条动态，点击查看详情。`
-  }
+  const url = `${window.location.origin}/echo/${props.echo.id}`
 
   if (navigator.share) {
     try {
-      const shareData = {
-        title: shareTitle,
-        text: shareDesc,
-        url: `${window.location.origin}/echo/${props.echo.id}`,
-      }
-      await navigator.share(shareData)
+      await navigator.share({
+        url: url,
+      })
     } catch (error) {
       if ((error as Error).name !== 'AbortError') {
         theToast.error('分享失败')
@@ -339,7 +319,6 @@ const handleShareEcho = async () => {
     }
   } else {
     // 回退方案：简洁模式，仅复制 URL
-    const url = `${window.location.origin}/echo/${props.echo.id}`
     navigator.clipboard.writeText(url).then(() => {
       theToast.info('已复制到剪贴板！')
     }).catch(() => {

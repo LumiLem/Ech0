@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { RouterView, useRouter, useRoute } from 'vue-router'
-import { computed, onMounted, ref } from 'vue'
-import { watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useHead } from '@unhead/vue'
 import { useSettingStore, useEditorStore, useUserStore } from '@/stores'
 import { storeToRefs } from 'pinia'
@@ -164,29 +163,38 @@ onMounted(() => {
   register(dialogRef.value) // 全局注册弹窗对话框
 
   // 处理 PWA 分享目标 (Web Share Target)
-  // 如果 URL 包含 share=true，说明是从系统分享跳转过来的
-  router.isReady().then(() => {
-    if (route.query.share === 'true' && isLogin.value) {
-      const params = {
-        title: route.query.share_title as string,
-        text: route.query.share_text as string,
-        url: route.query.share_url as string,
+  watch(
+    [() => route.query, isLogin],
+    ([query, loggedIn]) => {
+      if (query.share === 'true' && loggedIn) {
+        const params = {
+          title: query.share_title as string,
+          text: query.share_text as string,
+          url: query.share_url as string,
+        }
+
+        if (params.title || params.text || params.url) {
+          console.log('[PWA Share] Detected incoming share:', params)
+          
+          // 确保已经在首页，如果不在则跳转
+          if (route.name !== 'home') {
+            router.push({ name: 'home' })
+          }
+
+          editorStore.handleIncomingShare(params)
+
+          // 清理 URL 参数
+          const newQuery = { ...query }
+          delete newQuery.share
+          delete newQuery.share_title
+          delete newQuery.share_text
+          delete newQuery.share_url
+          router.replace({ query: newQuery })
+        }
       }
-
-      if (params.title || params.text || params.url) {
-        editorStore.handleIncomingShare(params)
-
-        // 清理 URL 参数，避免刷新时重复填入
-        const newQuery = { ...route.query }
-        delete newQuery.share
-        delete newQuery.share_title
-        delete newQuery.share_text
-        delete newQuery.share_url
-
-        router.replace({ query: newQuery })
-      }
-    }
-  })
+    },
+    { immediate: true }
+  )
 })
 </script>
 

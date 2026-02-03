@@ -24,6 +24,7 @@ export const useEditorStore = defineStore('editorStore', () => {
   // ================================================================
   const currentMode = ref<Mode>(Mode.ECH0) // 默认为Echo编辑模式
   const currentExtensionType = ref<ExtensionType>() // 当前扩展类型（可为空）
+  const isIncomingSharing = ref(false) // 标记是否正在处理外部分享内容
 
   //================================================================
   // 编辑状态
@@ -262,9 +263,8 @@ export const useEditorStore = defineStore('editorStore', () => {
     const draft = localStg.getItem<any>(DRAFT_KEY)
     if (!draft) return false
 
-    // 如果处于更新模式且草稿是关于特定 Echo 的，则需要匹配 ID
-    // 这里的逻辑比较微妙：如果用户打开了编辑器但没进更新模式，我们载入“新建”草稿
-    // 如果进了更新模式，我们只在草稿也是同一个 ID 时载入（或者提示用户）
+    // 如果处于分享导入模式，则跳过恢复，以免覆盖分享内容
+    if (isIncomingSharing.value) return false
 
     // 简便起见，如果是新建模式（!isUpdateMode.value），则载入新建草稿
     if (!isUpdateMode.value && !draft.isUpdateMode) {
@@ -760,7 +760,13 @@ export const useEditorStore = defineStore('editorStore', () => {
 
     // 1. 处理标题 (过滤掉默认值和无意义的标题)
     const cleanTitle = title?.trim()
-    if (cleanTitle && cleanTitle !== 'Ech0' && cleanTitle !== 'Home' && cleanTitle !== text?.trim() && cleanTitle !== url?.trim()) {
+    if (
+      cleanTitle &&
+      cleanTitle !== 'Ech0' &&
+      cleanTitle !== 'Home' &&
+      cleanTitle !== text?.trim() &&
+      cleanTitle !== url?.trim()
+    ) {
       content += `### ${cleanTitle}\n\n`
     }
 
@@ -780,9 +786,20 @@ export const useEditorStore = defineStore('editorStore', () => {
     }
 
     if (content.trim()) {
+      isIncomingSharing.value = true // 锁定，防止被 loadDraft 覆盖
       echoToAdd.value.content = content.trim()
       setMode(Mode.ECH0)
+
+      // 强制退出 Todo 模式和收件箱模式
+      todoStore.setTodoMode(false)
+      inboxStore.setInboxMode(false)
+
       theToast.info('已为你填入分享的内容')
+
+      // 3秒后解除锁定
+      setTimeout(() => {
+        isIncomingSharing.value = false
+      }, 3000)
     }
   }
 
