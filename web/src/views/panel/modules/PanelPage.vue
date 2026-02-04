@@ -30,17 +30,18 @@
         >
         </BaseButton>
         <!-- PWA 安装应用 - 移动端 -->
+        <!-- 标准浏览器（Chrome、Edge等）安装入口 -->
         <BaseButton
-          v-if="pwaStore.canShowInstall"
+          v-if="pwaStore.canShowInstallEntry"
           :icon="Install"
           @click="() => pwaStore.installApp()"
           class="w-9 h-9 rounded-md"
           title="安装应用"
         >
         </BaseButton>
-        <!-- iOS 安装引导 - 移动端 -->
+        <!-- iOS Safari 安装引导入口 -->
         <BaseButton
-          v-else-if="pwaStore.isIOS && !pwaStore.isInstalled"
+          v-else-if="pwaStore.canShowIOSInstallEntry"
           :icon="Install"
           @click="pwaStore.showIOSInstallGuide"
           class="w-9 h-9 rounded-md"
@@ -173,9 +174,9 @@
           登录
         </BaseButton>
 
-        <!-- PWA 安装应用 - 只在未安装且支持安装时显示 -->
+        <!-- PWA 安装应用 - 标准浏览器（Chrome、Edge等）-->
         <BaseButton
-          v-if="pwaStore.canShowInstall"
+          v-if="pwaStore.canShowInstallEntry"
           :icon="Install"
           @click="() => pwaStore.installApp()"
           :class="getBottomButtonClasses()"
@@ -184,9 +185,9 @@
           安装应用
         </BaseButton>
 
-        <!-- iOS 安装引导 - 只在 iOS 未安装时显示 -->
+        <!-- iOS Safari 安装引导 -->
         <BaseButton
-          v-else-if="pwaStore.isIOS && !pwaStore.isInstalled"
+          v-else-if="pwaStore.canShowIOSInstallEntry"
           :icon="Install"
           @click="pwaStore.showIOSInstallGuide"
           :class="getBottomButtonClasses()"
