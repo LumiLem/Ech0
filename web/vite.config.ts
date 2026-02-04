@@ -28,8 +28,9 @@ export default defineConfig({
         globPatterns: ['**/*.{css,js,html,svg,png,ico,webp,woff2}'],
         navigateFallback: null,
         globIgnores: ['**/app.webmanifest', '**/rss*', '**/sitemap*', '**/robots.txt'],
-        // 增加缓存容量限制，防止大资源无法缓存 (5MB)
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        // 💡 增加缓存容量限制：防止大型 JS/CSS (特别是 HomeView) 因超过默认值而无法缓存
+        // 考虑到 Ech0 包含大量复杂的图表库，设置为 12MB 比较稳妥
+        maximumFileSizeToCacheInBytes: 12 * 1024 * 1024,
 
         // 💡 优化后的 PWA 多媒体与 S3 专项策略
         runtimeCaching: [
@@ -170,9 +171,12 @@ export default defineConfig({
         ],
 
         // 排除掉所有后端专属的纯数据/功能路由，防止 Vue 路由误拦截
+        // 💡 增加对静态资源路径的排除，防止 404 时返回 HTML 导致 MIME 错误
         navigateFallbackDenylist: [
           /^\/rss/,
           /^\/api/,
+          /^\/assets\//, // 💡 显式排除资源目录
+          /\.(?:js|css|json|wasm|webmanifest)$/, // 💡 阻止任何带有这些后缀的请求回退到 HTML
           /^\/oauth/,
           /^\/auth/,
           /^\/login/,
@@ -184,7 +188,7 @@ export default defineConfig({
           /^\/\.well-known\//,
           /^\/users\//,
           /^\/objects\//,
-          /^\/images\//, // 💡 原始资源文件直通后端
+          /^\/images\//,
           /^\/videos\//,
           /^\/audios\//,
           /^\/avatar\//,
