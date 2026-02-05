@@ -5,7 +5,8 @@
     <!-- Type -->
     <div class="flex items-center justify-between mb-1 font-serif">
       <div class="flex justify-start gap-2 items-center h-auto font-bold text-2xl">
-        <Notification class="w-4 h-4" />
+        <Notification class="w-4 h-4 text-[var(--text-color-next-300)]" />
+        <div v-if="!props.inbox.read" class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
       </div>
       <div
         class="uppercase text-[var(--text-color-next-300)] text-xs font-mono bg-[var(--bg-color-next-100)] px-2 py-0.5 rounded-full"

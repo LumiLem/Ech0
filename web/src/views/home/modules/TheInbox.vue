@@ -32,26 +32,23 @@
 import { onMounted, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useInboxStore } from '@/stores'
-import { fetchMarkInboxRead } from '@/service/api'
 import TheInboxCard from '@/components/advanced/TheInboxCard.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
 import Flowers from '@/components/icons/flowers.vue'
 
 const inboxStore = useInboxStore()
 const { items, hasMore, loading } = storeToRefs(inboxStore)
-const { loadMore } = inboxStore
+const { loadMore, markAsRead } = inboxStore
 
 let timer: ReturnType<typeof setInterval>
 
 onMounted(async () => {
-  // 用户停留超过 1 秒则更新消息为已读
+  // 用户停留超过 1.5 秒则更新消息为已读
   timer = setInterval(() => {
     if (items.value.length > 0) {
       items.value.forEach((item) => {
         if (!item.read) {
-          fetchMarkInboxRead(item.id).then(() => {
-            item.read = true
-          })
+          void markAsRead(item.id)
         }
       })
     }

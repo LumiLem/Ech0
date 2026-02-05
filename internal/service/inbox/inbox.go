@@ -90,6 +90,7 @@ func (inboxService *InboxService) MarkAsRead(userid, inboxID uint) error {
 
 	// 如果消息未读，则增加已读次数和已读时间
 	if !inbox.Read {
+		inbox.Read = true
 		inbox.ReadCount++
 		inbox.ReadAt = time.Now().Unix()
 	} else {
