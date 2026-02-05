@@ -1,7 +1,8 @@
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { defineStore } from 'pinia'
 import { fetchGetConnectList, fetchGetAllConnectInfo } from '@/service/api'
 import { localStg } from '@/utils/storage'
+import router from '@/router'
 
 export const useConnectStore = defineStore('connectStore', () => {
   /**
@@ -77,6 +78,12 @@ export const useConnectStore = defineStore('connectStore', () => {
   const checkHubUpdates = () => {
     if (connectsInfo.value.length === 0) return
 
+    // 如果当前已经在 Hub 页面，自动清除更新记录，不触发红点
+    if (router.currentRoute.value.name === 'hub') {
+      clearHubUpdates()
+      return
+    }
+
     // 获取按站点存储的上次记录数量
     const lastSiteCounts = localStg.getItem<Record<string, number>>('hubSiteCounts') || {}
 
@@ -116,7 +123,9 @@ export const useConnectStore = defineStore('connectStore', () => {
     }
 
     // 调试信息
-    console.log(`[Hub] 新增: ${totalNewUpdates} 条, 涉及站点: ${affectedSites}`)
+    if (totalNewUpdates > 0) {
+      console.log(`[Hub] 新增: ${totalNewUpdates} 条, 涉及站点: ${affectedSites}`)
+    }
 
     hubUpdateCount.value = totalNewUpdates
     hubUpdateSites.value = affectedSites
@@ -142,7 +151,11 @@ export const useConnectStore = defineStore('connectStore', () => {
     connectsInfo.value.forEach((connect) => {
       currentSiteCounts[connect.server_url] = connect.total_echos
     })
-    localStg.setItem('hubSiteCounts', currentSiteCounts)
+
+    // 只有当有实际数据时才更新 baseline，避免清空
+    if (Object.keys(currentSiteCounts).length > 0) {
+      localStg.setItem('hubSiteCounts', currentSiteCounts)
+    }
 
     // 清除旧的聚合记录（如果有）
     localStg.removeItem('hubTotalEchos')
@@ -179,6 +192,17 @@ export const useConnectStore = defineStore('connectStore', () => {
       pollInterval = null
     }
   }
+
+  // 监听路由变化，进入 Hub 页面时自动清除更新
+  watch(
+    () => router.currentRoute.value.name,
+    (newName) => {
+      if (newName === 'hub') {
+        clearHubUpdates()
+      }
+    },
+    { immediate: true }
+  )
 
   return {
     connects,

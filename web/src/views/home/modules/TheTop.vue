@@ -45,10 +45,10 @@
         </div>
         <!-- Ech0 Hub -->
         <div class="relative">
-          <a v-if="isInAppBrowser" href="/hub" :title="hubUpdateTooltip || 'Ech0 Hub'" @click="handleHubClick">
+          <a v-if="isInAppBrowser" href="/hub" :title="hubUpdateTooltip || 'Ech0 Hub'">
             <HubIcon class="w-8 h-8 text-[var(--text-color-400)]" />
           </a>
-          <RouterLink v-else to="/hub" :title="hubUpdateTooltip || 'Ech0 Hub'" @click="handleHubClick">
+          <RouterLink v-else to="/hub" :title="hubUpdateTooltip || 'Ech0 Hub'">
             <HubIcon class="w-8 h-8 text-[var(--text-color-400)]" />
           </RouterLink>
           <!-- 更新提示红点 -->
@@ -131,7 +131,6 @@ const echoStore = useEchoStore()
 const todoStore = useTodoStore()
 const connectStore = useConnectStore()
 const { refreshForSearch, getEchosByPage } = echoStore
-const { clearHubUpdates } = connectStore
 const { searchingMode, filteredTag, isFilteringMode, filteredDate, filteredYearMonth, isDateFilteringMode } = storeToRefs(echoStore)
 const { todos } = storeToRefs(todoStore)
 const { hubUpdateCount, hubUpdateTooltip } = storeToRefs(connectStore)
@@ -182,11 +181,6 @@ const widgetIconClass = computed(() => {
   }
   return baseClass
 })
-
-// 处理Hub点击，清除更新提示
-const handleHubClick = () => {
-  clearHubUpdates()
-}
 
 const handleSearch = () => {
   console.log('搜索内容:', searchContent.value)
