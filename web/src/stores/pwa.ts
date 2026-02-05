@@ -13,10 +13,13 @@
  * - https://web.dev/learn/pwa/installation-prompt
  * - https://web.dev/articles/promote-install
  */
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { defineStore } from 'pinia'
 import { theToast } from '@/utils/toast'
 import { localStg } from '@/utils/storage'
+import { useInboxStore } from './inbox'
+import { useTodoStore } from './todo'
+import { useConnectStore } from './connect'
 
 // BeforeInstallPromptEvent 类型定义（浏览器原生事件）
 interface BeforeInstallPromptEvent extends Event {
@@ -84,6 +87,13 @@ export const usePwaStore = defineStore('pwaStore', () => {
   const hasPwaSupport = ref(false)
 
   // ================================================================
+  // Stores - 关联的 Store
+  // ================================================================
+  const inboxStore = useInboxStore()
+  const todoStore = useTodoStore()
+  const connectStore = useConnectStore()
+
+  // ================================================================
   // Computed - 派生状态
   // ================================================================
 
@@ -135,7 +145,7 @@ export const usePwaStore = defineStore('pwaStore', () => {
    * 是否支持 PWA 安装功能
    *
    * 用于判断是否应该显示任何与 PWA 安装相关的 UI
-   * 对于不支持的浏览器（如 Firefox、一些老旧浏览器），不显示任何安装内容
+   * 对于不支持的浏览器（如 Firefox、一些老旧浏览器），不显示 any 安装内容
    */
   const isPwaSupported = computed(() => {
     // iOS Safari 支持 PWA（通过"添加到主屏幕"）
@@ -144,6 +154,23 @@ export const usePwaStore = defineStore('pwaStore', () => {
     // 检查是否有当前事件或曾经收到过事件
     const state = getStorageState()
     return !!deferredPrompt.value || state.hasSeenInstallPrompt || hasPwaSupport.value
+  })
+
+  /**
+   * 计算总角标数量
+   * 包含：Hub 更新、未读收件箱、待办事项
+   */
+  const totalBadgeCount = computed(() => {
+    // 1. Hub 更新数量
+    const hubCount = connectStore.hubUpdateCount || 0
+
+    // 2. 收件箱未读数量
+    const inboxCount = inboxStore.unreadItems?.length || 0
+
+    // 3. 待办事项数量 (status === 0 表示未完成)
+    const todoCount = todoStore.todos?.filter((t) => t.status === 0).length || 0
+
+    return hubCount + inboxCount + todoCount
   })
 
   // ================================================================
@@ -191,6 +218,15 @@ export const usePwaStore = defineStore('pwaStore', () => {
     // 监听安装完成事件
     window.addEventListener('appinstalled', handleAppInstalled)
 
+    // 监听总数变化并更新角标
+    watch(
+      totalBadgeCount,
+      (count) => {
+        refreshBadge(count)
+      },
+      { immediate: true },
+    )
+
     // 更新访问计数
     updateVisitCount()
 
@@ -202,6 +238,7 @@ export const usePwaStore = defineStore('pwaStore', () => {
       isFirefox: isFirefox.value,
       hasSeenInstallPrompt: state.hasSeenInstallPrompt,
       hasPwaSupport: hasPwaSupport.value,
+      badgeCount: totalBadgeCount.value,
     })
   }
 
@@ -316,6 +353,34 @@ export const usePwaStore = defineStore('pwaStore', () => {
         dismissed: false,
         dismissedAt: 0,
       })
+    }
+  }
+
+  /**
+   * 刷新 PWA 角标 (App Badging API)
+   *
+   * @param count 数量，0 则清除
+   */
+  const refreshBadge = async (count: number) => {
+    // 检查支持情况
+    if (!('setAppBadge' in navigator)) {
+      return
+    }
+
+    try {
+      if (count > 0) {
+        // 设置角标
+        // 注意：某些平台（如 Android）可能只显示一个点，而不显示具体数字
+        // 某些平台（如 macOS/Windows）可以直接显示数字
+        await (navigator as any).setAppBadge(count)
+        console.debug(`[PWA] App badge set to: ${count}`)
+      } else {
+        // 清除角标
+        await (navigator as any).clearAppBadge()
+        console.debug('[PWA] App badge cleared')
+      }
+    } catch (error) {
+      console.warn('[PWA] Failed to update app badge:', error)
     }
   }
 
