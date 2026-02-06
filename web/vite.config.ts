@@ -168,7 +168,51 @@ export default defineConfig({
               cacheableResponse: { statuses: [0, 200] },
             },
           },
+          // 7.Mutating API Requests with Background Sync
+          {
+            urlPattern: ({ url }) => {
+              const mutationApis = ['/api/echo', '/api/todo', '/api/inbox']
+              return mutationApis.some((api) => url.pathname.startsWith(api))
+            },
+            method: 'POST',
+            handler: 'NetworkOnly',
+            options: {
+              backgroundSync: {
+                name: 'api-mutation-queue',
+                options: { maxRetentionTime: 24 * 60 },
+              },
+            },
+          },
+          {
+            urlPattern: ({ url }) => {
+              const mutationApis = ['/api/echo', '/api/todo', '/api/inbox']
+              return mutationApis.some((api) => url.pathname.startsWith(api))
+            },
+            method: 'PUT',
+            handler: 'NetworkOnly',
+            options: {
+              backgroundSync: {
+                name: 'api-mutation-queue',
+                options: { maxRetentionTime: 24 * 60 },
+              },
+            },
+          },
+          {
+            urlPattern: ({ url }) => {
+              const mutationApis = ['/api/todo', '/api/inbox']
+              return mutationApis.some((api) => url.pathname.startsWith(api))
+            },
+            method: 'DELETE',
+            handler: 'NetworkOnly',
+            options: {
+              backgroundSync: {
+                name: 'api-mutation-queue',
+                options: { maxRetentionTime: 24 * 60 },
+              },
+            },
+          },
         ],
+        importScripts: ['/custom-sw.js'],
 
         // 排除掉所有后端专属的纯数据/功能路由，防止 Vue 路由误拦截
         // 💡 增加对静态资源路径的排除，防止 404 时返回 HTML 导致 MIME 错误

@@ -48,6 +48,15 @@
           title="安装应用"
         >
         </BaseButton>
+        <!-- 开启通知 -->
+        <BaseButton
+          v-if="pwaStore.canShowNotificationButton"
+          :icon="Notification"
+          @click="pwaStore.requestNotificationPermission"
+          class="w-9 h-9 rounded-md"
+          title="开启通知"
+        >
+        </BaseButton>
         <!-- 退出登录 -->
         <BaseButton
           v-if="userStore.isLogin"
@@ -196,6 +205,17 @@
           安装应用
         </BaseButton>
 
+        <!-- 开启通知 -->
+        <BaseButton
+          v-if="pwaStore.canShowNotificationButton"
+          :icon="Notification"
+          @click="pwaStore.requestNotificationPermission"
+          :class="getBottomButtonClasses()"
+          title="开启通知"
+        >
+          开启通知
+        </BaseButton>
+
         <div class="text-[var(--text-color-next-300)] font-serif my-2 ml-3">
           Version: {{ settingStore.hello?.version }}
         </div>
@@ -224,6 +244,7 @@ import Storage from '@/components/icons/storage.vue'
 import Sso from '@/components/icons/sso.vue'
 import Logout from '@/components/icons/logout.vue'
 import Install from '@/components/icons/install.vue'
+import Notification from '@/components/icons/notification.vue'
 import { computed, ref, watch } from 'vue'
 import { useUserStore, useSettingStore, usePwaStore } from '@/stores'
 import { useRouter, useRoute } from 'vue-router'

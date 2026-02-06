@@ -36,7 +36,7 @@
   </div>
 </template>
 <script lang="ts" setup>
-import Notification from '../icons/ notification.vue'
+import Notification from '../icons/notification.vue'
 import { formatDate } from '@/utils/other'
 const props = defineProps<{
   inbox: App.Api.Inbox.Inbox

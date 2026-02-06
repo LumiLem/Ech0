@@ -2,8 +2,9 @@
 import { RouterView, useRouter, useRoute } from 'vue-router'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useHead } from '@unhead/vue'
-import { useSettingStore, useEditorStore, useUserStore } from '@/stores'
+import { useSettingStore, useEditorStore, useUserStore, useInboxStore, useTodoStore } from '@/stores'
 import { storeToRefs } from 'pinia'
+import { Mode } from '@/enums/enums'
 import { Toaster } from 'vue-sonner'
 import { getApiUrl } from './service/request/shared'
 import 'vue-sonner/style.css'
@@ -61,6 +62,8 @@ import { ensureAbsoluteUrl } from '@/utils/other'
 
 const editorStore = useEditorStore()
 const userStore = useUserStore()
+const inboxStore = useInboxStore()
+const todoStore = useTodoStore()
 const { isLogin } = storeToRefs(userStore)
 
 // 使用 unhead 管理全局 Meta
@@ -168,6 +171,39 @@ onMounted(() => {
   watch(
     [() => route.query, isLogin],
     ([query, loggedIn]) => {
+      // -------------------------------------------------------------
+      // 1. 处理 Mode 快速跳转 (PWA 通知点击 / 链接跳转)
+      // -------------------------------------------------------------
+      if (loggedIn && query.mode) {
+        const mode = query.mode as string
+        
+        // 确保跳回首页 (Panel 页面没有这些组件)
+        if (route.name !== 'home') {
+          router.push({ name: 'home' })
+        }
+
+        if (mode === 'inbox') {
+          // 切换到收件箱
+          editorStore.setMode(Mode.INBOX)
+          inboxStore.setInboxMode(true)
+          todoStore.setTodoMode(false)
+        } else if (mode === 'todo') {
+          // 切换到待办事项
+          editorStore.setMode(Mode.TODO)
+          todoStore.setTodoMode(true)
+          inboxStore.setInboxMode(false)
+        }
+
+        // 清理 URL 参数
+        const newQuery = { ...query }
+        delete newQuery.mode
+        // 针对 todoId/inboxId 等参数，可以选择保留或高亮，暂时只清理 mode
+        router.replace({ query: newQuery })
+      }
+
+      // -------------------------------------------------------------
+      // 2. 处理 PWA 分享目标 (Web Share Target)
+      // -------------------------------------------------------------
       // 防止重复处理
       if (hasProcessedShare.value) return
 
@@ -234,6 +270,7 @@ onMounted(() => {
         delete newQuery.share_title
         delete newQuery.share_text
         delete newQuery.share_url
+        delete newQuery.mode // mode 也可能带进来，一并清理
         router.replace({ query: newQuery })
       }
     },

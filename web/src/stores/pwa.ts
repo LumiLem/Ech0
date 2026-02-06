@@ -20,6 +20,7 @@ import { localStg } from '@/utils/storage'
 import { useInboxStore } from './inbox'
 import { useTodoStore } from './todo'
 import { useConnectStore } from './connect'
+import router from '@/router'
 
 // BeforeInstallPromptEvent 类型定义（浏览器原生事件）
 interface BeforeInstallPromptEvent extends Event {
@@ -157,6 +158,202 @@ export const usePwaStore = defineStore('pwaStore', () => {
   })
 
   /**
+   * 是否支持通知功能
+   */
+  const isNotificationSupported = computed(() => {
+    return typeof Notification !== 'undefined'
+  })
+
+  // 通知权限状态
+  const notificationPermission = ref<NotificationPermission>(
+    isNotificationSupported.value ? Notification.permission : 'default'
+  )
+
+  /**
+   * 是否需要显示"开启通知"按钮
+   * 条件：支持通知且权限不是 granted
+   */
+  const canShowNotificationButton = computed(() => {
+    return isNotificationSupported.value && notificationPermission.value !== 'granted'
+  })
+
+  /**
+   * 请求通知权限
+   */
+  const requestNotificationPermission = async () => {
+    if (!isNotificationSupported.value) return
+
+    try {
+      const permission = await Notification.requestPermission()
+      notificationPermission.value = permission
+
+      if (permission === 'granted') {
+        theToast.success('通知已开启')
+        showNotification('通知已开启', {
+          body: '您现在可以接收到来自 Ech0 的重要提醒',
+          tag: 'notification-enabled',
+          vibrate: [200, 100, 200],
+        })
+        // 尝试注册周期性同步
+        registerPeriodicSync()
+      } else if (permission === 'denied') {
+        theToast.warning('通知权限被拒绝，请在浏览器设置中开启')
+      }
+    } catch (error) {
+      console.error('[PWA] Failed to request notification permission:', error)
+    }
+  }
+
+  /**
+   * 注册周期性后台同步 (Periodic Background Sync)
+   * 允许在应用未开启时在后台更新数据
+   */
+  const registerPeriodicSync = async () => {
+    if (!('serviceWorker' in navigator)) return
+
+    try {
+      const registration = await navigator.serviceWorker.ready
+      if ('periodicSync' in (registration as any)) {
+        const status = await (navigator as any).permissions.query({
+          name: 'periodic-background-sync',
+        })
+
+        if (status.state === 'granted') {
+          await (registration as any).periodicSync.register('fetch-updates', {
+            minInterval: 24 * 60 * 60 * 1000, // 浏览器通常限制最小 24 小时
+          })
+          console.log('[PWA] Periodic Sync registered')
+        }
+      }
+    } catch (e) {
+      console.warn('[PWA] Periodic Sync registration failed:', e)
+    }
+  }
+
+  /**
+   * 显示持久化通知 (通过 Service Worker)
+   */
+  const showNotification = async (
+    title: string,
+    options?: NotificationOptions & {
+      url?: string
+      actions?: any[] // 使用 any 避免 SW 类型冲突
+      vibrate?: number[]
+      data?: any
+    },
+  ) => {
+    if (!isNotificationSupported.value || notificationPermission.value !== 'granted') return
+
+    try {
+      const registration = await navigator.serviceWorker.ready
+
+      // 准备完整的通知选项
+      const fullOptions: NotificationOptions = {
+        icon: '/Ech0.png',
+        badge: '/favicon.svg',
+        vibrate: options?.vibrate || [100],
+        ...options,
+        data: {
+          url: options?.url || '/',
+          ...(options?.data || {}),
+        },
+      }
+
+      // 1. 尝试使用 Service Worker 发送持久通知 (即使在后台也有效)
+      await registration.showNotification(title, fullOptions)
+    } catch (error) {
+      console.warn('[PWA] Service Worker notification failed, fallback to basic:', error)
+      // 2. 回退到普通前台通知
+      try {
+        const n = new Notification(title, options)
+        if (options?.url) {
+          n.onclick = () => {
+            window.focus()
+            router.push(options.url!)
+            n.close()
+          }
+        }
+      } catch (e) {
+        console.error('[PWA] Fallback notification failed', e)
+      }
+    }
+  }
+
+  /**
+   * 抓取指定站点的最新一条动态内容
+   */
+  const fetchLatestEchoContent = async (serverUrl: string): Promise<string | null> => {
+    try {
+      // 使用 GET 方法带参数获取最新一页的第一条，更符合规范且性能更好
+      const response = await fetch(`${serverUrl}/api/echo/page?page=1&pageSize=1`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+      })
+      const json = (await response.json()) as any
+
+      if (json?.code === 1 && json?.data?.items?.length > 0) {
+        return json.data.items[0].content
+      }
+    } catch (e) {
+      console.warn(`[PWA] Failed to fetch latest echo from ${serverUrl}`, e)
+    }
+    return null
+  }
+
+  /**
+   * 将当前前台状态同步给 Service Worker 的 Cache Storage
+   * 解决 LocalStorage 与 SW 存储不一致导致的重复通知问题
+   */
+  const syncStateToServiceWorker = async () => {
+    if (!('serviceWorker' in navigator) || !('caches' in window)) return
+
+    try {
+      const cache = await caches.open('ech0-sync-state')
+
+      // 构造当前状态快照
+      const hubCounts: Record<string, number> = {}
+      connectStore.connectsInfo.forEach(s => {
+        hubCounts[s.server_url] = s.total_echos
+      })
+
+      const lastInboxId = inboxStore.unreadItems?.length > 0
+        ? Math.max(...inboxStore.unreadItems.map(i => i.id))
+        : 0
+
+      const lastTodoId = todoStore.todos?.length > 0
+        ? Math.max(...todoStore.todos.map(t => t.id))
+        : 0
+
+      // 获取认证 Token
+      const token = localStg.getItem('token') || ''
+
+      const state = { lastInboxId, lastTodoId, hubCounts, token }
+
+      // 写入 Cache API (SW 周期性同步会读取此文件)
+      await cache.put('/state.json', new Response(JSON.stringify(state), {
+        headers: { 'Content-Type': 'application/json' }
+      }))
+    } catch (e) {
+      console.warn('[PWA] Failed to sync state to SW cache:', e)
+    }
+  }
+
+  /**
+   * 清除 Service Worker 的缓存状态
+   * 通常在退出登录时调用，防止 Token 泄露
+   */
+  const clearServiceWorkerState = async () => {
+    if (!('serviceWorker' in navigator) || !('caches' in window)) return
+
+    try {
+      await caches.delete('ech0-sync-state')
+      console.log('[PWA] Service Worker state cleared')
+    } catch (e) {
+      console.warn('[PWA] Failed to clear SW state:', e)
+    }
+  }
+
+  /**
    * 计算总角标数量
    * 包含：Hub 更新、未读收件箱、待办事项
    */
@@ -227,6 +424,112 @@ export const usePwaStore = defineStore('pwaStore', () => {
       { immediate: true },
     )
 
+    // 如果通知权限已授予，尝试注册周期性同步
+    if (notificationPermission.value === 'granted') {
+      registerPeriodicSync()
+    }
+
+
+    // 监听 Hub 更新并触发通知
+    watch(
+      () => connectStore.hubUpdateCount,
+      async (newCount, oldCount) => {
+        // 仅在更新数量增加时触发通知
+        if (newCount > (oldCount || 0)) {
+          const lastSiteCounts = localStg.getItem<Record<string, number>>('hubSiteCounts') || {}
+          const updates = connectStore.connectsInfo.filter(
+            (s) => s.total_echos > (lastSiteCounts[s.server_url] || 0),
+          )
+
+          if (updates.length > 0) {
+            const first = updates[0]!
+            const title = updates.length === 1 ? `✨ ${first.server_name} 更新了` : '✨ Hub 发现新动态'
+
+            let body = ''
+            if (updates.length === 1) {
+              // 只有一个站点更新，尝试获取具体内容
+              const latestContent = await fetchLatestEchoContent(first.server_url)
+              const snippet = latestContent
+                ? latestContent.length > 50
+                  ? latestContent.slice(0, 50) + '...'
+                  : latestContent
+                : `发布了 ${first.total_echos - (lastSiteCounts[first.server_url] || 0)} 条新内容`
+
+              body = `${snippet}\n点击查看详情`
+            } else {
+              // 多个站点更新，显示列表
+              body = updates
+                .map((s) => `• ${s.server_name} (+${s.total_echos - (lastSiteCounts[s.server_url] || 0)})`)
+                .join('\n')
+            }
+
+            showNotification(title, {
+              body,
+              tag: 'hub-update',
+              renotify: true,
+              url: '/hub',
+              vibrate: [50],
+              data: { type: 'hub' },
+            } as any)
+
+            // 通知发送后同步状态，确保后台同步知道我们已经处理了这批更新
+            syncStateToServiceWorker()
+          }
+        }
+      },
+    )
+
+    // 监听收件箱更新并触发通知
+    watch(
+      () => inboxStore.unreadItems,
+      (newList, oldList) => {
+        // 初始加载或列表缩减时不触发通知
+        if (!oldList || newList.length <= oldList.length) return
+
+        const oldIds = new Set(oldList.map((i) => i.id))
+        const added = newList.filter((i) => !oldIds.has(i.id))
+
+        added.forEach((item) => {
+          showNotification(`来自 ${item.source} 的新消息`, {
+            body: item.content,
+            tag: `inbox-${item.id}`,
+            url: '/?mode=inbox',
+            vibrate: [200, 100, 200],
+            actions: [{ action: 'inbox-read', title: '设为已读' }],
+            data: { type: 'inbox', inboxId: item.id },
+          } as any)
+        })
+      },
+      { deep: true },
+    )
+
+    // 监听待办事项更新并触发通知
+    watch(
+      () => todoStore.todos,
+      (newList, oldList) => {
+        const newIncomplete = newList.filter((t) => t.status === 0)
+        const oldIncomplete = (oldList || []).filter((t) => t.status === 0)
+
+        // 仅在未完成项增加时触发
+        if (newIncomplete.length > oldIncomplete.length) {
+          const oldIds = new Set(oldIncomplete.map((t) => t.id))
+          const added = newIncomplete.filter((t) => !oldIds.has(t.id))
+
+          added.forEach((todo) => {
+            showNotification('新待办事项', {
+              body: todo.content,
+              tag: `todo-${todo.id}`,
+              url: '/?mode=todo',
+              vibrate: [100, 50, 100],
+              actions: [{ action: 'todo-done', title: '完成任务' }],
+              data: { type: 'todo', todoId: todo.id },
+            } as any)
+          })
+        }
+      },
+      { deep: true },
+    )
+
     // 更新访问计数
     updateVisitCount()
 
@@ -240,6 +543,9 @@ export const usePwaStore = defineStore('pwaStore', () => {
       hasPwaSupport: hasPwaSupport.value,
       badgeCount: totalBadgeCount.value,
     })
+
+    // 同步初始状态到 SW 缓存，防止重推
+    syncStateToServiceWorker()
   }
 
   /**
@@ -641,12 +947,14 @@ export const usePwaStore = defineStore('pwaStore', () => {
     isSafari,
     isFirefox,
     hasPwaSupport,
+    notificationPermission,
 
     // Computed
     canShowInstall,
     canShowInstallEntry,
     canShowIOSInstallEntry,
     isPwaSupported,
+    canShowNotificationButton,
 
     // Methods
     init,
@@ -655,6 +963,9 @@ export const usePwaStore = defineStore('pwaStore', () => {
     showManualInstallGuide,
     smartShowInstallPrompt,
     installApp,
+    requestNotificationPermission,
+    showNotification,
+    clearServiceWorkerState,
 
     // Triggers
     onUserLoggedIn,
@@ -664,5 +975,40 @@ export const usePwaStore = defineStore('pwaStore', () => {
     // Utils
     shouldShowPrompt,
     resetPromptState,
+    syncStateToServiceWorker,
   }
 })
+
+// 监听 Service Worker 发来的消息 (用于软跳转等)
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event.data) {
+      // 1. 处理导航指令
+      if (event.data.type === 'NAVIGATE') {
+        const url = event.data.url
+        if (url) {
+          router.push(url).catch(err => {
+            if (err.name !== 'NavigationDuplicated') console.warn(err)
+          })
+        }
+      }
+
+      // 2. 处理刷新指令 (来自 SW 后台操作)
+      if (event.data.type === 'REFRESH') {
+        const target = event.data.target
+        if (target === 'todo') {
+          // 刷新待办事项
+          // 需要在此作用域内获取 store 实例
+          const todoStore = useTodoStore()
+          todoStore.getTodos()
+        } else if (target === 'inbox') {
+          // 刷新收件箱 (包括未读数)
+          // 需要在此作用域内获取 store 实例
+          const inboxStore = useInboxStore()
+          // 假设 unreadItems 包含最新未读数据，fetchUnread 是获取方法
+          inboxStore.refresh()
+        }
+      }
+    }
+  })
+}

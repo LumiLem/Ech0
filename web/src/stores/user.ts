@@ -96,6 +96,10 @@ export const useUserStore = defineStore('userStore', () => {
     const echoStore = useEchoStore()
     echoStore.clearEchos()
 
+    // 清除ServiceWorker状态
+    const pwaStore = usePwaStore()
+    pwaStore.clearServiceWorkerState()
+
     // 标记需要重定向到登录页
     localStg.setItem('needLoginRedirect', true)
 
