@@ -150,8 +150,8 @@ async function checkUpdatesAndNotify() {
             for (const item of newItems) {
                 await self.registration.showNotification(`来自 ${item.source} 的新消息`, {
                     body: item.content,
-                    icon: '/Ech0.png',
-                    badge: '/favicon.svg',
+                    icon: '/icons/notification-inbox.png', // 使用蓝色的 Inbox 图标
+                    badge: '/api/icon?s=96',
                     tag: `inbox-${item.id}`,
                     data: { url: '/?mode=inbox', inboxId: item.id },
                     actions: [{ action: 'inbox-read', title: '设为已读' }]
@@ -169,8 +169,8 @@ async function checkUpdatesAndNotify() {
             for (const todo of newTodos) {
                 await self.registration.showNotification('新待办事项', {
                     body: todo.content,
-                    icon: '/Ech0.png',
-                    badge: '/favicon.svg',
+                    icon: '/icons/notification-todo.png', // 使用绿色的 Todo 图标
+                    badge: '/api/icon?s=96',
                     tag: `todo-${todo.id}`,
                     data: { url: '/?mode=todo', todoId: todo.id },
                     actions: [{ action: 'todo-done', title: '完成任务' }]
@@ -200,10 +200,20 @@ async function checkUpdatesAndNotify() {
                     body = updates.map(s => `• ${s.server_name} (+${s.total_echos - (state.hubCounts[s.server_url] || 0)})`).join('\n');
                 }
 
+                // 动态选择图标：单站更新优先尝试使用该站点 Logo，否则使用默认 Hub 图标
+                let icon = '/icons/notification-hub.png';
+                if (updates.length === 1 && first.logo) {
+                    // 简单的 URL 检查，如果不是 http 开头，尝试拼接（假设是当前站点的相对路径，虽然 Hub 站点通常是外部的）
+                    // 注意：跨域图片在某些浏览器通知中可能无法显示，但尝试一下无妨
+                    if (first.logo.startsWith('http')) {
+                        icon = first.logo;
+                    }
+                }
+
                 await self.registration.showNotification(title, {
                     body,
-                    icon: '/Ech0.png',
-                    badge: '/favicon.svg',
+                    icon,
+                    badge: '/api/icon?s=96',
                     tag: 'hub-update',
                     data: { url: '/hub' }
                 });

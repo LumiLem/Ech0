@@ -247,10 +247,18 @@ export const usePwaStore = defineStore('pwaStore', () => {
     try {
       const registration = await navigator.serviceWorker.ready
 
+      // 0. 根据 Tag 自动选择图标
+      let iconPath = '/Ech0.png'
+      if (options?.tag) {
+        if (options.tag.startsWith('inbox-')) iconPath = '/icons/notification-inbox.png'
+        else if (options.tag.startsWith('todo-')) iconPath = '/icons/notification-todo.png'
+        else if (options.tag.startsWith('hub-')) iconPath = '/icons/notification-hub.png'
+      }
+
       // 准备完整的通知选项
       const fullOptions: NotificationOptions = {
-        icon: '/Ech0.png',
-        badge: '/favicon.svg',
+        icon: iconPath,
+        badge: '/api/icon?s=96',
         vibrate: options?.vibrate || [100],
         ...options,
         data: {
@@ -463,8 +471,17 @@ export const usePwaStore = defineStore('pwaStore', () => {
                 .join('\n')
             }
 
+            // 动态选择图标：单站更新优先尝试使用该站点 Logo
+            let dynamicIcon: string | undefined
+            if (updates.length === 1 && first.logo) {
+              if (first.logo.startsWith('http')) {
+                dynamicIcon = first.logo
+              }
+            }
+
             showNotification(title, {
               body,
+              icon: dynamicIcon, // 传入动态图标 (如果是 undefined，showNotification 会回退到 Tag 图标)
               tag: 'hub-update',
               renotify: true,
               url: '/hub',
