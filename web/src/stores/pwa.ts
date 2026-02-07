@@ -257,10 +257,10 @@ export const usePwaStore = defineStore('pwaStore', () => {
 
       // 准备完整的通知选项
       const fullOptions: NotificationOptions = {
-        icon: iconPath,
         badge: '/api/icon?s=96',
         vibrate: options?.vibrate || [100],
         ...options,
+        icon: options?.icon || iconPath, // 显式确保图标不被 undefined 覆盖
         data: {
           url: options?.url || '/',
           ...(options?.data || {}),
