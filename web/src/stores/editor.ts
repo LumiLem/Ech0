@@ -478,6 +478,9 @@ export const useEditorStore = defineStore('editorStore', () => {
 
     // 执行添加或更新
     try {
+      // 获取 PWA Store 检测网络状态（提前获取，供添加和更新模式共用）
+      const pwaStore = usePwaStore()
+
       // ========== 添加或更新前的检查和处理 ==========
       // 处理扩展板块
       checkEchoExtension()
@@ -514,6 +517,44 @@ export const useEditorStore = defineStore('editorStore', () => {
       // ========= 添加模式 =========
       if (!isUpdateMode.value) {
         console.log('adding echo:', echoToAdd.value)
+
+        // 离线模式：给予用户明确的反馈
+        if (!pwaStore.isOnline) {
+          // 检查是否包含本地媒体（需要网络才能上传）
+          const hasLocalMedia = mediaListToAdd.value.length > 0
+
+          if (hasLocalMedia) {
+            // 如果有本地媒体，离线时无法发布（因为媒体需要先上传）
+            theToast.error('📴 离线状态下无法发布带有媒体的内容', {
+              description: '请在网络恢复后再发布带有图片/视频的内容，或移除媒体后发布纯文字',
+              duration: 6000,
+            })
+            isSubmitting.value = false
+            return
+          }
+
+          // 纯文字/外链内容：可以进入离线队列
+          theToast.info('📴 当前处于离线状态，内容已加入发布队列', {
+            description: '网络恢复后将自动发布',
+            duration: 5000,
+          })
+
+          // 发起请求（会被 Service Worker 的 Background Sync 拦截）
+          fetchAddEcho(echoToAdd.value).catch(() => {
+            // 离线时请求会失败，但 Background Sync 已接管
+            console.log('[Offline] Echo queued for background sync')
+          })
+
+          // 清空编辑器和草稿（与在线发布一致，避免用户误以为发布失败）
+          clearEditor()
+          clearDraft()
+          setMode(Mode.ECH0)
+
+          isSubmitting.value = false
+          return
+        }
+
+        // 在线模式：使用原有的同步发布流程
         theToast.promise(fetchAddEcho(echoToAdd.value), {
           loading: '🚀发布中...',
           success: (res) => {
@@ -525,7 +566,6 @@ export const useEditorStore = defineStore('editorStore', () => {
               echoStore.getTags() // 刷新标签列表
 
               // PWA: 发布 Echo 成功后触发安装提示
-              const pwaStore = usePwaStore()
               pwaStore.onEchoPublished()
 
               return '🎉发布成功！'
@@ -559,7 +599,44 @@ export const useEditorStore = defineStore('editorStore', () => {
         // 保存要更新的Echo ID，用于后续滚动定位
         const updatedEchoId = echoStore.echoToUpdate.id
 
-        // 更新 Echo
+        // 离线模式：给予用户明确的反馈
+        if (!pwaStore.isOnline) {
+          // 检查是否包含新添加的本地媒体（需要网络才能上传）
+          const hasNewMedia = mediaListToAdd.value.length > 0
+
+          if (hasNewMedia) {
+            // 如果有新添加的本地媒体，离线时无法更新
+            theToast.error('📴 离线状态下无法更新带有新媒体的内容', {
+              description: '请在网络恢复后再更新，或移除新添加的媒体后更新',
+              duration: 6000,
+            })
+            isSubmitting.value = false
+            return
+          }
+
+          // 纯文字更新：可以进入离线队列
+          theToast.info('📴 当前处于离线状态，更新已加入同步队列', {
+            description: '网络恢复后将自动同步',
+            duration: 5000,
+          })
+
+          // 发起请求（会被 Service Worker 的 Background Sync 拦截）
+          fetchUpdateEcho(echoStore.echoToUpdate).catch(() => {
+            console.log('[Offline] Echo update queued for background sync')
+          })
+
+          // 清空编辑器和草稿，退出更新模式（与在线更新一致）
+          clearEditor()
+          clearDraft()
+          isUpdateMode.value = false
+          echoStore.echoToUpdate = null
+          setMode(Mode.ECH0)
+
+          isSubmitting.value = false
+          return
+        }
+
+        // 在线模式：使用原有的同步更新流程
         const updatePromise = fetchUpdateEcho(echoStore.echoToUpdate)
 
         theToast.promise(updatePromise, {
@@ -719,7 +796,27 @@ export const useEditorStore = defineStore('editorStore', () => {
         return
       }
 
-      // 执行添加
+      // 获取 PWA Store 检测网络状态
+      const pwaStore = usePwaStore()
+
+      // 离线模式：给予用户明确的反馈
+      if (!pwaStore.isOnline) {
+        theToast.info('📴 当前处于离线状态，待办已加入同步队列', {
+          description: '网络恢复后将自动同步',
+          duration: 5000,
+        })
+
+        // 发起请求（会被 Service Worker 的 Background Sync 拦截）
+        fetchAddTodo(todoToAdd.value).catch(() => {
+          console.log('[Offline] Todo queued for background sync')
+        })
+
+        // 清空输入但保留草稿
+        todoToAdd.value = { content: '' }
+        return
+      }
+
+      // 在线模式：执行添加
       const res = await fetchAddTodo(todoToAdd.value)
       if (res.code === 1) {
         theToast.success('🎉添加成功！')

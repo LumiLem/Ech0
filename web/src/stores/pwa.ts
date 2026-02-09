@@ -87,6 +87,9 @@ export const usePwaStore = defineStore('pwaStore', () => {
   // 浏览器是否支持 PWA 安装（持久化缓存的结果）
   const hasPwaSupport = ref(false)
 
+  // 网络连接状态（用于离线功能提示）
+  const isOnline = ref(navigator.onLine)
+
   // ================================================================
   // Stores - 关联的 Store
   // ================================================================
@@ -563,6 +566,19 @@ export const usePwaStore = defineStore('pwaStore', () => {
 
     // 同步初始状态到 SW 缓存，防止重推
     syncStateToServiceWorker()
+
+    // 监听网络状态变化
+    window.addEventListener('online', () => {
+      isOnline.value = true
+      console.log('[PWA] Network online')
+      theToast.success('📶 网络已恢复', { duration: 3000 })
+    })
+
+    window.addEventListener('offline', () => {
+      isOnline.value = false
+      console.log('[PWA] Network offline')
+      theToast.error('📴 网络已断开，部分功能受限', { duration: 3000 })
+    })
   }
 
   /**
@@ -965,6 +981,7 @@ export const usePwaStore = defineStore('pwaStore', () => {
     isFirefox,
     hasPwaSupport,
     notificationPermission,
+    isOnline,
 
     // Computed
     canShowInstall,
@@ -1025,6 +1042,33 @@ if ('serviceWorker' in navigator) {
           // 假设 unreadItems 包含最新未读数据，fetchUnread 是获取方法
           inboxStore.refresh()
         }
+      }
+
+      // 3. 处理后台同步完成指令 (离线发帖成功)
+      if (event.data.type === 'SYNC_COMPLETE') {
+        const target = event.data.target
+        const message = event.data.message || '离线内容已同步'
+
+        // 刷新 Echo 列表 (target 为 'echo' 或 'mutation')
+        if (target === 'echo' || target === 'mutation') {
+          import('./echo').then(({ useEchoStore }) => {
+            const echoStore = useEchoStore()
+            echoStore.refreshEchos()
+            echoStore.getTags()
+          })
+        }
+
+        // 刷新 Todo 列表 (target 为 'todo' 或 'mutation')
+        if (target === 'todo' || target === 'mutation') {
+          const todoStore = useTodoStore()
+          todoStore.getTodos()
+        }
+
+        // 显示成功提示
+        theToast.success(`🎉 ${message}`, {
+          description: '离线发布的内容已成功同步到服务器',
+          duration: 5000,
+        })
       }
     }
   })

@@ -9,7 +9,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { getAuthToken } from '@/service/request/shared'
-import { useUserStore, useEditorStore } from '@/stores'
+import { useUserStore, useEditorStore, usePwaStore } from '@/stores'
 import { theToast } from '@/utils/toast'
 import { storeToRefs } from 'pinia'
 import { ImageSource } from '@/enums/enums'
@@ -288,6 +288,17 @@ const initUppy = () => {
   uppy.on('files-added', async (addedFiles) => {
     if (!isLogin.value) {
       theToast.error('请先登录再上传图片 😢')
+      uppy?.cancelAll()
+      return
+    }
+    
+    // 检查网络状态：离线时无法上传媒体文件
+    const pwaStore = usePwaStore()
+    if (!pwaStore.isOnline) {
+      theToast.warning('📴 当前处于离线状态，无法上传媒体文件', {
+        description: '请在网络恢复后重新选择文件上传',
+        duration: 5000,
+      })
       uppy?.cancelAll()
       return
     }

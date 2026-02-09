@@ -113,6 +113,44 @@ self.addEventListener('periodicsync', (event) => {
     }
 });
 
+// 3. Background Sync 成功事件 (离线发帖队列同步完成)
+// 注意：Workbox 的 backgroundSync 插件会自动处理队列重试
+// 我们通过监听 sync 事件来通知前端刷新
+self.addEventListener('sync', (event) => {
+    if (event.tag === 'api-mutation-queue') {
+        event.waitUntil(
+            // 同步完成后通知前端（刷新所有可能受影响的内容）
+            notifyClientsOfSync('mutation')
+        );
+    }
+});
+
+/**
+ * 通知所有客户端同步已完成
+ * @param {string} target - 同步目标类型：'echo', 'todo', 'mutation'(所有变更)
+ */
+async function notifyClientsOfSync(target) {
+    const windowClients = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+    windowClients.forEach((client) => {
+        client.postMessage({
+            type: 'SYNC_COMPLETE',
+            target: target,
+            message: '离线发布的内容已成功同步'
+        });
+    });
+
+    // 可选：显示系统通知（如果用户不在前台）
+    if (windowClients.length === 0) {
+        await self.registration.showNotification('📤 离线内容已同步', {
+            body: '之前离线发布的内容已成功同步到服务器',
+            icon: '/api/icon?s=192',
+            badge: '/api/icon?s=96',
+            tag: 'offline-sync-success',
+            data: { url: '/' }
+        });
+    }
+}
+
 /**
  * 抓取指定站点的最新一条动态内容
  */

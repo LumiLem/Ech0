@@ -455,8 +455,8 @@ func (webHandler *WebHandler) HandleDynamicIcon(ctx *gin.Context) {
 func (webHandler *WebHandler) handleStaticRequest(ctx *gin.Context, subFS fs.FS, requestPath string) {
 	fileServer := http.FS(subFS)
 	fullPath := path.Clean("." + requestPath)
-	// 为了确保 Service Worker 能够及时更新，针对 sw.js 禁用服务器缓存
-	if requestPath == "/sw.js" {
+	// 为了确保 Service Worker 能够及时更新，针对 sw.js 和 custom-sw.js 禁用服务器缓存
+	if requestPath == "/sw.js" || requestPath == "/custom-sw.js" {
 		ctx.Header("Cache-Control", "no-cache, no-store, must-revalidate")
 	}
 
