@@ -93,9 +93,12 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { fetchGetHeatMap } from '@/service/api'
 import { useEchoStore } from '@/stores/echo'
 
+const router = useRouter()
+const route = useRoute()
 const echoStore = useEchoStore()
 
 interface CalendarDay {
@@ -375,6 +378,10 @@ function handleFilterByDate(date: string) {
   echoStore.isDateFilteringMode = true
   // 设置为筛选模式，触发 TheFilteredEchos 组件显示
   echoStore.isFilteringMode = true
+  // 如果当前不在首页，导航回首页查看筛选结果
+  if (route.path !== '/') {
+    router.push('/')
+  }
 }
 
 // 单击年月筛选整月
@@ -393,6 +400,10 @@ function handleFilterByYearMonth() {
   echoStore.isDateFilteringMode = true
   // 设置为筛选模式，触发 TheFilteredEchos 组件显示
   echoStore.isFilteringMode = true
+  // 如果当前不在首页，导航回首页查看筛选结果
+  if (route.path !== '/') {
+    router.push('/')
+  }
 }
 
 // 点击30天视图的方块筛选
