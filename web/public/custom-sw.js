@@ -186,7 +186,7 @@ async function checkUpdatesAndNotify() {
         if (inboxJson?.code === 1 && inboxJson.data?.length > 0) {
             const newItems = inboxJson.data.filter(item => item.id > state.lastInboxId);
             for (const item of newItems) {
-                await self.registration.showNotification(`来自 ${item.source} 的新消息`, {
+                await self.registration.showNotification(`📩 来自 ${item.source} 的新消息`, {
                     body: item.content,
                     icon: '/icons/notification-inbox.png', // 使用蓝色的 Inbox 图标
                     badge: '/api/icon?s=96',
@@ -205,7 +205,7 @@ async function checkUpdatesAndNotify() {
         if (todos.length > 0) {
             const newTodos = todos.filter(t => t.id > state.lastTodoId && t.status === 0);
             for (const todo of newTodos) {
-                await self.registration.showNotification('新待办事项', {
+                await self.registration.showNotification('📋 待办事项提醒', {
                     body: todo.content,
                     icon: '/icons/notification-todo.png', // 使用绿色的 Todo 图标
                     badge: '/api/icon?s=96',
@@ -225,7 +225,7 @@ async function checkUpdatesAndNotify() {
 
             if (updates.length > 0) {
                 const first = updates[0];
-                const title = updates.length === 1 ? `✨ ${first.server_name} 更新了` : '✨ Hub 发现新动态';
+                const title = updates.length === 1 ? `✨ ${first.server_name} 发布了新动态` : '✨ Hub 发现了新动态';
                 let body = '';
 
                 if (updates.length === 1) {
@@ -233,9 +233,18 @@ async function checkUpdatesAndNotify() {
                     body = content
                         ? (content.length > 50 ? content.slice(0, 50) + '...' : content)
                         : `发布了 ${first.total_echos - (state.hubCounts[first.server_url] || 0)} 条新内容`;
-                    body += '\n点击查看详情';
                 } else {
-                    body = updates.map(s => `• ${s.server_name} (+${s.total_echos - (state.hubCounts[s.server_url] || 0)})`).join('\n');
+                    // 多个站点更新，使用紧凑格式
+                    const totalNewEchos = updates.reduce((sum, s) => sum + (s.total_echos - (state.hubCounts[s.server_url] || 0)), 0);
+                    if (updates.length <= 3) {
+                        // 3个及以内：列出所有站点名称
+                        const names = updates.map(s => s.server_name).join('、');
+                        body = `${names} 更新了 ${totalNewEchos} 条动态`;
+                    } else {
+                        // 超过3个：显示前两个 + "等X个站点"
+                        const firstTwo = updates.slice(0, 2).map(s => s.server_name).join('、');
+                        body = `${firstTwo} 等 ${updates.length} 个站点更新了 ${totalNewEchos} 条动态`;
+                    }
                 }
 
                 // 动态选择图标：单站更新优先尝试使用该站点 Logo，否则使用默认 Hub 图标

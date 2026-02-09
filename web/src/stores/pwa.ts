@@ -454,24 +454,29 @@ export const usePwaStore = defineStore('pwaStore', () => {
 
           if (updates.length > 0) {
             const first = updates[0]!
-            const title = updates.length === 1 ? `✨ ${first.server_name} 更新了` : '✨ Hub 发现新动态'
+            const title = updates.length === 1 ? `✨ ${first.server_name} 发布了新动态` : '✨ Hub 发现了新动态'
 
             let body = ''
             if (updates.length === 1) {
               // 只有一个站点更新，尝试获取具体内容
               const latestContent = await fetchLatestEchoContent(first.server_url)
-              const snippet = latestContent
+              body = latestContent
                 ? latestContent.length > 50
                   ? latestContent.slice(0, 50) + '...'
                   : latestContent
                 : `发布了 ${first.total_echos - (lastSiteCounts[first.server_url] || 0)} 条新内容`
-
-              body = `${snippet}\n点击查看详情`
             } else {
-              // 多个站点更新，显示列表
-              body = updates
-                .map((s) => `• ${s.server_name} (+${s.total_echos - (lastSiteCounts[s.server_url] || 0)})`)
-                .join('\n')
+              // 多个站点更新，使用紧凑格式
+              const totalNewEchos = updates.reduce((sum, s) => sum + (s.total_echos - (lastSiteCounts[s.server_url] || 0)), 0)
+              if (updates.length <= 3) {
+                // 3个及以内：列出所有站点名称
+                const names = updates.map((s) => s.server_name).join('、')
+                body = `${names} 更新了 ${totalNewEchos} 条动态`
+              } else {
+                // 超过3个：显示前两个 + "等X个站点"
+                const firstTwo = updates.slice(0, 2).map((s) => s.server_name).join('、')
+                body = `${firstTwo} 等 ${updates.length} 个站点更新了 ${totalNewEchos} 条动态`
+              }
             }
 
             // 动态选择图标：单站更新优先尝试使用该站点 Logo
@@ -510,7 +515,7 @@ export const usePwaStore = defineStore('pwaStore', () => {
         const added = newList.filter((i) => !oldIds.has(i.id))
 
         added.forEach((item) => {
-          showNotification(`来自 ${item.source} 的新消息`, {
+          showNotification(`📩 来自 ${item.source} 的新消息`, {
             body: item.content,
             tag: `inbox-${item.id}`,
             url: '/?mode=inbox',
@@ -536,7 +541,7 @@ export const usePwaStore = defineStore('pwaStore', () => {
           const added = newIncomplete.filter((t) => !oldIds.has(t.id))
 
           added.forEach((todo) => {
-            showNotification('新待办事项', {
+            showNotification('📋 待办事项提醒', {
               body: todo.content,
               tag: `todo-${todo.id}`,
               url: '/?mode=todo',
