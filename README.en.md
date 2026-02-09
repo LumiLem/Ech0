@@ -112,10 +112,16 @@ docker run -d --name ech0 -p 6277:6277 \
 - **MIME Type Support** — Added mailcap to Docker image for extended MIME type recognition
 
 ### 📱 PWA & SEO Enhancements
-- **PWA Info Auto-Sync** — Automatically syncs site title, description, and logo to PWA config for a unified installation experience
-- **Smart Logo Cropping** — Automatically performs center-square cropping and resizing upon logo upload for perfect icon display
-- **Dynamic Social Sharing Content** — Deeply optimized OpenGraph support; sharing links on platforms like X (Twitter), Telegram, or Discord now automatically generates rich preview cards with custom text summaries and media
-- **Smart Page Titles** — Title bar automatically reflects the current context, such as Echo details, specific search terms, or date filters, making tab navigation effortless
+- **PWA Information Auto-Sync** — Automatically syncs site title, description, and logo for a unified installation experience
+- **Smart Logo Cropping & Dynamic Generation** — Auto-crops logos to center-square; backend `/api/icon` endpoint generates all required sizes (192/512/180/favicon) and handles maskable safe zones
+- **Dynamic Social Sharing Content** — Highly optimized OpenGraph support for rich preview cards with custom summaries/media on X (Twitter), Telegram, Discord, etc.
+- **Smart Page Titles** — Title bar automatically reflects current context (Echo details, search terms, date filters) for easier tab navigation
+- **App Shortcuts** — Long-press the app icon to quickly jump to Home, Hub, or Settings (Android/Desktop)
+- **Web Share Target** — Directly select Ech0 as a sharing target from other apps (like Weibo or Browsers) to create new entries instantly
+- **Native Sharing Enhancement** — Deep integration with the Web Share API, prioritizing the system's native share panel for a more native-like interaction experience, especially within the PWA
+- **Full Offline Support** — Reliable offline access to cached content; text-only Echos published while offline are automatically queued and synced when connection returns. Real-time network sensing provides proactive status indicators
+- **Push Notification System** — System-level notifications for Inbox, Todos, and Hub updates with dedicated colored icons (📩 / 📋 / ✨) and quick actions (Mark as Read / Done)
+- **App Badge Count** — Automatically syncs unread/pending counts (Inbox + Todo + Hub) to the app icon badge
 
 ### 🔧 Other Optimizations
 - **RSS Media Display** — Optimized RSS attachment display based on media type, distinguishing video and image

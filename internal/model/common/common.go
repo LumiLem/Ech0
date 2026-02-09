@@ -155,7 +155,7 @@ const (
 	// Version 是当前版本号（与上游保持一致，便于合并时无冲突）
 	Version = "3.1.0"
 	// CustomIteration Custom 分支迭代号（custom 分支独有，每次同步上游后重置为 1）
-	CustomIteration = "2"
+	CustomIteration = "3"
 	// FullVersion 完整版本号，用于显示
 	FullVersion = Version + "-custom." + CustomIteration
 )
