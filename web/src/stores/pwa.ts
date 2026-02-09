@@ -248,7 +248,7 @@ export const usePwaStore = defineStore('pwaStore', () => {
       const registration = await navigator.serviceWorker.ready
 
       // 0. 根据 Tag 自动选择图标
-      let iconPath = '/Ech0.png'
+      let iconPath = '/api/icon?s=192'
       if (options?.tag) {
         if (options.tag.startsWith('inbox-')) iconPath = '/icons/notification-inbox.png'
         else if (options.tag.startsWith('todo-')) iconPath = '/icons/notification-todo.png'
