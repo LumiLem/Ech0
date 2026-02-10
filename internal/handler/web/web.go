@@ -208,6 +208,12 @@ func (webHandler *WebHandler) handleManifestRequest(ctx *gin.Context, subFS fs.F
 func (webHandler *WebHandler) handleHTMLRequest(ctx *gin.Context, subFS fs.FS) {
 	requestPath := ctx.Request.URL.Path
 
+	// 统一首页路径，避免 /index.html 造成的 SEO 重复
+	// 且移除首页的 path，使 URL 变成 https://site.com 而不是 https://site.com/
+	if requestPath == "/index.html" || requestPath == "/" {
+		requestPath = ""
+	}
+
 	// 读取 index.html
 	htmlContent, err := fs.ReadFile(subFS, "index.html")
 	if err != nil {
@@ -274,10 +280,7 @@ func (webHandler *WebHandler) handleHTMLRequest(ctx *gin.Context, subFS fs.FS) {
 	titleTagRegex := regexp.MustCompile(`(?i)<title>.*?</title>`)
 	html = titleTagRegex.ReplaceAllString(html, "<title>"+title+"</title>")
 
-	// 2. 注入自定义全局 Meta (如果用户在后台配置了)
-	if settings.CustomMeta != "" {
-		html = strings.Replace(html, "</head>", settings.CustomMeta+"\n</head>", 1)
-	}
+	// 2. 注入自定义全局 Meta (逻辑已移至最后，支持智能替换)
 
 	// 3. 替换或注入 SEO Meta 标签
 	html = replaceOrInjectMeta(html, "description", description)
@@ -317,6 +320,11 @@ func (webHandler *WebHandler) handleHTMLRequest(ctx *gin.Context, subFS fs.FS) {
 	logoURL := webHandler.ensureAbsoluteURL(settings.ServerLogo, serverURL)
 	ldJson := generateLDJson(settings, echoIDRegex.MatchString(requestPath), title, description, image, url, author, logoURL)
 	html = replaceOrInjectJSONLD(html, ldJson)
+
+	// 7. 处理自定义 Meta 注入 (移至最后，并支持智能替换原有标签)
+	if settings.CustomMeta != "" {
+		html = webHandler.applyCustomMeta(html, settings.CustomMeta)
+	}
 
 	ctx.Header("Content-Type", "text/html; charset=utf-8")
 	ctx.String(http.StatusOK, html)
@@ -686,4 +694,96 @@ func truncate(s string, maxLen int) string {
 		return string(runes[:maxLen]) + "..."
 	}
 	return s
+}
+
+// applyCustomMeta 智能注入自定义 Meta：已有标签原地替换，仅追加不存在的标签
+func (webHandler *WebHandler) applyCustomMeta(html, customMeta string) string {
+	if customMeta == "" {
+		return html
+	}
+
+	// 正则：提取自定义内容中每个独立的标签
+	// 匹配自闭合标签 (<meta .../> <link .../>) 和配对标签 (<title>...</title> <script>...</script>)
+	reTag := regexp.MustCompile(`(?i)<(?:meta|link)\b[^>]*/?>|<(?:title|script)\b[^>]*>[\s\S]*?</(?:title|script)>`)
+
+	// 用于识别 meta 标签的 name / property
+	reMetaAttr := regexp.MustCompile(`(?i)(?:name|property)\s*=\s*["']([^"']+)["']`)
+	// 用于识别 link 标签的 rel
+	reLinkRel := regexp.MustCompile(`(?i)rel\s*=\s*["']([^"']+)["']`)
+
+	var appendBuf strings.Builder // 收集需要追加的全新标签
+
+	tags := reTag.FindAllString(customMeta, -1)
+	for _, tag := range tags {
+		trimmedTag := strings.TrimSpace(tag)
+		if trimmedTag == "" {
+			continue
+		}
+
+		replaced := false
+		lowerTag := strings.ToLower(trimmedTag)
+
+		switch {
+		// <meta name="..." .../> 或 <meta property="..." .../>
+		case strings.HasPrefix(lowerTag, "<meta"):
+			if m := reMetaAttr.FindStringSubmatch(trimmedTag); m != nil {
+				key := m[1]
+				pattern := regexp.MustCompile(fmt.Sprintf(
+					`(?i)<meta\b[^>]*?(?:name|property)\s*=\s*["']%s["'][^>]*/?>`,
+					regexp.QuoteMeta(key),
+				))
+				if pattern.MatchString(html) {
+					html = pattern.ReplaceAllString(html, trimmedTag)
+					replaced = true
+				}
+			}
+
+		// <link rel="..." .../>
+		case strings.HasPrefix(lowerTag, "<link"):
+			if m := reLinkRel.FindStringSubmatch(trimmedTag); m != nil {
+				rel := m[1]
+				pattern := regexp.MustCompile(fmt.Sprintf(
+					`(?i)<link\b[^>]*?rel\s*=\s*["']%s["'][^>]*/?>`,
+					regexp.QuoteMeta(rel),
+				))
+				if pattern.MatchString(html) {
+					html = pattern.ReplaceAllString(html, trimmedTag)
+					replaced = true
+				}
+			}
+
+		// <title>...</title>
+		case strings.HasPrefix(lowerTag, "<title"):
+			pattern := regexp.MustCompile(`(?i)<title\b[^>]*>.*?</title>`)
+			if pattern.MatchString(html) {
+				html = pattern.ReplaceAllString(html, trimmedTag)
+				replaced = true
+			}
+
+		// <script type="application/ld+json">...</script>
+		case strings.Contains(lowerTag, "application/ld+json"):
+			pattern := regexp.MustCompile(`(?is)<script\b[^>]*?type\s*=\s*["']application/ld\+json["'][^>]*>[\s\S]*?</script>`)
+			if pattern.MatchString(html) {
+				html = pattern.ReplaceAllString(html, trimmedTag)
+				replaced = true
+			}
+		}
+
+		// 如果 HTML 中没有匹配的已有标签，则收集起来最后追加
+		if !replaced {
+			appendBuf.WriteString("    ")
+			appendBuf.WriteString(trimmedTag)
+			appendBuf.WriteString("\n")
+		}
+	}
+
+	// 将全新的标签追加到 </head> 前，确保从新行开始
+	if appendBuf.Len() > 0 {
+		reHead := regexp.MustCompile(`(?i)\s*</head>`)
+		html = reHead.ReplaceAllStringFunc(html, func(match string) string {
+			return "\n" + appendBuf.String() + "  </head>"
+		})
+	}
+
+	return html
 }

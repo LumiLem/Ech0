@@ -22,12 +22,12 @@ export default defineConfig({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
       workbox: {
-        // 💡 允许 index.html 回归预缓存清单
-        // 但我们要强制禁止 Workbox 自动生成 index.html 的 NavigationRoute (它会锁死动态 HTML)
-        // 💡 保证 index.html 在预缓存中，但通过 navigateFallback: null 禁用自动拦截
-        globPatterns: ['**/*.{css,js,html,svg,png,ico,webp,woff2}'],
+        // 💡 允许 index.html 回归预缓存清单 -> ❌ 修正：因为 index.html 包含后端动态注入的 Meta，不能作为静态资源 Precache
+        // 否则会导致修改设置后，PWA 预缓存层依然是旧的 Title/Meta。
+        // 我们完全移除 html 的预缓存，全权交给 runtimeCaching 的 NetworkFirst 处理。
+        globPatterns: ['**/*.{css,js,svg,png,ico,webp,woff2}'],
         navigateFallback: null,
-        globIgnores: ['**/app.webmanifest', '**/rss*', '**/sitemap*', '**/robots.txt'],
+        globIgnores: ['**/app.webmanifest', '**/rss*', '**/sitemap*', '**/robots.txt', '**/index.html'],
         // 💡 增加缓存容量限制：防止大型 JS/CSS (特别是 HomeView) 因超过默认值而无法缓存
         // 考虑到 Ech0 包含大量复杂的图表库，设置为 12MB 比较稳妥
         maximumFileSizeToCacheInBytes: 12 * 1024 * 1024,
