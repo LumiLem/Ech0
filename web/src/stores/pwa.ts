@@ -180,6 +180,117 @@ export const usePwaStore = defineStore('pwaStore', () => {
     return isNotificationSupported.value && notificationPermission.value !== 'granted'
   })
 
+  // Web Push 订阅状态
+  const isPushSubscribed = ref(false)
+
+  /**
+   * 工具函数: 将 Base64 URL 安全字符串转换为 Uint8Array
+   * 用于 VAPID 公钥转换
+   */
+  const urlBase64ToUint8Array = (base64String: string) => {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+    const rawData = window.atob(base64)
+    const outputArray = new Uint8Array(rawData.length)
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i)
+    }
+    return outputArray
+  }
+
+  /**
+   * 订阅 Web Push
+   */
+  const subscribeUserToPush = async () => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
+
+    try {
+      const registration = await navigator.serviceWorker.ready
+
+      // 1. 获取已有的订阅
+      const existingSub = await registration.pushManager.getSubscription()
+      if (existingSub) {
+        // 如果已经存在订阅，同步到后端以防后端丢失
+        await sendSubscriptionToBackend(existingSub)
+        isPushSubscribed.value = true
+        return
+      }
+
+      // 2. 从后端获取 VAPID 公钥
+      const response = await fetch('/api/pwa/vapid', {
+        headers: { 'Authorization': `Bearer ${localStg.getItem('token')}` }
+      })
+      const { data: vapidPublicKey } = await response.json()
+
+      if (!vapidPublicKey) throw new Error('Failed to get VAPID public key')
+
+      // 3. 执行订阅
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
+      })
+
+      // 4. 发送给后端
+      await sendSubscriptionToBackend(subscription)
+      isPushSubscribed.value = true
+      console.log('[PWA] Push subscription successful')
+    } catch (e) {
+      console.error('[PWA] Failed to subscribe to push:', e)
+    }
+  }
+
+  /**
+   * 将订阅信息发送到后端
+   */
+  const sendSubscriptionToBackend = async (subscription: PushSubscription) => {
+    const subJSON = subscription.toJSON()
+    const payload = {
+      endpoint: subJSON.endpoint,
+      p256dh: subJSON.keys?.p256dh,
+      auth: subJSON.keys?.auth
+    }
+
+    await fetch('/api/pwa/subscribe', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStg.getItem('token')}`
+      },
+      body: JSON.stringify(payload)
+    })
+  }
+
+  /**
+   * 取消 Web Push 订阅
+   */
+  const unsubscribeUserFromPush = async () => {
+    if (!('serviceWorker' in navigator)) return
+
+    try {
+      const registration = await navigator.serviceWorker.ready
+      const subscription = await registration.pushManager.getSubscription()
+
+      if (subscription) {
+        // 1. 通知后端
+        await fetch('/api/pwa/unsubscribe', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStg.getItem('token')}`
+          },
+          body: JSON.stringify({ endpoint: subscription.endpoint })
+        })
+
+        // 2. 本地取消
+        await subscription.unsubscribe()
+        isPushSubscribed.value = false
+        console.log('[PWA] Push unsubscription successful')
+      }
+    } catch (e) {
+      console.error('[PWA] Failed to unsubscribe from push:', e)
+    }
+  }
+
   /**
    * 请求通知权限
    */
@@ -199,6 +310,8 @@ export const usePwaStore = defineStore('pwaStore', () => {
         })
         // 尝试注册周期性同步
         registerPeriodicSync()
+        // 尝试订阅 Web Push (真后台推送)
+        subscribeUserToPush()
       } else if (permission === 'denied') {
         theToast.warning('通知权限被拒绝，请在浏览器设置中开启')
       }
@@ -438,6 +551,7 @@ export const usePwaStore = defineStore('pwaStore', () => {
     // 如果通知权限已授予，尝试注册周期性同步
     if (notificationPermission.value === 'granted') {
       registerPeriodicSync()
+      subscribeUserToPush()
     }
 
 

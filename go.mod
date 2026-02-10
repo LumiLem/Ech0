@@ -54,6 +54,7 @@ require (
 	cloud.google.com/go/auth v0.9.3 // indirect
 	cloud.google.com/go/compute/metadata v0.5.0 // indirect
 	github.com/KyleBanks/depth v1.2.1 // indirect
+	github.com/SherClockHolmes/webpush-go v1.4.0 // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
 	github.com/anthropics/anthropic-sdk-go v1.4.0 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect

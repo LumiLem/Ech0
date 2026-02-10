@@ -72,6 +72,9 @@ func SetupRouter(r *gin.Engine, h *di.Handlers) {
 
 	// Setup Inbox Routes
 	setupInboxRoutes(appRouterGroup, h)
+
+	// Setup PWA Routes
+	setupPwaRoutes(appRouterGroup, h)
 }
 
 // setupRouterGroup 初始化路由组

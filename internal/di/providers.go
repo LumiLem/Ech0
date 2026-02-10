@@ -10,6 +10,7 @@ import (
 	echoHandler "github.com/lin-snow/ech0/internal/handler/echo"
 	fediverseHandler "github.com/lin-snow/ech0/internal/handler/fediverse"
 	inboxHandler "github.com/lin-snow/ech0/internal/handler/inbox"
+	pwaHandler "github.com/lin-snow/ech0/internal/handler/pwa"
 	settingHandler "github.com/lin-snow/ech0/internal/handler/setting"
 	todoHandler "github.com/lin-snow/ech0/internal/handler/todo"
 	userHandler "github.com/lin-snow/ech0/internal/handler/user"
@@ -31,6 +32,7 @@ type Handlers struct {
 	FediverseHandler *fediverseHandler.FediverseHandler
 	DashboardHandler *dashboardHandler.DashboardHandler
 	AgentHandler     *agentHandler.AgentHandler
+	PwaHandler       *pwaHandler.PwaHandler
 }
 
 // NewHandlers 创建Handlers实例
@@ -47,6 +49,7 @@ func NewHandlers(
 	fediverseHandler *fediverseHandler.FediverseHandler,
 	dashboardHandler *dashboardHandler.DashboardHandler,
 	agentHandler *agentHandler.AgentHandler,
+	pwaHandler *pwaHandler.PwaHandler,
 ) *Handlers {
 	return &Handlers{
 		WebHandler:       webHandler,
@@ -61,6 +64,7 @@ func NewHandlers(
 		FediverseHandler: fediverseHandler,
 		DashboardHandler: dashboardHandler,
 		AgentHandler:     agentHandler,
+		PwaHandler:       pwaHandler,
 	}
 }
 

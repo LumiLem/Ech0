@@ -277,3 +277,28 @@ async function checkUpdatesAndNotify() {
         console.error('[SW] Periodic sync check failed', e);
     }
 }
+
+// 4. 处理 Web Push 推送事件
+self.addEventListener('push', (event) => {
+    if (event.data) {
+        try {
+            const data = event.data.json();
+            const title = data.title || 'Ech0';
+            const options = {
+                body: data.body || '',
+                icon: data.icon || '/api/icon?s=192',
+                badge: data.badge || '/api/icon?s=96',
+                tag: data.tag,
+                data: data.data || {},
+                actions: data.actions || [],
+                renotify: data.renotify || false,
+                requireInteraction: data.requireInteraction || false,
+                vibrate: data.vibrate || [100]
+            };
+            event.waitUntil(self.registration.showNotification(title, options));
+        } catch (e) {
+            console.error('[SW] Push event error', e);
+        }
+    }
+});
+

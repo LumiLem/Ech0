@@ -19,6 +19,7 @@ import (
 	handler3 "github.com/lin-snow/ech0/internal/handler/echo"
 	handler10 "github.com/lin-snow/ech0/internal/handler/fediverse"
 	handler6 "github.com/lin-snow/ech0/internal/handler/inbox"
+	handler13 "github.com/lin-snow/ech0/internal/handler/pwa"
 	handler5 "github.com/lin-snow/ech0/internal/handler/setting"
 	handler7 "github.com/lin-snow/ech0/internal/handler/todo"
 	handler2 "github.com/lin-snow/ech0/internal/handler/user"
@@ -31,7 +32,8 @@ import (
 	repository5 "github.com/lin-snow/ech0/internal/repository/fediverse"
 	repository7 "github.com/lin-snow/ech0/internal/repository/inbox"
 	"github.com/lin-snow/ech0/internal/repository/keyvalue"
-	repository10 "github.com/lin-snow/ech0/internal/repository/queue"
+	repository10 "github.com/lin-snow/ech0/internal/repository/pwa"
+	repository11 "github.com/lin-snow/ech0/internal/repository/queue"
 	repository3 "github.com/lin-snow/ech0/internal/repository/setting"
 	repository8 "github.com/lin-snow/ech0/internal/repository/todo"
 	repository6 "github.com/lin-snow/ech0/internal/repository/user"
@@ -44,6 +46,7 @@ import (
 	service4 "github.com/lin-snow/ech0/internal/service/echo"
 	service3 "github.com/lin-snow/ech0/internal/service/fediverse"
 	service6 "github.com/lin-snow/ech0/internal/service/inbox"
+	service12 "github.com/lin-snow/ech0/internal/service/pwa"
 	service2 "github.com/lin-snow/ech0/internal/service/setting"
 	service7 "github.com/lin-snow/ech0/internal/service/todo"
 	service5 "github.com/lin-snow/ech0/internal/service/user"
@@ -94,7 +97,10 @@ func BuildHandlers(dbProvider func() *gorm.DB, cacheFactory *cache.CacheFactory,
 	dashboardHandler := handler11.NewDashboardHandler(dashboardServiceInterface)
 	agentServiceInterface := service11.NewAgentService(settingServiceInterface, echoServiceInterface, todoServiceInterface, keyValueRepositoryInterface)
 	agentHandler := handler12.NewAgentHandler(agentServiceInterface)
-	handlers := NewHandlers(webHandler, userHandler, echoHandler, commonHandler, settingHandler, inboxHandler, todoHandler, connectHandler, backupHandler, fediverseHandler, dashboardHandler, agentHandler)
+	pwaRepositoryInterface := repository10.NewPwaRepository(dbProvider)
+	pwaServiceInterface := service12.NewPwaService(pwaRepositoryInterface, keyValueRepositoryInterface, inboxServiceInterface, todoServiceInterface, connectServiceInterface)
+	pwaHandler := handler13.NewPwaHandler(pwaServiceInterface)
+	handlers := NewHandlers(webHandler, userHandler, echoHandler, commonHandler, settingHandler, inboxHandler, todoHandler, connectHandler, backupHandler, fediverseHandler, dashboardHandler, agentHandler, pwaHandler)
 	return handlers, nil
 }
 
@@ -108,14 +114,22 @@ func BuildTasker(dbProvider func() *gorm.DB, cacheFactory *cache.CacheFactory, t
 	settingRepositoryInterface := repository3.NewSettingRepository(dbProvider)
 	webhookRepositoryInterface := repository4.NewWebhookRepository(dbProvider)
 	settingServiceInterface := service2.NewSettingService(transactionManager, commonServiceInterface, keyValueRepositoryInterface, settingRepositoryInterface, webhookRepositoryInterface, ebProvider)
-	queueRepositoryInterface := repository10.NewQueueRepository(dbProvider)
-	tasker := task.NewTasker(commonServiceInterface, settingServiceInterface, ebProvider, queueRepositoryInterface)
+	queueRepositoryInterface := repository11.NewQueueRepository(dbProvider)
+	pwaRepositoryInterface := repository10.NewPwaRepository(dbProvider)
+	inboxRepositoryInterface := repository7.NewInboxRepository(dbProvider)
+	inboxServiceInterface := service6.NewInboxService(transactionManager, commonServiceInterface, inboxRepositoryInterface)
+	todoRepositoryInterface := repository8.NewTodoRepository(dbProvider, iCache)
+	todoServiceInterface := service7.NewTodoService(transactionManager, todoRepositoryInterface, commonServiceInterface)
+	connectRepositoryInterface := repository9.NewConnectRepository(dbProvider)
+	connectServiceInterface := service8.NewConnectService(transactionManager, connectRepositoryInterface, echoRepositoryInterface, commonServiceInterface, settingServiceInterface)
+	pwaServiceInterface := service12.NewPwaService(pwaRepositoryInterface, keyValueRepositoryInterface, inboxServiceInterface, todoServiceInterface, connectServiceInterface)
+	tasker := task.NewTasker(commonServiceInterface, settingServiceInterface, ebProvider, queueRepositoryInterface, pwaServiceInterface)
 	return tasker, nil
 }
 
 func BuildEventRegistrar(dbProvider func() *gorm.DB, ebProvider func() event.IEventBus, cacheFactory *cache.CacheFactory, tmFactory *transaction.TransactionManagerFactory) (*event.EventRegistrar, error) {
 	webhookRepositoryInterface := repository4.NewWebhookRepository(dbProvider)
-	queueRepositoryInterface := repository10.NewQueueRepository(dbProvider)
+	queueRepositoryInterface := repository11.NewQueueRepository(dbProvider)
 	transactionManager := ProvideTransactionManager(tmFactory)
 	webhookDispatcher := event.NewWebhookDispatcher(ebProvider, webhookRepositoryInterface, queueRepositoryInterface, transactionManager)
 	fediverseRepositoryInterface := repository5.NewFediverseRepository(dbProvider)
@@ -191,7 +205,7 @@ var InboxSet = wire.NewSet(repository7.NewInboxRepository, service6.NewInboxServ
 var TaskSet = wire.NewSet(task.NewTasker)
 
 // QueueSet 包含了构建 Queue 所需的所有 Provider
-var QueueSet = wire.NewSet(repository10.NewQueueRepository)
+var QueueSet = wire.NewSet(repository11.NewQueueRepository)
 
 // FediverseCoreSet 包含了构建 FediverseCore 所需的所有 Provider
 var FediverseCoreSet = wire.NewSet(fediverse.NewFediverseCore)
@@ -207,3 +221,6 @@ var MetricSet = wire.NewSet(metric.NewSystemCollector)
 
 // MonitorSet 包含了构建 Monitor 相关所需的所有 Provider
 var MonitorSet = wire.NewSet(monitor.NewMonitor)
+
+// PwaSet 包含了构建 Pwa 相关所需的所有 Provider
+var PwaSet = wire.NewSet(repository10.NewPwaRepository, service12.NewPwaService, handler13.NewPwaHandler)

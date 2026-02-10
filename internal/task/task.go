@@ -12,6 +12,7 @@ import (
 	settingModel "github.com/lin-snow/ech0/internal/model/setting"
 	queueRepository "github.com/lin-snow/ech0/internal/repository/queue"
 	commonService "github.com/lin-snow/ech0/internal/service/common"
+	pwaService "github.com/lin-snow/ech0/internal/service/pwa"
 	settingService "github.com/lin-snow/ech0/internal/service/setting"
 	logUtil "github.com/lin-snow/ech0/internal/util/log"
 	"go.uber.org/zap"
@@ -24,6 +25,7 @@ type Tasker struct {
 	settingService settingService.SettingServiceInterface
 	eventBus       event.IEventBus
 	queueRepo      queueRepository.QueueRepositoryInterface
+	pwaService     pwaService.PwaServiceInterface
 }
 
 func NewTasker(
@@ -31,6 +33,7 @@ func NewTasker(
 	settingService settingService.SettingServiceInterface,
 	eventBusProvider func() event.IEventBus,
 	queueRepo queueRepository.QueueRepositoryInterface,
+	pwaService pwaService.PwaServiceInterface,
 ) *Tasker {
 	scheduler, err := gocron.NewScheduler()
 	if err != nil {
@@ -46,6 +49,7 @@ func NewTasker(
 		settingService: settingService,
 		eventBus:       eventBusProvider(),
 		queueRepo:      queueRepo,
+		pwaService:     pwaService,
 	}
 }
 
@@ -53,6 +57,7 @@ func (t *Tasker) Start() {
 	t.CleanupTempFilesTask()  // 启动清理临时文件任务
 	t.DeadLetterConsumeTask() // 启动死信任务消费任务
 	t.InboxTask()             // 启动Inbox任务
+	t.PwaPushTask()           // 启动PWA推送监控任务
 
 	// 读取自动备份cron设置
 	var backupScheduleSetting settingModel.BackupSchedule
@@ -219,5 +224,23 @@ func (t *Tasker) InboxTask() {
 	if err != nil {
 		logUtil.GetLogger().
 			Error("Failed to schedule InboxTask", zap.String("error", err.Error()))
+	}
+}
+
+// PwaPushTask PWA推送监控任务（对齐 pwa.ts 逻辑，真后台推送）
+func (t *Tasker) PwaPushTask() {
+	// 每 5 分钟执行一次状态扫描
+	_, err := t.scheduler.NewJob(
+		gocron.DurationJob(5*time.Minute),
+		gocron.NewTask(
+			func() {
+				if err := t.pwaService.ObserverTaskLogic(context.Background()); err != nil {
+					logUtil.GetLogger().Error("Failed to run PwaPushTask", zap.String("error", err.Error()))
+				}
+			},
+		),
+	)
+	if err != nil {
+		logUtil.GetLogger().Error("Failed to schedule PwaPushTask", zap.String("error", err.Error()))
 	}
 }

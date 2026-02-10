@@ -136,6 +136,12 @@ const (
 	AgentSettingKey = "agent_setting"
 	// ReleaseVersionKey 是发布版本号的键
 	ReleaseVersionKey = "release_version"
+	// VapidPublicKeyKey PWA Web Push 公钥
+	VapidPublicKeyKey = "vapid_public_key"
+	// VapidPrivateKeyKey PWA Web Push 私钥
+	VapidPrivateKeyKey = "vapid_private_key"
+	// PwaPushSnapshotPrefix PWA 推送快照前缀
+	PwaPushSnapshotPrefix = "pwa_push_snapshot:"
 	// MigrationKey 是数据库迁移的标记键
 	MigrationKey = "db_migration:message_to_echo:v1"
 )

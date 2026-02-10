@@ -14,6 +14,7 @@ import (
 	echoModel "github.com/lin-snow/ech0/internal/model/echo"
 	fediverseModel "github.com/lin-snow/ech0/internal/model/fediverse"
 	inboxModel "github.com/lin-snow/ech0/internal/model/inbox"
+	pwaModel "github.com/lin-snow/ech0/internal/model/pwa"
 	queueModel "github.com/lin-snow/ech0/internal/model/queue"
 	settingModel "github.com/lin-snow/ech0/internal/model/setting"
 	todoModel "github.com/lin-snow/ech0/internal/model/todo"
@@ -137,6 +138,9 @@ func MigrateDB() error {
 		&fediverseModel.Follow{},
 		&fediverseModel.Follower{},
 		&fediverseModel.InboxStatus{},
+
+		// PWA 相关
+		&pwaModel.PushSubscription{},
 	}
 
 	return GetDB().AutoMigrate(

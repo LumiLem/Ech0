@@ -16,6 +16,7 @@ import (
 	echoHandler "github.com/lin-snow/ech0/internal/handler/echo"
 	fediverseHandler "github.com/lin-snow/ech0/internal/handler/fediverse"
 	inboxHandler "github.com/lin-snow/ech0/internal/handler/inbox"
+	pwaHandler "github.com/lin-snow/ech0/internal/handler/pwa"
 	settingHandler "github.com/lin-snow/ech0/internal/handler/setting"
 	todoHandler "github.com/lin-snow/ech0/internal/handler/todo"
 	userHandler "github.com/lin-snow/ech0/internal/handler/user"
@@ -28,6 +29,7 @@ import (
 	fediverseRepository "github.com/lin-snow/ech0/internal/repository/fediverse"
 	inboxRepository "github.com/lin-snow/ech0/internal/repository/inbox"
 	keyvalueRepository "github.com/lin-snow/ech0/internal/repository/keyvalue"
+	pwaRepository "github.com/lin-snow/ech0/internal/repository/pwa"
 	queueRepository "github.com/lin-snow/ech0/internal/repository/queue"
 	settingRepository "github.com/lin-snow/ech0/internal/repository/setting"
 	todoRepository "github.com/lin-snow/ech0/internal/repository/todo"
@@ -41,6 +43,7 @@ import (
 	echoService "github.com/lin-snow/ech0/internal/service/echo"
 	fediverseService "github.com/lin-snow/ech0/internal/service/fediverse"
 	inboxService "github.com/lin-snow/ech0/internal/service/inbox"
+	pwaService "github.com/lin-snow/ech0/internal/service/pwa"
 	settingService "github.com/lin-snow/ech0/internal/service/setting"
 	todoService "github.com/lin-snow/ech0/internal/service/todo"
 	userService "github.com/lin-snow/ech0/internal/service/user"
@@ -76,6 +79,7 @@ func BuildHandlers(
 		BackupSet,
 		FediverseCoreSet,
 		FediverseSet,
+		PwaSet,
 		NewHandlers, // NewHandlers 聚合各个模块的 Handler
 	)
 
@@ -97,6 +101,10 @@ func BuildTasker(
 		EchoSet,
 		CommonSet,
 		QueueSet,
+		PwaSet,
+		InboxSet,
+		TodoSet,
+		ConnectSet,
 		TaskSet,
 	)
 	return &task.Tasker{}, nil
@@ -261,4 +269,11 @@ var MetricSet = wire.NewSet(
 // MonitorSet 包含了构建 Monitor 相关所需的所有 Provider
 var MonitorSet = wire.NewSet(
 	monitor.NewMonitor,
+)
+
+// PwaSet 包含了构建 Pwa 相关所需的所有 Provider
+var PwaSet = wire.NewSet(
+	pwaRepository.NewPwaRepository,
+	pwaService.NewPwaService,
+	pwaHandler.NewPwaHandler,
 )
