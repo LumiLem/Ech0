@@ -104,7 +104,7 @@ func (s *PwaService) SendPushNotification(ctx context.Context, userID uint, payl
 		}
 
 		resp, err := webpush.SendNotification(payloadBytes, pushSub, &webpush.Options{
-			Subscriber:      "pwa-notify@ech0.local",
+			Subscriber:      "mailto:ech0@lumlime.cn",
 			VAPIDPublicKey:  pubKey,
 			VAPIDPrivateKey: privKey,
 			TTL:             30,
