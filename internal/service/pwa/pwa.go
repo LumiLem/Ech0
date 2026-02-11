@@ -105,7 +105,7 @@ func (s *PwaService) SendPushNotification(ctx context.Context, userID uint, payl
 		}
 
 		resp, err := webpush.SendNotification(payloadBytes, pushSub, &webpush.Options{
-			Subscriber:      "mailto:ech0@lumlime.cn",
+			Subscriber:      "ech0@lumlime.cn", // webpush-go 库会自动添加 mailto: 前缀
 			VAPIDPublicKey:  pubKey,
 			VAPIDPrivateKey: privKey,
 			TTL:             30,
