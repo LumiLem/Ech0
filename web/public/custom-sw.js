@@ -196,9 +196,10 @@ async function checkUpdatesAndNotify() {
             return;
         }
         if (!snapshot) {
-            snapshot = { lastInboxId: 0, lastTodoId: 0, lastTodoRemindAt: 0, hubCounts: {} };
+            snapshot = { lastInboxId: 0, lastTodoId: 0, lastTodoRemindAt: 0, readHubCounts: {}, notifiedHubCounts: {} };
         }
-        if (!snapshot.hubCounts) snapshot.hubCounts = {};
+        if (!snapshot.readHubCounts) snapshot.readHubCounts = {};
+        if (!snapshot.notifiedHubCounts) snapshot.notifiedHubCounts = {};
 
         let snapshotDirty = false;
 
@@ -267,8 +268,8 @@ async function checkUpdatesAndNotify() {
                 const allSites = connectJson.data;
 
                 const updates = allSites.filter(s => {
-                    if (!(s.server_url in snapshot.hubCounts)) return false;
-                    return s.total_echos > snapshot.hubCounts[s.server_url];
+                    if (!(s.server_url in snapshot.notifiedHubCounts)) return false;
+                    return s.total_echos > snapshot.notifiedHubCounts[s.server_url];
                 });
 
                 if (updates.length > 0) {
@@ -280,9 +281,9 @@ async function checkUpdatesAndNotify() {
                         const content = await fetchLatestEchoContent(first.server_url);
                         body = content
                             ? (content.length > 50 ? content.slice(0, 50) + '...' : content)
-                            : `发布了 ${first.total_echos - snapshot.hubCounts[first.server_url]} 条新内容`;
+                            : `发布了 ${first.total_echos - snapshot.notifiedHubCounts[first.server_url]} 条新内容`;
                     } else {
-                        const totalNewEchos = updates.reduce((sum, s) => sum + (s.total_echos - snapshot.hubCounts[s.server_url]), 0);
+                        const totalNewEchos = updates.reduce((sum, s) => sum + (s.total_echos - snapshot.notifiedHubCounts[s.server_url]), 0);
                         if (updates.length <= 3) {
                             const names = updates.map(s => s.server_name).join('、');
                             body = `${names} 更新了 ${totalNewEchos} 条动态`;
@@ -307,11 +308,11 @@ async function checkUpdatesAndNotify() {
                     });
                 }
 
-                // 记录所有站点的当前计数（包括新站点）
-                allSites.forEach(s => { snapshot.hubCounts[s.server_url] = s.total_echos; });
+                // 记录所有站点的当前计数（包括新站点）到通知水位线
+                allSites.forEach(s => { snapshot.notifiedHubCounts[s.server_url] = s.total_echos; });
                 const currentUrls = new Set(allSites.map(s => s.server_url));
-                Object.keys(snapshot.hubCounts).forEach(url => {
-                    if (!currentUrls.has(url)) delete snapshot.hubCounts[url];
+                Object.keys(snapshot.notifiedHubCounts).forEach(url => {
+                    if (!currentUrls.has(url)) delete snapshot.notifiedHubCounts[url];
                 });
                 snapshotDirty = true;
             }

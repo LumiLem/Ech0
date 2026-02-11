@@ -16,8 +16,9 @@ type PushSubscription struct {
 
 // PwaPushSnapshot 后端观察者快照结构
 type PwaPushSnapshot struct {
-	LastInboxId      uint           `json:"lastInboxId"`
-	LastTodoId       uint           `json:"lastTodoId"`
-	LastTodoRemindAt int64          `json:"lastTodoRemindAt"` // 上次待办提醒的 Unix 时间戳
-	HubCounts        map[string]int `json:"hubCounts"`        // server_url -> total_echos
+	LastInboxId       uint           `json:"lastInboxId"`
+	LastTodoId        uint           `json:"lastTodoId"`
+	LastTodoRemindAt  int64          `json:"lastTodoRemindAt"`  // 上次待办提醒的 Unix 时间戳
+	ReadHubCounts     map[string]int `json:"readHubCounts"`     // 用户已读的水位线（用于跨端同步红点）
+	NotifiedHubCounts map[string]int `json:"notifiedHubCounts"` // 系统已推的水位线（用于防止重复通知）
 }

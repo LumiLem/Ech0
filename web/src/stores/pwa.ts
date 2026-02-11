@@ -442,9 +442,10 @@ export const usePwaStore = defineStore('pwaStore', () => {
       const json = await res.json()
       if (json?.code === 1 && json.data) {
         const snapshot = json.data
-        // 如果后端有 Hub 计数记录，同步到本地 hubSiteCounts
-        if (snapshot.hubCounts && Object.keys(snapshot.hubCounts).length > 0) {
-          localStg.setItem('hubSiteCounts', snapshot.hubCounts)
+        // 如果后端有 已读Hub 计数记录，同步到本地 hubSiteCounts (红点基准)
+        // 注意：我们拉取的是 readHubCounts，而不是 notifiedHubCounts
+        if (snapshot.readHubCounts && Object.keys(snapshot.readHubCounts).length > 0) {
+          localStg.setItem('hubSiteCounts', snapshot.readHubCounts)
           connectStore.checkHubUpdates()
         }
         return snapshot
@@ -458,8 +459,10 @@ export const usePwaStore = defineStore('pwaStore', () => {
   /**
    * 将当前前台状态同步到后端快照（唯一数据源）
    * 同时将 Token 写入 SW Cache（供 SW periodicsync 使用）
+   * @param existingSnapshot 可选：已有的快照数据，用于参考水位线
+   * @param trigger 触发原因：'notify' (仅仅是弹了窗) | 'read' (用户点了清除红点) | 'init' (初始化同步)
    */
-  const pushSnapshotToBackend = async (existingSnapshot?: any) => {
+  const pushSnapshotToBackend = async (existingSnapshot?: any, trigger: 'notify' | 'read' | 'init' = 'init') => {
     try {
       const token = localStg.getItem('token') || ''
 
@@ -510,7 +513,12 @@ export const usePwaStore = defineStore('pwaStore', () => {
         lastInboxId: Math.max(existing.lastInboxId || 0, currentHighestInboxId),
         lastTodoId: Math.max(existing.lastTodoId || 0, currentHighestTodoId),
         lastTodoRemindAt: existing.lastTodoRemindAt || 0,
-        hubCounts: hubUpdateEnabled ? hubCounts : (existing.hubCounts || {}),
+        // 如果是 read 动作，同步 readHubCounts 和 notifiedHubCounts
+        // 如果是 notify 动作，只同步 notifiedHubCounts，保留原有的 readHubCounts (不灭红点)
+        readHubCounts: (trigger === 'read' || trigger === 'init')
+          ? (hubUpdateEnabled ? hubCounts : (existing.readHubCounts || {}))
+          : (existing.readHubCounts || {}),
+        notifiedHubCounts: hubUpdateEnabled ? hubCounts : (existing.notifiedHubCounts || {}),
       }
 
       await fetch('/api/pwa/snapshot', {
@@ -671,8 +679,8 @@ export const usePwaStore = defineStore('pwaStore', () => {
               data: { type: 'hub' },
             } as any)
 
-            // 同步最新状态到后端快照（唯一数据源），防止其他通道重复推送
-            pushSnapshotToBackend()
+            // 同步最新状态到后端快照（仅作为已报水位线），红点仍保留
+            pushSnapshotToBackend(undefined, 'notify')
           }
         }
       },
@@ -752,7 +760,7 @@ export const usePwaStore = defineStore('pwaStore', () => {
     // [核心同步链] 严格串行执行：拉取 -> 使用拉取回的数据推回
     // 这样既保证了红点对齐，又保证了写回时的 ID 水位线参考的是最新值
     const latestSnapshot = await pullSnapshotFromBackend()
-    await pushSnapshotToBackend(latestSnapshot)
+    await pushSnapshotToBackend(latestSnapshot, 'init')
 
     // 监听网络状态变化
     window.addEventListener('online', () => {

@@ -11,6 +11,7 @@ import (
 
 	"github.com/SherClockHolmes/webpush-go"
 	commonModel "github.com/lin-snow/ech0/internal/model/common"
+	connectModel "github.com/lin-snow/ech0/internal/model/connect"
 	pwaModel "github.com/lin-snow/ech0/internal/model/pwa"
 	keyvalueRepository "github.com/lin-snow/ech0/internal/repository/keyvalue"
 	pwaRepository "github.com/lin-snow/ech0/internal/repository/pwa"
@@ -153,14 +154,17 @@ func (s *PwaService) ObserverTaskLogic(ctx context.Context) error {
 		userSubMap[sub.UserID] = true
 	}
 
+	// 1. 预先抓取所有 Hub 站点的当前信息（全量一份，避免用户循环内重抓）
+	connects, _ := s.connectService.GetConnectsInfo()
+
 	for userID := range userSubMap {
-		s.checkAndNotify(ctx, userID)
+		s.checkAndNotify(ctx, userID, connects)
 	}
 
 	return nil
 }
 
-func (s *PwaService) checkAndNotify(ctx context.Context, userID uint) {
+func (s *PwaService) checkAndNotify(ctx context.Context, userID uint, connects []connectModel.Connect) {
 	// 1. 获取当前状态 (调用现有的 Service 获取最新数据)
 	unreadInboxes, _ := s.inboxService.GetUnreadInbox(userID)
 
@@ -179,9 +183,6 @@ func (s *PwaService) checkAndNotify(ctx context.Context, userID uint) {
 		}
 	}
 
-	// 对于 Hub 更新 (跨站)
-	connects, _ := s.connectService.GetConnectsInfo()
-
 	// 2. 获取快照
 	snapshotKey := fmt.Sprintf("%s%d", commonModel.PwaPushSnapshotPrefix, userID)
 	snapshotStr, err := s.kvRepo.GetKeyValue(snapshotKey)
@@ -192,7 +193,14 @@ func (s *PwaService) checkAndNotify(ctx context.Context, userID uint) {
 		_ = json.Unmarshal([]byte(snapshotStr.(string)), &snapshot)
 	} else {
 		isFirstTime = true
-		snapshot.HubCounts = make(map[string]int)
+	}
+
+	// 确保 Map 已初始化
+	if snapshot.ReadHubCounts == nil {
+		snapshot.ReadHubCounts = make(map[string]int)
+	}
+	if snapshot.NotifiedHubCounts == nil {
+		snapshot.NotifiedHubCounts = make(map[string]int)
 	}
 
 	// 计算最新的 ID 水位线 (单调递增，防止倒退)
@@ -210,9 +218,9 @@ func (s *PwaService) checkAndNotify(ctx context.Context, userID uint) {
 		}
 	}
 
-	hubCounts := make(map[string]int)
+	currentHubCounts := make(map[string]int)
 	for _, c := range connects {
-		hubCounts[c.ServerURL] = c.TotalEchos
+		currentHubCounts[c.ServerURL] = c.TotalEchos
 	}
 
 	// 3. 对齐逻辑并推送
@@ -271,9 +279,9 @@ func (s *PwaService) checkAndNotify(ctx context.Context, userID uint) {
 			New  int
 		}{}
 		for _, c := range connects {
-			lastCount, exists := snapshot.HubCounts[c.ServerURL]
+			lastCount, exists := snapshot.NotifiedHubCounts[c.ServerURL]
 			if !exists {
-				// 新站点：仅记录基准，不触发通知（与前端 checkHubUpdates 一致）
+				// 新站点：仅记录基准，不触发通知
 				continue
 			}
 			if c.TotalEchos > lastCount {
@@ -283,6 +291,11 @@ func (s *PwaService) checkAndNotify(ctx context.Context, userID uint) {
 					Logo string
 					New  int
 				}{Name: c.ServerName, URL: c.ServerURL, Logo: c.Logo, New: c.TotalEchos - lastCount})
+				// 更新通知水位线
+				snapshot.NotifiedHubCounts[c.ServerURL] = c.TotalEchos
+			} else if c.TotalEchos < lastCount {
+				// 自动下调校准
+				snapshot.NotifiedHubCounts[c.ServerURL] = c.TotalEchos
 			}
 		}
 
@@ -346,16 +359,17 @@ func (s *PwaService) checkAndNotify(ctx context.Context, userID uint) {
 		}
 	}
 
-	// 4. 保存新快照
-	s.saveSnapshot(ctx, snapshotKey, lastInboxId, lastTodoId, snapshot.LastTodoRemindAt, hubCounts)
+	// 4. 保存新快照 (更新后的 NotifiedHubCounts)
+	s.saveSnapshot(ctx, snapshotKey, lastInboxId, lastTodoId, snapshot.LastTodoRemindAt, snapshot.ReadHubCounts, snapshot.NotifiedHubCounts)
 }
 
-func (s *PwaService) saveSnapshot(ctx context.Context, key string, inboxId, todoId uint, lastTodoRemindAt int64, hubCounts map[string]int) {
+func (s *PwaService) saveSnapshot(ctx context.Context, key string, inboxId, todoId uint, lastTodoRemindAt int64, readCounts, notifiedCounts map[string]int) {
 	snap := pwaModel.PwaPushSnapshot{
-		LastInboxId:      inboxId,
-		LastTodoId:       todoId,
-		LastTodoRemindAt: lastTodoRemindAt,
-		HubCounts:        hubCounts,
+		LastInboxId:       inboxId,
+		LastTodoId:        todoId,
+		LastTodoRemindAt:  lastTodoRemindAt,
+		ReadHubCounts:     readCounts,
+		NotifiedHubCounts: notifiedCounts,
 	}
 	bytes, _ := json.Marshal(snap)
 	_ = s.kvRepo.AddOrUpdateKeyValue(ctx, key, string(bytes))
@@ -369,8 +383,13 @@ func (s *PwaService) GetSnapshot(ctx context.Context, userID uint) (*pwaModel.Pw
 	var snapshot pwaModel.PwaPushSnapshot
 	if err == nil && snapshotStr != nil {
 		_ = json.Unmarshal([]byte(snapshotStr.(string)), &snapshot)
-	} else {
-		snapshot.HubCounts = make(map[string]int)
+	}
+
+	if snapshot.ReadHubCounts == nil {
+		snapshot.ReadHubCounts = make(map[string]int)
+	}
+	if snapshot.NotifiedHubCounts == nil {
+		snapshot.NotifiedHubCounts = make(map[string]int)
 	}
 
 	return &snapshot, nil

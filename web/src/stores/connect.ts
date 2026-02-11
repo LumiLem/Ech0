@@ -126,6 +126,10 @@ export const useConnectStore = defineStore('connectStore', () => {
     // 如果存储有变化（新增或删除站点），同步到 localStorage
     if (storageDirty) {
       localStg.setItem('hubSiteCounts', lastSiteCounts)
+      // [关键优化] 立刻同步到后端快照，让后台任务立即拿到这个新站的基准计数
+      // 避免后台任务需要等完第一轮扫描才能开始后续的增量检测
+      const pwaStore = usePwaStore()
+      pwaStore.pushSnapshotToBackend(undefined, 'read')
     }
 
     // 调试信息
@@ -176,7 +180,7 @@ export const useConnectStore = defineStore('connectStore', () => {
     // [跨设备同步] 将“已读”后的水位线同步到后端快照
     // 这样其他设备启动时拉取快照，就能同步红点状态
     const pwaStore = usePwaStore()
-    pwaStore.pushSnapshotToBackend()
+    pwaStore.pushSnapshotToBackend(undefined, 'read')
   }
 
   /**
