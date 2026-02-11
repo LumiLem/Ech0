@@ -402,6 +402,180 @@ func (s *PwaService) UpdateSnapshot(ctx context.Context, userID uint, snapshot *
 	return s.kvRepo.AddOrUpdateKeyValue(ctx, snapshotKey, string(bytes))
 }
 
+// GetAggregatedStatus 获取聚合后的状态
+func (s *PwaService) GetAggregatedStatus(ctx context.Context, userID uint) (*pwaModel.PwaAggregatedStatus, error) {
+	// 1. 获取基础数据
+	unreadInboxes, _ := s.inboxService.GetUnreadInbox(userID)
+	allTodos, _ := s.todoService.GetTodoList(userID)
+	connects, _ := s.connectService.GetConnectsInfo()
+	snapshot, _ := s.GetSnapshot(ctx, userID)
+
+	res := &pwaModel.PwaAggregatedStatus{
+		HasUpdate:     false,
+		Notifications: []pwaModel.PwaNotification{},
+		Snapshot:      *snapshot,
+		InboxCount:    len(unreadInboxes),
+	}
+
+	// 2. 统计未完成 Todo
+	todoCount := 0
+	incompleteTodos := []struct {
+		ID      uint
+		Content string
+	}{}
+	for _, t := range allTodos {
+		if t.Status == 0 {
+			todoCount++
+			incompleteTodos = append(incompleteTodos, struct {
+				ID      uint
+				Content string
+			}{ID: uint(t.ID), Content: t.Content})
+		}
+	}
+	res.TodoCount = todoCount
+
+	// 3. 计算 Hub 差异
+	hubDiff := 0
+	updatedHubs := []struct {
+		Name string
+		URL  string
+		Logo string
+		New  int
+	}{}
+	for _, c := range connects {
+		lastRead := snapshot.ReadHubCounts[c.ServerURL]
+		if c.TotalEchos > lastRead {
+			hubDiff += (c.TotalEchos - lastRead)
+		}
+
+		lastNotified := snapshot.NotifiedHubCounts[c.ServerURL]
+		if c.TotalEchos > lastNotified {
+			updatedHubs = append(updatedHubs, struct {
+				Name string
+				URL  string
+				Logo string
+				New  int
+			}{Name: c.ServerName, URL: c.ServerURL, Logo: c.Logo, New: c.TotalEchos - lastNotified})
+		}
+	}
+	res.HubDiff = hubDiff
+
+	// 4. 构建通知内容 (Inbox)
+	for _, item := range unreadInboxes {
+		if item.ID > snapshot.LastInboxId {
+			res.HasUpdate = true
+			body := item.Content
+			if len(body) > 100 {
+				body = body[:97] + "..."
+			}
+			res.Notifications = append(res.Notifications, pwaModel.PwaNotification{
+				Title: fmt.Sprintf("📩 来自 %s 的新消息", item.Source),
+				Body:  body,
+				Tag:   fmt.Sprintf("inbox-%d", item.ID),
+				Icon:  "/icons/notification-inbox.png",
+				Data: map[string]interface{}{
+					"url":     "/?mode=inbox",
+					"type":    "inbox",
+					"inboxId": item.ID,
+				},
+			})
+			snapshot.LastInboxId = item.ID // 临时更新快照水位，供后续持久化
+		}
+	}
+
+	// 5. 构建通知内容 (Todo)
+	const todoRemindInterval int64 = 4 * 60 * 60
+	now := time.Now().Unix()
+	if len(incompleteTodos) > 0 && (now-snapshot.LastTodoRemindAt >= todoRemindInterval) {
+		res.HasUpdate = true
+		for _, item := range incompleteTodos {
+			res.Notifications = append(res.Notifications, pwaModel.PwaNotification{
+				Title: "⏰ 待办事项未完成",
+				Body:  item.Content,
+				Tag:   fmt.Sprintf("todo-%d", item.ID),
+				Icon:  "/icons/notification-todo.png",
+				Data: map[string]interface{}{
+					"url":    "/?mode=todo",
+					"type":   "todo",
+					"todoId": item.ID,
+				},
+			})
+		}
+		snapshot.LastTodoRemindAt = now
+	}
+
+	// 6. 构建通知内容 (Hub)
+	if len(updatedHubs) > 0 {
+		res.HasUpdate = true
+		title := "✨ Hub 发现了新动态"
+		if len(updatedHubs) == 1 {
+			title = fmt.Sprintf("✨ %s 发布了新动态", updatedHubs[0].Name)
+		}
+
+		var body string
+		totalNew := 0
+		for _, h := range updatedHubs {
+			totalNew += h.New
+		}
+
+		icon := "/icons/notification-hub.png"
+		if len(updatedHubs) == 1 {
+			latestContent := fetchLatestEchoContent(updatedHubs[0].URL)
+			if latestContent != "" {
+				runes := []rune(latestContent)
+				if len(runes) > 50 {
+					body = string(runes[:50]) + "..."
+				} else {
+					body = latestContent
+				}
+			} else {
+				body = fmt.Sprintf("发布了 %d 条新内容", updatedHubs[0].New)
+			}
+			if updatedHubs[0].Logo != "" && strings.HasPrefix(updatedHubs[0].Logo, "http") {
+				icon = updatedHubs[0].Logo
+			}
+		} else if len(updatedHubs) <= 3 {
+			names := ""
+			for i, h := range updatedHubs {
+				if i > 0 {
+					names += "、"
+				}
+				names += h.Name
+			}
+			body = fmt.Sprintf("%s 更新了 %d 条动态", names, totalNew)
+		} else {
+			firstTwo := updatedHubs[0].Name + "、" + updatedHubs[1].Name
+			body = fmt.Sprintf("%s 等 %d 个站点更新了 %d 条动态", firstTwo, len(updatedHubs), totalNew)
+		}
+
+		res.Notifications = append(res.Notifications, pwaModel.PwaNotification{
+			Title: title,
+			Body:  body,
+			Tag:   "hub-update",
+			Icon:  icon,
+			Data: map[string]interface{}{
+				"url":  "/hub",
+				"type": "hub",
+			},
+		})
+
+		// 更新快照中的通知水位线
+		for _, c := range connects {
+			snapshot.NotifiedHubCounts[c.ServerURL] = c.TotalEchos
+		}
+	}
+
+	// 7. 更新快照 (如果内容发生了变化，且是后端触发的通知)
+	if res.HasUpdate {
+		res.Snapshot = *snapshot // 同步返回内存中计算出的新快照
+		// 注意：后端快照在此接口仅供 SW "预览" 并由回复的 updateSnapshot 逻辑决定是否正式持久化
+		// 但为了保险，我们在这里根据业务逻辑可以选则直接保存一次
+		s.UpdateSnapshot(ctx, userID, snapshot)
+	}
+
+	return res, nil
+}
+
 // fetchLatestEchoContent 获取指定站点的最新一条动态内容
 // 与前端 fetchLatestEchoContent 逻辑一致
 func fetchLatestEchoContent(serverURL string) string {

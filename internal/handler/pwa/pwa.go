@@ -89,3 +89,15 @@ func (h *PwaHandler) UpdateSnapshot() gin.HandlerFunc {
 		return res.Response{Msg: "更新成功"}
 	})
 }
+
+// GetAggregatedStatus 获取聚合后的状态
+func (h *PwaHandler) GetAggregatedStatus() gin.HandlerFunc {
+	return res.Execute(func(ctx *gin.Context) res.Response {
+		userid := ctx.MustGet("userid").(uint)
+		status, err := h.pwaService.GetAggregatedStatus(ctx, userid)
+		if err != nil {
+			return res.Response{Err: err}
+		}
+		return res.Response{Data: status}
+	})
+}

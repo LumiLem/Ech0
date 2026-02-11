@@ -12,5 +12,6 @@ func setupPwaRoutes(app *AppRouterGroup, h *di.Handlers) {
 		pwa.POST("/unsubscribe", h.PwaHandler.Unsubscribe())
 		pwa.GET("/snapshot", h.PwaHandler.GetSnapshot())
 		pwa.POST("/snapshot", h.PwaHandler.UpdateSnapshot())
+		pwa.GET("/aggregate", h.PwaHandler.GetAggregatedStatus())
 	}
 }

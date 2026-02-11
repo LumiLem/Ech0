@@ -336,9 +336,9 @@ export const usePwaStore = defineStore('pwaStore', () => {
 
         if (status.state === 'granted') {
           await (registration as any).periodicSync.register('fetch-updates', {
-            minInterval: 24 * 60 * 60 * 1000, // 浏览器通常限制最小 24 小时
+            minInterval: 1 * 60 * 60 * 1000, // 降低至 1 小时，向浏览器申请更高的唤醒频率
           })
-          console.log('[PWA] Periodic Sync registered')
+          console.log('[PWA] Periodic Sync registered (1h interval)')
         }
       }
     } catch (e) {

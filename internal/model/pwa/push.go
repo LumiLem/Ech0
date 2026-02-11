@@ -22,3 +22,22 @@ type PwaPushSnapshot struct {
 	ReadHubCounts     map[string]int `json:"readHubCounts"`     // 用户已读的水位线（用于跨端同步红点）
 	NotifiedHubCounts map[string]int `json:"notifiedHubCounts"` // 系统已推的水位线（用于防止重复通知）
 }
+
+// PwaNotification 聚合接口返回的通知内容
+type PwaNotification struct {
+	Title string                 `json:"title"`
+	Body  string                 `json:"body"`
+	Tag   string                 `json:"tag"`
+	Icon  string                 `json:"icon"`
+	Data  map[string]interface{} `json:"data"`
+}
+
+// PwaAggregatedStatus 聚合状态返回值
+type PwaAggregatedStatus struct {
+	HasUpdate     bool              `json:"hasUpdate"`
+	Notifications []PwaNotification `json:"notifications"`
+	Snapshot      PwaPushSnapshot   `json:"snapshot"`   // 返回最新快照以便 SW 更新本地
+	InboxCount    int               `json:"inboxCount"` // 未读私信数
+	TodoCount     int               `json:"todoCount"`  // 未完成待办数
+	HubDiff       int               `json:"hubDiff"`    // Hub 未读更新数
+}

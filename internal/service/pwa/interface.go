@@ -17,4 +17,6 @@ type PwaServiceInterface interface {
 	GetSnapshot(ctx context.Context, userID uint) (*pwaModel.PwaPushSnapshot, error)
 	// UpdateSnapshot 更新用户的推送快照
 	UpdateSnapshot(ctx context.Context, userID uint, snapshot *pwaModel.PwaPushSnapshot) error
+	// GetAggregatedStatus 获取聚合后的状态（供 SW 调用，减少请求次数）
+	GetAggregatedStatus(ctx context.Context, userID uint) (*pwaModel.PwaAggregatedStatus, error)
 }
