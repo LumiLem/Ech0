@@ -90,7 +90,7 @@ export default defineConfig({
           // 3. 核心启动与元数据 (NetworkFirst): 保证 initStores 加载的数据【即时更新】
           {
             urlPattern: ({ url }) => {
-              const coreApis = ['/api/settings', '/api/info', '/api/user', '/api/tags', '/api/status', '/api/hello']
+              const coreApis = ['/api/settings', '/api/info', '/api/user', '/api/tags', '/api/status', '/api/hello', '/api/pwa/snapshot']
               return coreApis.some(api => url.pathname.startsWith(api))
             },
             handler: 'NetworkFirst',
@@ -171,7 +171,7 @@ export default defineConfig({
           // 7.Mutating API Requests with Background Sync
           {
             urlPattern: ({ url }) => {
-              const mutationApis = ['/api/echo', '/api/todo', '/api/inbox']
+              const mutationApis = ['/api/echo', '/api/todo', '/api/inbox', '/api/pwa/snapshot']
               return mutationApis.some((api) => url.pathname.startsWith(api))
             },
             method: 'POST',

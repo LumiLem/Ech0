@@ -425,40 +425,96 @@ export const usePwaStore = defineStore('pwaStore', () => {
   }
 
   /**
-   * 将当前前台状态同步给 Service Worker 的 Cache Storage
-   * 解决 LocalStorage 与 SW 存储不一致导致的重复通知问题
+   * 将当前前台状态同步到后端快照（唯一数据源）
+   * 同时将 Token 写入 SW Cache（供 SW periodicsync 使用）
    */
-  const syncStateToServiceWorker = async () => {
-    if (!('serviceWorker' in navigator) || !('caches' in window)) return
-
+  /**
+   * 从后端拉取快照并同步到本地 (跨设备红点同步)
+   */
+  const pullSnapshotFromBackend = async () => {
     try {
-      const cache = await caches.open('ech0-sync-state')
+      const token = localStg.getItem('token') || ''
+      if (!token) return
 
-      // 构造当前状态快照
+      const res = await fetch('/api/pwa/snapshot', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      const json = await res.json()
+      if (json?.code === 1 && json.data) {
+        const snapshot = json.data
+        // 如果后端有 Hub 计数记录，同步到本地 hubSiteCounts (这就是跨设备红点同步的核心)
+        if (snapshot.hubCounts && Object.keys(snapshot.hubCounts).length > 0) {
+          localStg.setItem('hubSiteCounts', snapshot.hubCounts)
+          // 强制触发一次 connectStore 的更新检测
+          connectStore.checkHubUpdates()
+        }
+      }
+    } catch (e) {
+      console.warn('[PWA] Failed to pull snapshot from backend:', e)
+    }
+  }
+
+  /**
+   * 将当前前台状态同步到后端快照（唯一数据源）
+   * 同时将 Token 写入 SW Cache（供 SW periodicsync 使用）
+   */
+  const pushSnapshotToBackend = async () => {
+    try {
+      const token = localStg.getItem('token') || ''
+
+      // 1. 同步 Token 到 SW Cache
+      if ('caches' in window) {
+        const cache = await caches.open('ech0-sync-state')
+        await cache.put('/state.json', new Response(JSON.stringify({ token }), {
+          headers: { 'Content-Type': 'application/json' }
+        }))
+      }
+
+      if (!token) return
+
+      // 构造当前 Hub 计数快照
       const hubCounts: Record<string, number> = {}
       connectStore.connectsInfo.forEach(s => {
         hubCounts[s.server_url] = s.total_echos
       })
 
-      const lastInboxId = inboxStore.unreadItems?.length > 0
+      // 2. 获取当前内存中的最高 ID
+      const currentHighestInboxId = inboxStore.unreadItems?.length > 0
         ? Math.max(...inboxStore.unreadItems.map(i => i.id))
         : 0
 
-      const lastTodoId = todoStore.todos?.length > 0
+      const currentHighestTodoId = todoStore.todos?.length > 0
         ? Math.max(...todoStore.todos.map(t => t.id))
         : 0
 
-      // 获取认证 Token
-      const token = localStg.getItem('token') || ''
+      // 3. 先读取后端现有快照，保留上次提醒时间戳并确保 ID 水位线不倒退
+      let existingSnapshot: any = {}
+      try {
+        const res = await fetch('/api/pwa/snapshot', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        const json = await res.json()
+        if (json?.code === 1) existingSnapshot = json.data || {}
+      } catch { /* 忽略读取失败 */ }
 
-      const state = { lastInboxId, lastTodoId, hubCounts, token }
+      // 4. 合并并写回后端 (水位线单调递增)
+      const snapshot = {
+        lastInboxId: Math.max(existingSnapshot.lastInboxId || 0, currentHighestInboxId),
+        lastTodoId: Math.max(existingSnapshot.lastTodoId || 0, currentHighestTodoId),
+        lastTodoRemindAt: existingSnapshot.lastTodoRemindAt || 0,
+        hubCounts,
+      }
 
-      // 写入 Cache API (SW 周期性同步会读取此文件)
-      await cache.put('/state.json', new Response(JSON.stringify(state), {
-        headers: { 'Content-Type': 'application/json' }
-      }))
+      await fetch('/api/pwa/snapshot', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(snapshot),
+      })
     } catch (e) {
-      console.warn('[PWA] Failed to sync state to SW cache:', e)
+      console.warn('[PWA] Failed to push snapshot to backend:', e)
     }
   }
 
@@ -561,6 +617,7 @@ export const usePwaStore = defineStore('pwaStore', () => {
       async (newCount, oldCount) => {
         // 仅在更新数量增加时触发通知
         if (newCount > (oldCount || 0)) {
+          // 使用红点基准来过滤有更新的站点
           const lastSiteCounts = localStg.getItem<Record<string, number>>('hubSiteCounts') || {}
           const updates = connectStore.connectsInfo.filter(
             (s) => s.total_echos > (lastSiteCounts[s.server_url] || 0),
@@ -572,7 +629,6 @@ export const usePwaStore = defineStore('pwaStore', () => {
 
             let body = ''
             if (updates.length === 1) {
-              // 只有一个站点更新，尝试获取具体内容
               const latestContent = await fetchLatestEchoContent(first.server_url)
               body = latestContent
                 ? latestContent.length > 50
@@ -580,20 +636,16 @@ export const usePwaStore = defineStore('pwaStore', () => {
                   : latestContent
                 : `发布了 ${first.total_echos - (lastSiteCounts[first.server_url] || 0)} 条新内容`
             } else {
-              // 多个站点更新，使用紧凑格式
               const totalNewEchos = updates.reduce((sum, s) => sum + (s.total_echos - (lastSiteCounts[s.server_url] || 0)), 0)
               if (updates.length <= 3) {
-                // 3个及以内：列出所有站点名称
                 const names = updates.map((s) => s.server_name).join('、')
                 body = `${names} 更新了 ${totalNewEchos} 条动态`
               } else {
-                // 超过3个：显示前两个 + "等X个站点"
                 const firstTwo = updates.slice(0, 2).map((s) => s.server_name).join('、')
                 body = `${firstTwo} 等 ${updates.length} 个站点更新了 ${totalNewEchos} 条动态`
               }
             }
 
-            // 动态选择图标：单站更新优先尝试使用该站点 Logo
             let dynamicIcon: string | undefined
             if (updates.length === 1 && first.logo) {
               if (first.logo.startsWith('http')) {
@@ -603,7 +655,7 @@ export const usePwaStore = defineStore('pwaStore', () => {
 
             showNotification(title, {
               body,
-              icon: dynamicIcon, // 传入动态图标 (如果是 undefined，showNotification 会回退到 Tag 图标)
+              icon: dynamicIcon,
               tag: 'hub-update',
               renotify: true,
               url: '/hub',
@@ -611,8 +663,8 @@ export const usePwaStore = defineStore('pwaStore', () => {
               data: { type: 'hub' },
             } as any)
 
-            // 通知发送后同步状态，确保后台同步知道我们已经处理了这批更新
-            syncStateToServiceWorker()
+            // 同步最新状态到后端快照（唯一数据源），防止其他通道重复推送
+            pushSnapshotToBackend()
           }
         }
       },
@@ -638,6 +690,9 @@ export const usePwaStore = defineStore('pwaStore', () => {
             data: { type: 'inbox', inboxId: item.id },
           } as any)
         })
+
+        // 同步状态到 SW，避免 periodicsync 重复推送
+        pushSnapshotToBackend()
       },
       { deep: true },
     )
@@ -664,6 +719,9 @@ export const usePwaStore = defineStore('pwaStore', () => {
               data: { type: 'todo', todoId: todo.id },
             } as any)
           })
+
+          // 同步状态到 SW，避免 periodicsync 重复推送
+          pushSnapshotToBackend()
         }
       },
       { deep: true },
@@ -684,7 +742,10 @@ export const usePwaStore = defineStore('pwaStore', () => {
     })
 
     // 同步初始状态到 SW 缓存，防止重推
-    syncStateToServiceWorker()
+    pushSnapshotToBackend()
+
+    // 拉取后端快照对齐红点水位线 (跨设备同步)
+    pullSnapshotFromBackend()
 
     // 监听网络状态变化
     window.addEventListener('online', () => {
@@ -1128,7 +1189,8 @@ export const usePwaStore = defineStore('pwaStore', () => {
     // Utils
     shouldShowPrompt,
     resetPromptState,
-    syncStateToServiceWorker,
+    pullSnapshotFromBackend,
+    pushSnapshotToBackend,
   }
 })
 

@@ -229,9 +229,9 @@ func (t *Tasker) InboxTask() {
 
 // PwaPushTask PWA推送监控任务（对齐 pwa.ts 逻辑，真后台推送）
 func (t *Tasker) PwaPushTask() {
-	// 每 5 分钟执行一次状态扫描
+	// 每 30 分钟执行一次状态扫描
 	_, err := t.scheduler.NewJob(
-		gocron.DurationJob(5*time.Minute),
+		gocron.DurationJob(30*time.Minute),
 		gocron.NewTask(
 			func() {
 				if err := t.pwaService.ObserverTaskLogic(context.Background()); err != nil {

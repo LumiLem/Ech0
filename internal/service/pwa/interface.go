@@ -13,4 +13,8 @@ type PwaServiceInterface interface {
 	SendPushNotification(ctx context.Context, userID uint, payload interface{}) error
 	// ObserverTaskLogic 供 Task 调用的核心逻辑
 	ObserverTaskLogic(ctx context.Context) error
+	// GetSnapshot 获取用户的推送快照
+	GetSnapshot(ctx context.Context, userID uint) (*pwaModel.PwaPushSnapshot, error)
+	// UpdateSnapshot 更新用户的推送快照
+	UpdateSnapshot(ctx context.Context, userID uint, snapshot *pwaModel.PwaPushSnapshot) error
 }

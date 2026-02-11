@@ -10,5 +10,7 @@ func setupPwaRoutes(app *AppRouterGroup, h *di.Handlers) {
 		pwa.GET("/vapid", h.PwaHandler.GetVapidPublicKey())
 		pwa.POST("/subscribe", h.PwaHandler.Subscribe())
 		pwa.POST("/unsubscribe", h.PwaHandler.Unsubscribe())
+		pwa.GET("/snapshot", h.PwaHandler.GetSnapshot())
+		pwa.POST("/snapshot", h.PwaHandler.UpdateSnapshot())
 	}
 }

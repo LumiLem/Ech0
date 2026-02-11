@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
+	"strings"
+	"time"
 
 	"github.com/SherClockHolmes/webpush-go"
 	commonModel "github.com/lin-snow/ech0/internal/model/common"
@@ -14,6 +17,7 @@ import (
 	connectService "github.com/lin-snow/ech0/internal/service/connect"
 	inboxService "github.com/lin-snow/ech0/internal/service/inbox"
 	todoService "github.com/lin-snow/ech0/internal/service/todo"
+	httpUtil "github.com/lin-snow/ech0/internal/util/http"
 )
 
 type PwaService struct {
@@ -178,25 +182,6 @@ func (s *PwaService) checkAndNotify(ctx context.Context, userID uint) {
 	// 对于 Hub 更新 (跨站)
 	connects, _ := s.connectService.GetConnectsInfo()
 
-	lastInboxId := uint(0)
-	for _, item := range unreadInboxes {
-		if item.ID > lastInboxId {
-			lastInboxId = item.ID
-		}
-	}
-
-	lastTodoId := uint(0)
-	for _, item := range incompleteTodos {
-		if item.ID > lastTodoId {
-			lastTodoId = item.ID
-		}
-	}
-
-	hubCounts := make(map[string]int)
-	for _, c := range connects {
-		hubCounts[c.ServerURL] = c.TotalEchos
-	}
-
 	// 2. 获取快照
 	snapshotKey := fmt.Sprintf("%s%d", commonModel.PwaPushSnapshotPrefix, userID)
 	snapshotStr, err := s.kvRepo.GetKeyValue(snapshotKey)
@@ -208,6 +193,26 @@ func (s *PwaService) checkAndNotify(ctx context.Context, userID uint) {
 	} else {
 		isFirstTime = true
 		snapshot.HubCounts = make(map[string]int)
+	}
+
+	// 计算最新的 ID 水位线 (单调递增，防止倒退)
+	lastInboxId := snapshot.LastInboxId
+	for _, item := range unreadInboxes {
+		if item.ID > lastInboxId {
+			lastInboxId = item.ID
+		}
+	}
+
+	lastTodoId := snapshot.LastTodoId
+	for _, item := range incompleteTodos {
+		if item.ID > lastTodoId {
+			lastTodoId = item.ID
+		}
+	}
+
+	hubCounts := make(map[string]int)
+	for _, c := range connects {
+		hubCounts[c.ServerURL] = c.TotalEchos
 	}
 
 	// 3. 对齐逻辑并推送
@@ -235,13 +240,16 @@ func (s *PwaService) checkAndNotify(ctx context.Context, userID uint) {
 			}
 		}
 
-		// Todo
-		for _, item := range incompleteTodos {
-			if item.ID > snapshot.LastTodoId {
+		// Todo: 未完成待办每 4 小时提醒一次（新增待办由前台通知处理）
+		const todoRemindInterval int64 = 4 * 60 * 60 // 4 小时（秒）
+		now := time.Now().Unix()
+		if len(incompleteTodos) > 0 && (now-snapshot.LastTodoRemindAt >= todoRemindInterval) {
+			for _, item := range incompleteTodos {
 				_ = s.SendPushNotification(ctx, userID, map[string]interface{}{
-					"title": "📋 待办事项提醒",
-					"body":  item.Content,
-					"tag":   fmt.Sprintf("todo-%d", item.ID),
+					"title":    "⏰ 待办事项未完成",
+					"body":     item.Content,
+					"tag":      fmt.Sprintf("todo-%d", item.ID),
+					"renotify": true,
 					"data": map[string]interface{}{
 						"url":    "/?mode=todo",
 						"type":   "todo",
@@ -252,22 +260,29 @@ func (s *PwaService) checkAndNotify(ctx context.Context, userID uint) {
 					},
 				})
 			}
+			snapshot.LastTodoRemindAt = now
 		}
 
 		// Hub
 		updatedHubs := []struct {
 			Name string
 			URL  string
+			Logo string
 			New  int
 		}{}
 		for _, c := range connects {
-			lastCount := snapshot.HubCounts[c.ServerURL]
+			lastCount, exists := snapshot.HubCounts[c.ServerURL]
+			if !exists {
+				// 新站点：仅记录基准，不触发通知（与前端 checkHubUpdates 一致）
+				continue
+			}
 			if c.TotalEchos > lastCount {
 				updatedHubs = append(updatedHubs, struct {
 					Name string
 					URL  string
+					Logo string
 					New  int
-				}{Name: c.ServerName, URL: c.ServerURL, New: c.TotalEchos - lastCount})
+				}{Name: c.ServerName, URL: c.ServerURL, Logo: c.Logo, New: c.TotalEchos - lastCount})
 			}
 		}
 
@@ -284,7 +299,18 @@ func (s *PwaService) checkAndNotify(ctx context.Context, userID uint) {
 			}
 
 			if len(updatedHubs) == 1 {
-				body = fmt.Sprintf("发布了 %d 条新内容", updatedHubs[0].New)
+				// 与前端一致：单站更新时先尝试获取最新动态内容
+				latestContent := fetchLatestEchoContent(updatedHubs[0].URL)
+				if latestContent != "" {
+					runes := []rune(latestContent)
+					if len(runes) > 50 {
+						body = string(runes[:50]) + "..."
+					} else {
+						body = latestContent
+					}
+				} else {
+					body = fmt.Sprintf("发布了 %d 条新内容", updatedHubs[0].New)
+				}
 			} else if len(updatedHubs) <= 3 {
 				names := ""
 				for i, h := range updatedHubs {
@@ -295,10 +321,12 @@ func (s *PwaService) checkAndNotify(ctx context.Context, userID uint) {
 				}
 				body = fmt.Sprintf("%s 更新了 %d 条动态", names, totalNew)
 			} else {
-				body = fmt.Sprintf("%s 等 %d 个站点更新了 %d 条动态", updatedHubs[0].Name, len(updatedHubs), totalNew)
+				// 与前端一致：超过3个站点时显示前两个名字
+				firstTwo := updatedHubs[0].Name + "、" + updatedHubs[1].Name
+				body = fmt.Sprintf("%s 等 %d 个站点更新了 %d 条动态", firstTwo, len(updatedHubs), totalNew)
 			}
 
-			_ = s.SendPushNotification(ctx, userID, map[string]interface{}{
+			notification := map[string]interface{}{
 				"title": title,
 				"body":  body,
 				"tag":   "hub-update",
@@ -307,20 +335,87 @@ func (s *PwaService) checkAndNotify(ctx context.Context, userID uint) {
 					"type": "hub",
 				},
 				"renotify": true,
-			})
+			}
+
+			// 与前端一致：单站更新时使用该站的 Logo 作为图标
+			if len(updatedHubs) == 1 && updatedHubs[0].Logo != "" && strings.HasPrefix(updatedHubs[0].Logo, "http") {
+				notification["icon"] = updatedHubs[0].Logo
+			}
+
+			_ = s.SendPushNotification(ctx, userID, notification)
 		}
 	}
 
 	// 4. 保存新快照
-	s.saveSnapshot(ctx, snapshotKey, lastInboxId, lastTodoId, hubCounts)
+	s.saveSnapshot(ctx, snapshotKey, lastInboxId, lastTodoId, snapshot.LastTodoRemindAt, hubCounts)
 }
 
-func (s *PwaService) saveSnapshot(ctx context.Context, key string, inboxId, todoId uint, hubCounts map[string]int) {
+func (s *PwaService) saveSnapshot(ctx context.Context, key string, inboxId, todoId uint, lastTodoRemindAt int64, hubCounts map[string]int) {
 	snap := pwaModel.PwaPushSnapshot{
-		LastInboxId: inboxId,
-		LastTodoId:  todoId,
-		HubCounts:   hubCounts,
+		LastInboxId:      inboxId,
+		LastTodoId:       todoId,
+		LastTodoRemindAt: lastTodoRemindAt,
+		HubCounts:        hubCounts,
 	}
 	bytes, _ := json.Marshal(snap)
 	_ = s.kvRepo.AddOrUpdateKeyValue(ctx, key, string(bytes))
+}
+
+// GetSnapshot 获取用户的推送快照（供前端和 SW 读取）
+func (s *PwaService) GetSnapshot(ctx context.Context, userID uint) (*pwaModel.PwaPushSnapshot, error) {
+	snapshotKey := fmt.Sprintf("%s%d", commonModel.PwaPushSnapshotPrefix, userID)
+	snapshotStr, err := s.kvRepo.GetKeyValue(snapshotKey)
+
+	var snapshot pwaModel.PwaPushSnapshot
+	if err == nil && snapshotStr != nil {
+		_ = json.Unmarshal([]byte(snapshotStr.(string)), &snapshot)
+	} else {
+		snapshot.HubCounts = make(map[string]int)
+	}
+
+	return &snapshot, nil
+}
+
+// UpdateSnapshot 更新用户的推送快照（供前端和 SW 写入）
+func (s *PwaService) UpdateSnapshot(ctx context.Context, userID uint, snapshot *pwaModel.PwaPushSnapshot) error {
+	snapshotKey := fmt.Sprintf("%s%d", commonModel.PwaPushSnapshotPrefix, userID)
+	bytes, _ := json.Marshal(snapshot)
+	return s.kvRepo.AddOrUpdateKeyValue(ctx, snapshotKey, string(bytes))
+}
+
+// fetchLatestEchoContent 获取指定站点的最新一条动态内容
+// 与前端 fetchLatestEchoContent 逻辑一致
+func fetchLatestEchoContent(serverURL string) string {
+	apiURL := httpUtil.TrimURL(serverURL) + "/api/echo/page?page=1&pageSize=1"
+
+	client := &http.Client{Timeout: 3 * time.Second}
+	resp, err := client.Get(apiURL)
+	if err != nil {
+		return ""
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return ""
+	}
+
+	var result struct {
+		Code int `json:"code"`
+		Data struct {
+			Items []struct {
+				Content string `json:"content"`
+			} `json:"items"`
+		} `json:"data"`
+	}
+
+	if err := json.Unmarshal(body, &result); err != nil {
+		return ""
+	}
+
+	if result.Code == 1 && len(result.Data.Items) > 0 {
+		return result.Data.Items[0].Content
+	}
+
+	return ""
 }

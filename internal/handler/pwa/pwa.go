@@ -62,3 +62,30 @@ func (h *PwaHandler) Unsubscribe() gin.HandlerFunc {
 		return res.Response{Msg: "取消订阅成功"}
 	})
 }
+
+// GetSnapshot 获取推送快照
+func (h *PwaHandler) GetSnapshot() gin.HandlerFunc {
+	return res.Execute(func(ctx *gin.Context) res.Response {
+		userid := ctx.MustGet("userid").(uint)
+		snapshot, err := h.pwaService.GetSnapshot(ctx, userid)
+		if err != nil {
+			return res.Response{Err: err}
+		}
+		return res.Response{Data: snapshot}
+	})
+}
+
+// UpdateSnapshot 更新推送快照
+func (h *PwaHandler) UpdateSnapshot() gin.HandlerFunc {
+	return res.Execute(func(ctx *gin.Context) res.Response {
+		userid := ctx.MustGet("userid").(uint)
+		var snapshot pwaModel.PwaPushSnapshot
+		if err := ctx.ShouldBindJSON(&snapshot); err != nil {
+			return res.Response{Err: err}
+		}
+		if err := h.pwaService.UpdateSnapshot(ctx, userid, &snapshot); err != nil {
+			return res.Response{Err: err}
+		}
+		return res.Response{Msg: "更新成功"}
+	})
+}

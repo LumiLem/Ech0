@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import { fetchGetConnectList, fetchGetAllConnectInfo } from '@/service/api'
 import { localStg } from '@/utils/storage'
 import router from '@/router'
+import { usePwaStore } from './pwa'
 
 export const useConnectStore = defineStore('connectStore', () => {
   /**
@@ -100,6 +101,11 @@ export const useConnectStore = defineStore('connectStore', () => {
         if (connect.total_echos > lastCount) {
           totalNewUpdates += (connect.total_echos - lastCount)
           affectedSites++
+        } else if (connect.total_echos < lastCount) {
+          // [重要校准] 如果文章数减少了（如删帖），立刻填平水位线基准
+          // 这样后续任何增长（哪怕没回到原水位）都能触发新通知
+          lastSiteCounts[connect.server_url] = connect.total_echos
+          storageDirty = true
         }
       } else {
         // 新发现的站点，存入记录但不触发红点
@@ -166,6 +172,11 @@ export const useConnectStore = defineStore('connectStore', () => {
 
     hubUpdateCount.value = 0
     hubUpdateSites.value = 0
+
+    // [跨设备同步] 将“已读”后的水位线同步到后端快照
+    // 这样其他设备启动时拉取快照，就能同步红点状态
+    const pwaStore = usePwaStore()
+    pwaStore.pushSnapshotToBackend()
   }
 
   /**
