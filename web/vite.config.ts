@@ -104,7 +104,7 @@ export default defineConfig({
           // 4. 辅助功能与身份清单 (StaleWhileRevalidate): 保证 App 身份识别秒开
           {
             urlPattern: ({ url }) => {
-              const auxApis = ['/api/connect', '/api/passkeys', '/api/getmusic']
+              const auxApis = ['/api/passkeys', '/api/getmusic']
               return auxApis.some(api => url.pathname.startsWith(api)) ||
                 url.pathname.endsWith('.webmanifest')
             },
@@ -158,7 +158,7 @@ export default defineConfig({
           // 6. 动态详情、收件箱等其他读请求
           {
             urlPattern: ({ url }) => {
-              const contentApis = ['/api/echo/', '/api/timeline', '/api/inbox', '/api/heatmap', '/api/todo', '/api/agent/recent']
+              const contentApis = ['/api/echo/', '/api/timeline', '/api/inbox', '/api/heatmap', '/api/todo', '/api/agent/recent', '/api/connect']
               return contentApis.some(api => url.pathname.startsWith(api))
             },
             handler: 'NetworkFirst',

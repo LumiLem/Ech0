@@ -434,7 +434,7 @@ export const usePwaStore = defineStore('pwaStore', () => {
   const pullSnapshotFromBackend = async () => {
     try {
       const token = localStg.getItem('token') || ''
-      if (!token) return
+      if (!token) return null
 
       const res = await fetch('/api/pwa/snapshot', {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -442,23 +442,24 @@ export const usePwaStore = defineStore('pwaStore', () => {
       const json = await res.json()
       if (json?.code === 1 && json.data) {
         const snapshot = json.data
-        // 如果后端有 Hub 计数记录，同步到本地 hubSiteCounts (这就是跨设备红点同步的核心)
+        // 如果后端有 Hub 计数记录，同步到本地 hubSiteCounts
         if (snapshot.hubCounts && Object.keys(snapshot.hubCounts).length > 0) {
           localStg.setItem('hubSiteCounts', snapshot.hubCounts)
-          // 强制触发一次 connectStore 的更新检测
           connectStore.checkHubUpdates()
         }
+        return snapshot
       }
     } catch (e) {
       console.warn('[PWA] Failed to pull snapshot from backend:', e)
     }
+    return null
   }
 
   /**
    * 将当前前台状态同步到后端快照（唯一数据源）
    * 同时将 Token 写入 SW Cache（供 SW periodicsync 使用）
    */
-  const pushSnapshotToBackend = async () => {
+  const pushSnapshotToBackend = async (existingSnapshot?: any) => {
     try {
       const token = localStg.getItem('token') || ''
 
@@ -472,13 +473,18 @@ export const usePwaStore = defineStore('pwaStore', () => {
 
       if (!token) return
 
-      // 构造当前 Hub 计数快照
+      // 3. 构造快照数据
+      // 注意：仅当站点信息已加载时才尝试更新 hubCounts。
+      // 若列表为空（如刚刷新页面），我们保留现有快照中的 hubCounts。
       const hubCounts: Record<string, number> = {}
-      connectStore.connectsInfo.forEach(s => {
-        hubCounts[s.server_url] = s.total_echos
-      })
+      let hubUpdateEnabled = false
+      if (connectStore.connectsInfo.length > 0) {
+        connectStore.connectsInfo.forEach(s => {
+          hubCounts[s.server_url] = s.total_echos
+        })
+        hubUpdateEnabled = true
+      }
 
-      // 2. 获取当前内存中的最高 ID
       const currentHighestInboxId = inboxStore.unreadItems?.length > 0
         ? Math.max(...inboxStore.unreadItems.map(i => i.id))
         : 0
@@ -487,22 +493,24 @@ export const usePwaStore = defineStore('pwaStore', () => {
         ? Math.max(...todoStore.todos.map(t => t.id))
         : 0
 
-      // 3. 先读取后端现有快照，保留上次提醒时间戳并确保 ID 水位线不倒退
-      let existingSnapshot: any = {}
-      try {
-        const res = await fetch('/api/pwa/snapshot', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
-        const json = await res.json()
-        if (json?.code === 1) existingSnapshot = json.data || {}
-      } catch { /* 忽略读取失败 */ }
+      // 3. 获取后端现有快照（用于水位线对比）
+      let existing = existingSnapshot
+      if (!existing) {
+        try {
+          const res = await fetch('/api/pwa/snapshot', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          })
+          const json = await res.json()
+          if (json?.code === 1) existing = json.data || {}
+        } catch { existing = {} }
+      }
 
       // 4. 合并并写回后端 (水位线单调递增)
       const snapshot = {
-        lastInboxId: Math.max(existingSnapshot.lastInboxId || 0, currentHighestInboxId),
-        lastTodoId: Math.max(existingSnapshot.lastTodoId || 0, currentHighestTodoId),
-        lastTodoRemindAt: existingSnapshot.lastTodoRemindAt || 0,
-        hubCounts,
+        lastInboxId: Math.max(existing.lastInboxId || 0, currentHighestInboxId),
+        lastTodoId: Math.max(existing.lastTodoId || 0, currentHighestTodoId),
+        lastTodoRemindAt: existing.lastTodoRemindAt || 0,
+        hubCounts: hubUpdateEnabled ? hubCounts : (existing.hubCounts || {}),
       }
 
       await fetch('/api/pwa/snapshot', {
@@ -579,7 +587,7 @@ export const usePwaStore = defineStore('pwaStore', () => {
    * 初始化 PWA Store
    * 应在应用启动时调用
    */
-  const init = () => {
+  const init = async () => {
     // 检测设备和浏览器
     detectPlatform()
 
@@ -741,11 +749,10 @@ export const usePwaStore = defineStore('pwaStore', () => {
       badgeCount: totalBadgeCount.value,
     })
 
-    // 同步初始状态到 SW 缓存，防止重推
-    pushSnapshotToBackend()
-
-    // 拉取后端快照对齐红点水位线 (跨设备同步)
-    pullSnapshotFromBackend()
+    // [核心同步链] 严格串行执行：拉取 -> 使用拉取回的数据推回
+    // 这样既保证了红点对齐，又保证了写回时的 ID 水位线参考的是最新值
+    const latestSnapshot = await pullSnapshotFromBackend()
+    await pushSnapshotToBackend(latestSnapshot)
 
     // 监听网络状态变化
     window.addEventListener('online', () => {
