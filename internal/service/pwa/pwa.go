@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 
 	"github.com/SherClockHolmes/webpush-go"
 	commonModel "github.com/lin-snow/ech0/internal/model/common"
@@ -115,15 +116,23 @@ func (s *PwaService) SendPushNotification(ctx context.Context, userID uint, payl
 			continue
 		}
 
-		fmt.Printf("[PWA Push] Successfully sent notification to user %d, endpoint: %s, status: %d, payload: %s\n", userID, sub.Endpoint, resp.StatusCode, string(payloadBytes))
+		// 读取响应体（Apple 等推送服务会在非 2xx 时返回 {"reason":"..."} 的 JSON）
+		respBody, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+
+		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+			fmt.Printf("[PWA Push] ✅ 推送成功 user=%d endpoint=%s status=%d payload=%s\n",
+				userID, sub.Endpoint, resp.StatusCode, string(payloadBytes))
+		} else {
+			fmt.Printf("[PWA Push] ❌ 推送失败 user=%d endpoint=%s status=%d reason=%s payload=%s\n",
+				userID, sub.Endpoint, resp.StatusCode, string(respBody), string(payloadBytes))
+		}
 
 		// 如果返回 410 Gone 或 404 Not Found，说明订阅已失效，从数据库移除
 		if resp.StatusCode == 410 || resp.StatusCode == 404 {
 			_ = s.pwaRepo.DeleteSubscription(ctx, sub.Endpoint)
-			fmt.Printf("WebPush subscription expired for %s, removed.\n", sub.Endpoint)
+			fmt.Printf("[PWA Push] 🗑️ 已清除失效订阅: %s\n", sub.Endpoint)
 		}
-
-		resp.Body.Close()
 	}
 
 	return nil
