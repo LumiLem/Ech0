@@ -114,7 +114,7 @@ func (s *PwaService) SendPushNotification(ctx context.Context, userID uint, payl
 			Subscriber:      "ech0@lumlime.cn", // webpush-go 库会自动添加 mailto: 前缀
 			VAPIDPublicKey:  pubKey,
 			VAPIDPrivateKey: privKey,
-			TTL:             30,
+			TTL:             43200, // 12 小时：如果设备离线，推送服务器会帮忙缓存并重试
 		})
 
 		if err != nil {

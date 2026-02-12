@@ -91,6 +91,27 @@ export const usePwaStore = defineStore('pwaStore', () => {
   const isOnline = ref(navigator.onLine)
 
   // ================================================================
+  // Device Notified State - 记录本设备真正弹过通知的水位
+  // 必须持久化，用于判定 WebPush 是否由于各种原因在本地遗失
+  // ================================================================
+  const getLocalNotifiedState = () => {
+    return {
+      hubs: localStg.getItem<Record<string, number>>('pwa_notified_hubs') || {},
+      inboxId: localStg.getItem<number>('pwa_notified_inbox_id') || 0,
+      todoId: localStg.getItem<number>('pwa_notified_todo_id') || 0
+    }
+  }
+
+  const sessionNotifiedHubs = ref<Record<string, number>>(getLocalNotifiedState().hubs)
+  const sessionNotifiedInboxId = ref(getLocalNotifiedState().inboxId)
+  const sessionNotifiedTodoId = ref(getLocalNotifiedState().todoId)
+
+  /**
+   * 标记通知系统是否已经完成了初始对账
+   */
+  const isNotificationReady = ref(false)
+
+  // ================================================================
   // Stores - 关联的 Store
   // ================================================================
   const inboxStore = useInboxStore()
@@ -448,6 +469,10 @@ export const usePwaStore = defineStore('pwaStore', () => {
           localStg.setItem('hubSiteCounts', snapshot.readHubCounts)
           connectStore.checkHubUpdates()
         }
+
+        // [完美补位逻辑] 这里不再覆盖本地 sessionNotified，而是让 Watcher 自己去跟本地持久化记录比
+        // 这样如果 WebPush 推送成功但“本地没响”，前端依然会因为本地记录落后而补发通知
+
         return snapshot
       }
     } catch (e) {
@@ -519,6 +544,24 @@ export const usePwaStore = defineStore('pwaStore', () => {
           ? (hubUpdateEnabled ? hubCounts : (existing.readHubCounts || {}))
           : (existing.readHubCounts || {}),
         notifiedHubCounts: hubUpdateEnabled ? hubCounts : (existing.notifiedHubCounts || {}),
+      }
+
+      // [核心优化] 仅当用户手动已读(read)时，才立刻推平本设备的“本地记忆”。
+      // 如果是初始化(init)，我们只同步服务器，但不应该推平本地记忆，
+      // 否则接下来的 checkAndTriggerNotifications 会因为“本地记忆已满”而漏掉补位弹窗。
+      if (trigger === 'read') {
+        if (hubUpdateEnabled) {
+          sessionNotifiedHubs.value = { ...hubCounts }
+          localStg.setItem('pwa_notified_hubs', hubCounts)
+        }
+        if (currentHighestInboxId > 0) {
+          sessionNotifiedInboxId.value = Math.max(sessionNotifiedInboxId.value, currentHighestInboxId)
+          localStg.setItem('pwa_notified_inbox_id', sessionNotifiedInboxId.value)
+        }
+        if (currentHighestTodoId > 0) {
+          sessionNotifiedTodoId.value = Math.max(sessionNotifiedTodoId.value, currentHighestTodoId)
+          localStg.setItem('pwa_notified_todo_id', sessionNotifiedTodoId.value)
+        }
       }
 
       await fetch('/api/pwa/snapshot', {
@@ -611,14 +654,6 @@ export const usePwaStore = defineStore('pwaStore', () => {
     // 监听安装完成事件
     window.addEventListener('appinstalled', handleAppInstalled)
 
-    // 监听总数变化并更新角标
-    watch(
-      totalBadgeCount,
-      (count) => {
-        refreshBadge(count)
-      },
-      { immediate: true },
-    )
 
     // 如果通知权限已授予，尝试注册周期性同步
     if (notificationPermission.value === 'granted') {
@@ -627,25 +662,21 @@ export const usePwaStore = defineStore('pwaStore', () => {
     }
 
 
-    // 监听 Hub 更新并触发通知
-    watch(
-      () => connectStore.hubUpdateCount,
-      async (newCount, oldCount) => {
-        // 1. 仅在红点数量增加时触发尝试
-        if (newCount > (oldCount || 0)) {
-          // [优化] 前台也参考“已通知水位线”，防止重复弹窗
-          // 如果后台任务或 SW 刚刚推过，前台就不再“叮”一次
-          const snapshot = await pullSnapshotFromBackend()
-          const notifiedCounts = snapshot?.notifiedHubCounts || {}
+    /**
+     * 检查并触发所有类型的通知 (Hub, Inbox, Todo)
+     * 用于 App 启动瞬间的自动补位对账
+     */
+    const checkAndTriggerNotifications = async () => {
+      if (!isNotificationReady.value) return
 
-          // 判定触发：是否有站点有了比“上次通知”还要新的内容？
-          const needNotify = connectStore.connectsInfo.some(
-            (s) => s.total_echos > (notifiedCounts[s.server_url] || 0),
-          )
+      // 1. Hub 补偿
+      const hubCount = connectStore.hubUpdateCount || 0
+      if (hubCount > 0) {
+        const needSessionNotify = connectStore.connectsInfo.some(
+          (s) => s.total_echos > (sessionNotifiedHubs.value[s.server_url] || 0),
+        )
 
-          if (!needNotify) return
-
-          // 2. 文案构建：由“已读水位线”决定，汇总所有真正未读的站点
+        if (needSessionNotify) {
           const lastSiteCounts = localStg.getItem<Record<string, number>>('hubSiteCounts') || {}
           const updates = connectStore.connectsInfo.filter(
             (s) => s.total_echos > (lastSiteCounts[s.server_url] || 0),
@@ -653,7 +684,8 @@ export const usePwaStore = defineStore('pwaStore', () => {
 
           if (updates.length > 0) {
             const first = updates[0]!
-            const title = updates.length === 1 ? `✨ ${first.server_name} 发布了新动态` : '✨ Hub 发现了新动态'
+            const title =
+              updates.length === 1 ? `✨ ${first.server_name} 发布了新动态` : '✨ Hub 发现了新动态'
 
             let body = ''
             if (updates.length === 1) {
@@ -677,16 +709,9 @@ export const usePwaStore = defineStore('pwaStore', () => {
               }
             }
 
-            let dynamicIcon: string | undefined
-            if (updates.length === 1 && first.logo) {
-              if (first.logo.startsWith('http')) {
-                dynamicIcon = first.logo
-              }
-            }
-
             showNotification(title, {
               body,
-              icon: dynamicIcon,
+              icon: (updates.length === 1 && first.logo?.startsWith('http')) ? first.logo : undefined,
               tag: 'hub-update',
               renotify: true,
               url: '/hub',
@@ -694,53 +719,44 @@ export const usePwaStore = defineStore('pwaStore', () => {
               data: { type: 'hub' },
             } as any)
 
-            // 同步最新状态到后端快照（仅作为已报水位线），红点仍处理保留状态
+            const newHubs = { ...sessionNotifiedHubs.value }
+            connectStore.connectsInfo.forEach((s) => {
+              newHubs[s.server_url] = s.total_echos
+            })
+            sessionNotifiedHubs.value = newHubs
+            localStg.setItem('pwa_notified_hubs', newHubs)
             pushSnapshotToBackend(undefined, 'notify')
           }
         }
-      },
-    )
+      }
 
-    // 监听收件箱更新并触发通知
-    watch(
-      () => inboxStore.unreadItems,
-      (newList, oldList) => {
-        // 初始加载或列表缩减时不触发通知
-        if (!oldList || newList.length <= oldList.length) return
+      // 2. Inbox 补偿
+      const unreadInboxes = inboxStore.unreadItems || []
+      if (unreadInboxes.length > 0) {
+        const pending = unreadInboxes.filter((item) => item.id > sessionNotifiedInboxId.value)
+        if (pending.length > 0) {
+          pending.forEach((item) => {
+            showNotification(`📩 来自 ${item.source} 的新消息`, {
+              body: item.content,
+              tag: `inbox-${item.id}`,
+              url: '/?mode=inbox',
+              vibrate: [200, 100, 200],
+              actions: [{ action: 'inbox-read', title: '设为已读' }],
+              data: { type: 'inbox', inboxId: item.id },
+            } as any)
+          })
+          sessionNotifiedInboxId.value = Math.max(...pending.map((i) => i.id))
+          localStg.setItem('pwa_notified_inbox_id', sessionNotifiedInboxId.value)
+          pushSnapshotToBackend()
+        }
+      }
 
-        const oldIds = new Set(oldList.map((i) => i.id))
-        const added = newList.filter((i) => !oldIds.has(i.id))
-
-        added.forEach((item) => {
-          showNotification(`📩 来自 ${item.source} 的新消息`, {
-            body: item.content,
-            tag: `inbox-${item.id}`,
-            url: '/?mode=inbox',
-            vibrate: [200, 100, 200],
-            actions: [{ action: 'inbox-read', title: '设为已读' }],
-            data: { type: 'inbox', inboxId: item.id },
-          } as any)
-        })
-
-        // 同步状态到 SW，避免 periodicsync 重复推送
-        pushSnapshotToBackend()
-      },
-      { deep: true },
-    )
-
-    // 监听待办事项更新并触发通知
-    watch(
-      () => todoStore.todos,
-      (newList, oldList) => {
-        const newIncomplete = newList.filter((t) => t.status === 0)
-        const oldIncomplete = (oldList || []).filter((t) => t.status === 0)
-
-        // 仅在未完成项增加时触发
-        if (newIncomplete.length > oldIncomplete.length) {
-          const oldIds = new Set(oldIncomplete.map((t) => t.id))
-          const added = newIncomplete.filter((t) => !oldIds.has(t.id))
-
-          added.forEach((todo) => {
+      // 3. Todo 补偿
+      const incompleteTodos = todoStore.todos?.filter((t) => t.status === 0) || []
+      if (incompleteTodos.length > 0) {
+        const pending = incompleteTodos.filter((t) => t.id > sessionNotifiedTodoId.value)
+        if (pending.length > 0) {
+          pending.forEach((todo) => {
             showNotification('📋 待办事项提醒', {
               body: todo.content,
               tag: `todo-${todo.id}`,
@@ -750,13 +766,22 @@ export const usePwaStore = defineStore('pwaStore', () => {
               data: { type: 'todo', todoId: todo.id },
             } as any)
           })
-
-          // 同步状态到 SW，避免 periodicsync 重复推送
+          sessionNotifiedTodoId.value = Math.max(...pending.map((t) => t.id))
+          localStg.setItem('pwa_notified_todo_id', sessionNotifiedTodoId.value)
           pushSnapshotToBackend()
         }
-      },
-      { deep: true },
-    )
+      }
+    }
+
+    // ================================================================
+    // Watchers - 响应式监听 (只需调用统一检查逻辑)
+    // ================================================================
+    watch(() => connectStore.hubUpdateCount, () => checkAndTriggerNotifications())
+    watch(() => inboxStore.unreadItems, () => checkAndTriggerNotifications(), { deep: true })
+    watch(() => todoStore.todos, () => checkAndTriggerNotifications(), { deep: true })
+
+    // 监听总角标数量变化并实时更新应用图标角标 (Foreground Badge Sync)
+    watch(totalBadgeCount, (count) => refreshBadge(count), { immediate: true })
 
     // 更新访问计数
     updateVisitCount()
@@ -776,6 +801,10 @@ export const usePwaStore = defineStore('pwaStore', () => {
     // 这样既保证了红点对齐，又保证了写回时的 ID 水位线参考的是最新值
     const latestSnapshot = await pullSnapshotFromBackend()
     await pushSnapshotToBackend(latestSnapshot, 'init')
+
+    // [关键步] 此时标记为就绪，并手动触发一次对账检查
+    isNotificationReady.value = true
+    checkAndTriggerNotifications()
 
     // 监听网络状态变化
     window.addEventListener('online', () => {
