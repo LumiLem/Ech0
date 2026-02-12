@@ -80,25 +80,26 @@ func (s *PwaService) getOrGenerateVapidKeys(ctx context.Context) (pub string, er
 	return pub, nil
 }
 
-func (s *PwaService) SendPushNotification(ctx context.Context, userID uint, payload interface{}) error {
+func (s *PwaService) SendPushNotification(ctx context.Context, userID uint, payload interface{}) (bool, error) {
 	subs, err := s.pwaRepo.GetSubscriptionsByUserId(ctx, userID)
 	if err != nil || len(subs) == 0 {
-		return err
+		return false, err
 	}
 
 	privKeyVal, err := s.kvRepo.GetKeyValue(commonModel.VapidPrivateKeyKey)
 	if err != nil {
-		return err
+		return false, err
 	}
 	privKey := privKeyVal.(string)
 
 	pubKeyVal, err := s.kvRepo.GetKeyValue(commonModel.VapidPublicKeyKey)
 	if err != nil {
-		return err
+		return false, err
 	}
 	pubKey := pubKeyVal.(string)
 
 	payloadBytes, _ := json.Marshal(payload)
+	atLeastOneSuccess := false
 
 	for _, sub := range subs {
 		pushSub := &webpush.Subscription{
@@ -126,6 +127,7 @@ func (s *PwaService) SendPushNotification(ctx context.Context, userID uint, payl
 		resp.Body.Close()
 
 		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+			atLeastOneSuccess = true
 			fmt.Printf("[PWA Push] ✅ 推送成功 user=%d endpoint=%s status=%d payload=%s\n",
 				userID, sub.Endpoint, resp.StatusCode, string(payloadBytes))
 		} else {
@@ -140,7 +142,7 @@ func (s *PwaService) SendPushNotification(ctx context.Context, userID uint, payl
 		}
 	}
 
-	return nil
+	return atLeastOneSuccess, nil
 }
 
 func (s *PwaService) ObserverTaskLogic(ctx context.Context) error {
@@ -226,13 +228,14 @@ func (s *PwaService) checkAndNotify(ctx context.Context, userID uint, connects [
 	// 3. 对齐逻辑并推送
 	if !isFirstTime {
 		// Inbox
+		currentInboxId := snapshot.LastInboxId
 		for _, item := range unreadInboxes {
 			if item.ID > snapshot.LastInboxId {
 				body := item.Content
 				if len(body) > 100 {
 					body = body[:97] + "..."
 				}
-				_ = s.SendPushNotification(ctx, userID, map[string]interface{}{
+				ok, _ := s.SendPushNotification(ctx, userID, map[string]interface{}{
 					"title": fmt.Sprintf("📩 来自 %s 的新消息", item.Source),
 					"body":  body,
 					"tag":   fmt.Sprintf("inbox-%d", item.ID),
@@ -245,15 +248,25 @@ func (s *PwaService) checkAndNotify(ctx context.Context, userID uint, connects [
 						{"action": "inbox-read", "title": "设为已读"},
 					},
 				})
+				// 只有当至少一个设备推送成功时，才更新水位线
+				// 这样如果国内网络超时由于没有 2xx，水位不走，PeriodicSync 稍后还能抓到
+				if ok {
+					currentInboxId = item.ID
+				} else {
+					// 如果超时了，这一批后面的也不试了，等下次 Task 或 SW 补位
+					break
+				}
 			}
 		}
+		snapshot.LastInboxId = currentInboxId
 
 		// Todo: 未完成待办每 4 小时提醒一次（新增待办由前台通知处理）
 		const todoRemindInterval int64 = 4 * 60 * 60 // 4 小时（秒）
 		now := time.Now().Unix()
 		if len(incompleteTodos) > 0 && (now-snapshot.LastTodoRemindAt >= todoRemindInterval) {
+			success := false
 			for _, item := range incompleteTodos {
-				_ = s.SendPushNotification(ctx, userID, map[string]interface{}{
+				ok, _ := s.SendPushNotification(ctx, userID, map[string]interface{}{
 					"title":    "⏰ 待办事项未完成",
 					"body":     item.Content,
 					"tag":      fmt.Sprintf("todo-%d", item.ID),
@@ -267,8 +280,14 @@ func (s *PwaService) checkAndNotify(ctx context.Context, userID uint, connects [
 						{"action": "todo-done", "title": "完成任务"},
 					},
 				})
+				if ok {
+					success = true
+				}
 			}
-			snapshot.LastTodoRemindAt = now
+			// 只有推送成功了，才更新上次播报时间
+			if success {
+				snapshot.LastTodoRemindAt = now
+			}
 		}
 
 		// Hub 推送判断逻辑：
@@ -358,13 +377,20 @@ func (s *PwaService) checkAndNotify(ctx context.Context, userID uint, connects [
 					notification["icon"] = unreadHubs[0].Logo
 				}
 
-				_ = s.SendPushNotification(ctx, userID, notification)
+				ok, _ := s.SendPushNotification(ctx, userID, notification)
+				// [优化核心点]：只有推送成功确达了，才更新服务器上的 Notified 水位线
+				// 这解决了后端 WebPush 在国内超时导致更新水位，进而屏蔽了本地 PeriodicSync 的问题
+				if ok {
+					for _, c := range connects {
+						snapshot.NotifiedHubCounts[c.ServerURL] = c.TotalEchos
+					}
+				}
 			}
 		}
 	}
 
-	// 4. 保存新快照 (更新后的 NotifiedHubCounts)
-	s.saveSnapshot(ctx, snapshotKey, lastInboxId, lastTodoId, snapshot.LastTodoRemindAt, snapshot.ReadHubCounts, snapshot.NotifiedHubCounts)
+	// 4. 保存新快照 (只有在成功推送后更新的字段才会持久化)
+	s.saveSnapshot(ctx, snapshotKey, snapshot.LastInboxId, snapshot.LastTodoId, snapshot.LastTodoRemindAt, snapshot.ReadHubCounts, snapshot.NotifiedHubCounts)
 }
 
 func (s *PwaService) saveSnapshot(ctx context.Context, key string, inboxId, todoId uint, lastTodoRemindAt int64, readCounts, notifiedCounts map[string]int) {
