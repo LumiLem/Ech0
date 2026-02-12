@@ -271,91 +271,95 @@ func (s *PwaService) checkAndNotify(ctx context.Context, userID uint, connects [
 			snapshot.LastTodoRemindAt = now
 		}
 
-		// Hub
-		updatedHubs := []struct {
-			Name string
-			URL  string
-			Logo string
-			New  int
-		}{}
+		// Hub 推送判断逻辑：
+		// 1. 触发判断：只要有任何一个站点有了比“上次通知”更细的内容，就触发推送。
+		// 2. 文案构建：由“已读水位线”决定。这样当 A 更新后 B 再更新，B 的通知会自动包含你还没读的 A，
+		//    由于 PWA 通知使用相同的 tag 会覆盖旧的，这样用户始终能看到所有未读站点的汇总。
+		needNotify := false
 		for _, c := range connects {
-			lastCount, exists := snapshot.NotifiedHubCounts[c.ServerURL]
-			if !exists {
-				// 新站点：仅记录基准，不触发通知
-				continue
-			}
-			if c.TotalEchos > lastCount {
-				updatedHubs = append(updatedHubs, struct {
-					Name string
-					URL  string
-					Logo string
-					New  int
-				}{Name: c.ServerName, URL: c.ServerURL, Logo: c.Logo, New: c.TotalEchos - lastCount})
-				// 更新通知水位线
-				snapshot.NotifiedHubCounts[c.ServerURL] = c.TotalEchos
-			} else if c.TotalEchos < lastCount {
-				// 自动下调校准
-				snapshot.NotifiedHubCounts[c.ServerURL] = c.TotalEchos
+			lastNotifiedCount := snapshot.NotifiedHubCounts[c.ServerURL]
+			if c.TotalEchos > lastNotifiedCount {
+				needNotify = true
+				break
 			}
 		}
 
-		if len(updatedHubs) > 0 {
-			title := "✨ Hub 发现了新动态"
-			if len(updatedHubs) == 1 {
-				title = fmt.Sprintf("✨ %s 发布了新动态", updatedHubs[0].Name)
+		if needNotify {
+			unreadHubs := []struct {
+				Name string
+				URL  string
+				Logo string
+				New  int
+			}{}
+			for _, c := range connects {
+				lastReadCount := snapshot.ReadHubCounts[c.ServerURL]
+				if c.TotalEchos > lastReadCount {
+					unreadHubs = append(unreadHubs, struct {
+						Name string
+						URL  string
+						Logo string
+						New  int
+					}{Name: c.ServerName, URL: c.ServerURL, Logo: c.Logo, New: c.TotalEchos - lastReadCount})
+				}
+				// 同步更新通知水位线
+				snapshot.NotifiedHubCounts[c.ServerURL] = c.TotalEchos
 			}
 
-			var body string
-			totalNew := 0
-			for _, h := range updatedHubs {
-				totalNew += h.New
-			}
+			if len(unreadHubs) > 0 {
+				title := "✨ Hub 发现了新动态"
+				if len(unreadHubs) == 1 {
+					title = fmt.Sprintf("✨ %s 发布了新动态", unreadHubs[0].Name)
+				}
 
-			if len(updatedHubs) == 1 {
-				// 与前端一致：单站更新时先尝试获取最新动态内容
-				latestContent := fetchLatestEchoContent(updatedHubs[0].URL)
-				if latestContent != "" {
-					runes := []rune(latestContent)
-					if len(runes) > 50 {
-						body = string(runes[:50]) + "..."
+				var body string
+				totalNew := 0
+				for _, h := range unreadHubs {
+					totalNew += h.New
+				}
+
+				if len(unreadHubs) == 1 {
+					latestContent := fetchLatestEchoContent(unreadHubs[0].URL)
+					if latestContent != "" {
+						runes := []rune(latestContent)
+						if len(runes) > 50 {
+							body = string(runes[:50]) + "..."
+						} else {
+							body = latestContent
+						}
 					} else {
-						body = latestContent
+						body = fmt.Sprintf("发布了 %d 条新内容", unreadHubs[0].New)
 					}
+				} else if len(unreadHubs) <= 3 {
+					names := ""
+					for i, h := range unreadHubs {
+						if i > 0 {
+							names += "、"
+						}
+						names += h.Name
+					}
+					body = fmt.Sprintf("%s 更新了 %d 条动态", names, totalNew)
 				} else {
-					body = fmt.Sprintf("发布了 %d 条新内容", updatedHubs[0].New)
+					firstTwo := unreadHubs[0].Name + "、" + unreadHubs[1].Name
+					body = fmt.Sprintf("%s 等 %d 个站点更新了 %d 条动态", firstTwo, len(unreadHubs), totalNew)
 				}
-			} else if len(updatedHubs) <= 3 {
-				names := ""
-				for i, h := range updatedHubs {
-					if i > 0 {
-						names += "、"
-					}
-					names += h.Name
+
+				notification := map[string]interface{}{
+					"title": title,
+					"body":  body,
+					"tag":   "hub-update",
+					"data": map[string]interface{}{
+						"url":  "/hub",
+						"type": "hub",
+					},
+					"renotify": true,
 				}
-				body = fmt.Sprintf("%s 更新了 %d 条动态", names, totalNew)
-			} else {
-				// 与前端一致：超过3个站点时显示前两个名字
-				firstTwo := updatedHubs[0].Name + "、" + updatedHubs[1].Name
-				body = fmt.Sprintf("%s 等 %d 个站点更新了 %d 条动态", firstTwo, len(updatedHubs), totalNew)
-			}
 
-			notification := map[string]interface{}{
-				"title": title,
-				"body":  body,
-				"tag":   "hub-update",
-				"data": map[string]interface{}{
-					"url":  "/hub",
-					"type": "hub",
-				},
-				"renotify": true,
-			}
+				if len(unreadHubs) == 1 && unreadHubs[0].Logo != "" && strings.HasPrefix(unreadHubs[0].Logo, "http") {
+					notification["icon"] = unreadHubs[0].Logo
+				}
 
-			// 与前端一致：单站更新时使用该站的 Logo 作为图标
-			if len(updatedHubs) == 1 && updatedHubs[0].Logo != "" && strings.HasPrefix(updatedHubs[0].Logo, "http") {
-				notification["icon"] = updatedHubs[0].Logo
+				_ = s.SendPushNotification(ctx, userID, notification)
 			}
-
-			_ = s.SendPushNotification(ctx, userID, notification)
 		}
 	}
 
@@ -436,12 +440,7 @@ func (s *PwaService) GetAggregatedStatus(ctx context.Context, userID uint) (*pwa
 
 	// 3. 计算 Hub 差异
 	hubDiff := 0
-	updatedHubs := []struct {
-		Name string
-		URL  string
-		Logo string
-		New  int
-	}{}
+	needNotify := false
 	for _, c := range connects {
 		lastRead := snapshot.ReadHubCounts[c.ServerURL]
 		if c.TotalEchos > lastRead {
@@ -450,15 +449,33 @@ func (s *PwaService) GetAggregatedStatus(ctx context.Context, userID uint) (*pwa
 
 		lastNotified := snapshot.NotifiedHubCounts[c.ServerURL]
 		if c.TotalEchos > lastNotified {
-			updatedHubs = append(updatedHubs, struct {
-				Name string
-				URL  string
-				Logo string
-				New  int
-			}{Name: c.ServerName, URL: c.ServerURL, Logo: c.Logo, New: c.TotalEchos - lastNotified})
+			needNotify = true
 		}
 	}
 	res.HubDiff = hubDiff
+
+	// 触发通知的 Hub 列表构建 (由 ReadHubCounts 决定)
+	unreadHubs := []struct {
+		Name string
+		URL  string
+		Logo string
+		New  int
+	}{}
+	if needNotify {
+		for _, c := range connects {
+			lastRead := snapshot.ReadHubCounts[c.ServerURL]
+			if c.TotalEchos > lastRead {
+				unreadHubs = append(unreadHubs, struct {
+					Name string
+					URL  string
+					Logo string
+					New  int
+				}{Name: c.ServerName, URL: c.ServerURL, Logo: c.Logo, New: c.TotalEchos - lastRead})
+			}
+			// 同步更新通知水位线
+			snapshot.NotifiedHubCounts[c.ServerURL] = c.TotalEchos
+		}
+	}
 
 	// 4. 构建通知内容 (Inbox)
 	for _, item := range unreadInboxes {
@@ -505,22 +522,22 @@ func (s *PwaService) GetAggregatedStatus(ctx context.Context, userID uint) (*pwa
 	}
 
 	// 6. 构建通知内容 (Hub)
-	if len(updatedHubs) > 0 {
+	if needNotify && len(unreadHubs) > 0 {
 		res.HasUpdate = true
 		title := "✨ Hub 发现了新动态"
-		if len(updatedHubs) == 1 {
-			title = fmt.Sprintf("✨ %s 发布了新动态", updatedHubs[0].Name)
+		if len(unreadHubs) == 1 {
+			title = fmt.Sprintf("✨ %s 发布了新动态", unreadHubs[0].Name)
 		}
 
 		var body string
 		totalNew := 0
-		for _, h := range updatedHubs {
+		for _, h := range unreadHubs {
 			totalNew += h.New
 		}
 
 		icon := "/icons/notification-hub.png"
-		if len(updatedHubs) == 1 {
-			latestContent := fetchLatestEchoContent(updatedHubs[0].URL)
+		if len(unreadHubs) == 1 {
+			latestContent := fetchLatestEchoContent(unreadHubs[0].URL)
 			if latestContent != "" {
 				runes := []rune(latestContent)
 				if len(runes) > 50 {
@@ -529,14 +546,14 @@ func (s *PwaService) GetAggregatedStatus(ctx context.Context, userID uint) (*pwa
 					body = latestContent
 				}
 			} else {
-				body = fmt.Sprintf("发布了 %d 条新内容", updatedHubs[0].New)
+				body = fmt.Sprintf("发布了 %d 条新内容", unreadHubs[0].New)
 			}
-			if updatedHubs[0].Logo != "" && strings.HasPrefix(updatedHubs[0].Logo, "http") {
-				icon = updatedHubs[0].Logo
+			if unreadHubs[0].Logo != "" && strings.HasPrefix(unreadHubs[0].Logo, "http") {
+				icon = unreadHubs[0].Logo
 			}
-		} else if len(updatedHubs) <= 3 {
+		} else if len(unreadHubs) <= 3 {
 			names := ""
-			for i, h := range updatedHubs {
+			for i, h := range unreadHubs {
 				if i > 0 {
 					names += "、"
 				}
@@ -544,8 +561,8 @@ func (s *PwaService) GetAggregatedStatus(ctx context.Context, userID uint) (*pwa
 			}
 			body = fmt.Sprintf("%s 更新了 %d 条动态", names, totalNew)
 		} else {
-			firstTwo := updatedHubs[0].Name + "、" + updatedHubs[1].Name
-			body = fmt.Sprintf("%s 等 %d 个站点更新了 %d 条动态", firstTwo, len(updatedHubs), totalNew)
+			firstTwo := unreadHubs[0].Name + "、" + unreadHubs[1].Name
+			body = fmt.Sprintf("%s 等 %d 个站点更新了 %d 条动态", firstTwo, len(unreadHubs), totalNew)
 		}
 
 		res.Notifications = append(res.Notifications, pwaModel.PwaNotification{
@@ -558,11 +575,6 @@ func (s *PwaService) GetAggregatedStatus(ctx context.Context, userID uint) (*pwa
 				"type": "hub",
 			},
 		})
-
-		// 更新快照中的通知水位线
-		for _, c := range connects {
-			snapshot.NotifiedHubCounts[c.ServerURL] = c.TotalEchos
-		}
 	}
 
 	// 7. 更新快照 (如果内容发生了变化，且是后端触发的通知)

@@ -631,9 +631,21 @@ export const usePwaStore = defineStore('pwaStore', () => {
     watch(
       () => connectStore.hubUpdateCount,
       async (newCount, oldCount) => {
-        // 仅在更新数量增加时触发通知
+        // 1. 仅在红点数量增加时触发尝试
         if (newCount > (oldCount || 0)) {
-          // 使用红点基准来过滤有更新的站点
+          // [优化] 前台也参考“已通知水位线”，防止重复弹窗
+          // 如果后台任务或 SW 刚刚推过，前台就不再“叮”一次
+          const snapshot = await pullSnapshotFromBackend()
+          const notifiedCounts = snapshot?.notifiedHubCounts || {}
+
+          // 判定触发：是否有站点有了比“上次通知”还要新的内容？
+          const needNotify = connectStore.connectsInfo.some(
+            (s) => s.total_echos > (notifiedCounts[s.server_url] || 0),
+          )
+
+          if (!needNotify) return
+
+          // 2. 文案构建：由“已读水位线”决定，汇总所有真正未读的站点
           const lastSiteCounts = localStg.getItem<Record<string, number>>('hubSiteCounts') || {}
           const updates = connectStore.connectsInfo.filter(
             (s) => s.total_echos > (lastSiteCounts[s.server_url] || 0),
@@ -652,7 +664,10 @@ export const usePwaStore = defineStore('pwaStore', () => {
                   : latestContent
                 : `发布了 ${first.total_echos - (lastSiteCounts[first.server_url] || 0)} 条新内容`
             } else {
-              const totalNewEchos = updates.reduce((sum, s) => sum + (s.total_echos - (lastSiteCounts[s.server_url] || 0)), 0)
+              const totalNewEchos = updates.reduce(
+                (sum, s) => sum + (s.total_echos - (lastSiteCounts[s.server_url] || 0)),
+                0,
+              )
               if (updates.length <= 3) {
                 const names = updates.map((s) => s.server_name).join('、')
                 body = `${names} 更新了 ${totalNewEchos} 条动态`
@@ -679,7 +694,7 @@ export const usePwaStore = defineStore('pwaStore', () => {
               data: { type: 'hub' },
             } as any)
 
-            // 同步最新状态到后端快照（仅作为已报水位线），红点仍保留
+            // 同步最新状态到后端快照（仅作为已报水位线），红点仍处理保留状态
             pushSnapshotToBackend(undefined, 'notify')
           }
         }
