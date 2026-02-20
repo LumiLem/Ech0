@@ -15,7 +15,11 @@
       </div>
 
       <div v-if="echo" class="w-full sm:mt-1 mx-auto">
-        <TheEchoDetail :echo="echo" @update-like-count="handleUpdateLikeCount" />
+        <TheEchoDetail
+          :echo="echo"
+          @update-like-count="handleUpdateLikeCount"
+          @print-echo="handlePrintEcho"
+        />
         <TheComment class="my-2" />
       </div>
       <div v-else class="w-full sm:mt-1 text-[var(--text-color-300)]">
@@ -34,7 +38,7 @@ import TheEchoDetail from '@/components/advanced/TheEchoDetail.vue'
 import TheComment from '@/components/advanced/TheComment.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
 import Arrow from '@/components/icons/arrow.vue'
-import { useEchoStore, useSettingStore, useInboxStore } from '@/stores'
+import { useEchoStore, useSettingStore, useInboxStore, useZoneStore } from '@/stores'
 import { getApiUrl } from '@/service/request/shared'
 import { storeToRefs } from 'pinia'
 
@@ -46,6 +50,7 @@ const echoStore = useEchoStore()
 const settingStore = useSettingStore()
 const inboxStore = useInboxStore()
 const { inboxMode } = storeToRefs(inboxStore)
+const zoneStore = useZoneStore()
 import { ensureAbsoluteUrl } from '@/utils/other'
 
 const isLoading = ref(true)
@@ -166,6 +171,20 @@ const handleUpdateLikeCount = () => {
     // 更新 Echo 的点赞数量
     echo.value.fav_count += 1
   }
+}
+
+const handlePrintEcho = (targetEcho: App.Api.Ech0.Echo) => {
+  const text = targetEcho.content?.trim() || ''
+  if (!text) return
+
+  zoneStore.setPendingPrintEcho(targetEcho)
+
+  router.push({
+    name: 'zone',
+    params: {
+      echoId: String(targetEcho.id),
+    },
+  })
 }
 
 const goBack = () => {

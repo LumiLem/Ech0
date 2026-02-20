@@ -10,6 +10,7 @@ import (
 	echoModel "github.com/lin-snow/ech0/internal/model/echo"
 	service "github.com/lin-snow/ech0/internal/service/common"
 	errorUtil "github.com/lin-snow/ech0/internal/util/err"
+	timezoneUtil "github.com/lin-snow/ech0/internal/util/timezone"
 )
 
 type CommonHandler struct {
@@ -177,6 +178,7 @@ func (commonHandler *CommonHandler) GetStatus() gin.HandlerFunc {
 //	@Router			/heatmap [get]
 func (commonHandler *CommonHandler) GetHeatMap() gin.HandlerFunc {
 	return res.Execute(func(ctx *gin.Context) res.Response {
+		timezone := timezoneUtil.NormalizeTimezone(ctx.GetHeader(timezoneUtil.DefaultTimezoneHeader))
 		// 获取可选的年月参数
 		yearStr := ctx.Query("year")
 		monthStr := ctx.Query("month")
@@ -194,11 +196,12 @@ func (commonHandler *CommonHandler) GetHeatMap() gin.HandlerFunc {
 					Err: nil,
 				}
 			}
-			heatMap, err = commonHandler.commonService.GetHeatMapByMonth(year, month)
+			heatMap, err = commonHandler.commonService.GetHeatMapByMonth(year, month, timezone)
 		} else {
 			// 默认获取近30天数据
-			heatMap, err = commonHandler.commonService.GetHeatMap()
+			heatMap, err = commonHandler.commonService.GetHeatMap(timezone)
 		}
+
 
 		if err != nil {
 			return res.Response{

@@ -35,6 +35,7 @@ import (
 	logUtil "github.com/lin-snow/ech0/internal/util/log"
 	mdUtil "github.com/lin-snow/ech0/internal/util/md"
 	storageUtil "github.com/lin-snow/ech0/internal/util/storage"
+	timezoneUtil "github.com/lin-snow/ech0/internal/util/timezone"
 	"go.uber.org/zap"
 	"golang.org/x/net/html"
 )
@@ -357,54 +358,40 @@ func (commonService *CommonService) GetStatus() (commonModel.Status, error) {
 	return status, nil
 }
 
-func (commonService *CommonService) GetHeatMap() ([]commonModel.Heatmap, error) {
-	// 获取当前日期
-	today := time.Now()
+func (commonService *CommonService) GetHeatMap(timezone string) ([]commonModel.Heatmap, error) {
+	loc := timezoneUtil.LoadLocationOrUTC(timezone)
+	nowUser := time.Now().UTC().In(loc)
+	startUser := time.Date(nowUser.Year(), nowUser.Month(), nowUser.Day(), 0, 0, 0, 0, loc).AddDate(0, 0, -29)
+	endUserExclusive := startUser.AddDate(0, 0, 30)
 
-	// 获取一个月前的日期
-	oneMonthAgo := today.AddDate(0, -1, 0)
-
-	// 格式化为YYYY-MM-DD
-	startDate := oneMonthAgo.Format("2006-01-02") // 一个月前的日期
-	endDate := today.Format("2006-01-02")         // 当前日期
-
-	// 数据库查询 （只返回某天count >= 1的item）
-	heatmapData, err := commonService.commonRepository.GetHeatMap(startDate, endDate)
+	createdAtList, err := commonService.commonRepository.GetHeatMap(startUser.UTC(), endUserExclusive.UTC())
 	if err != nil {
 		return nil, err
 	}
 
-	// 如果不足30天，补齐数据（date为缺的日期，count为0）
-	// Create a map for quick lookup of existing heatmap data
-	heatmapMap := make(map[string]commonModel.Heatmap)
-	for _, item := range heatmapData {
-		heatmapMap[item.Date] = item
+	countMap := make(map[string]int)
+	for _, createdAt := range createdAtList {
+		day := createdAt.In(loc).Format("2006-01-02")
+		countMap[day]++
 	}
 
 	var results [30]commonModel.Heatmap
 	for i := 0; i < 30; i++ {
-		// 计算日期 (from today back to 29 days ago)
-		date := today.AddDate(0, 0, -i).Format("2006-01-02")
-		resultIndex := 29 - i
-
-		if item, ok := heatmapMap[date]; ok {
-			// 找到数据，填充结果
-			results[resultIndex] = item
-		} else {
-			// 未找到数据，填充默认值
-			results[resultIndex] = commonModel.Heatmap{
-				Date:  date,
-				Count: 0,
-			}
+		date := startUser.AddDate(0, 0, i).Format("2006-01-02")
+		results[i] = commonModel.Heatmap{
+			Date:  date,
+			Count: countMap[date],
 		}
 	}
 
 	return results[:], nil
 }
 
-func (commonService *CommonService) GetHeatMapByMonth(year, month int) ([]commonModel.Heatmap, error) {
+func (commonService *CommonService) GetHeatMapByMonth(year, month int, timezone string) ([]commonModel.Heatmap, error) {
+	loc := timezoneUtil.LoadLocationOrUTC(timezone)
+
 	// 计算指定月份的第一天和最后一天
-	monthFirstDay := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.Local)
+	monthFirstDay := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, loc)
 	monthLastDay := monthFirstDay.AddDate(0, 1, -1)
 
 	// 计算日历视图需要的实际日期范围
@@ -416,34 +403,28 @@ func (commonService *CommonService) GetHeatMapByMonth(year, month int) ([]common
 	totalDays := startWeekDay + monthLastDay.Day()
 	weeksNeeded := (totalDays + 6) / 7 // 向上取整
 	totalCalendarDays := weeksNeeded * 7
-	calendarEndDate := calendarStartDate.AddDate(0, 0, totalCalendarDays-1)
+	calendarEndDate := calendarStartDate.AddDate(0, 0, totalCalendarDays)
 
-	startDateStr := calendarStartDate.Format("2006-01-02")
-	endDateStr := calendarEndDate.Format("2006-01-02")
-
-	// 数据库查询（获取日历视图完整范围的数据）
-	heatmapData, err := commonService.commonRepository.GetHeatMap(startDateStr, endDateStr)
+	// 数据库查询（获取日历视图完整范围的数据，使用 UTC 查询）
+	createdAtList, err := commonService.commonRepository.GetHeatMap(calendarStartDate.UTC(), calendarEndDate.UTC())
 	if err != nil {
 		return nil, err
 	}
 
-	// 创建日期到数据的映射
-	heatmapMap := make(map[string]commonModel.Heatmap)
-	for _, item := range heatmapData {
-		heatmapMap[item.Date] = item
+	// 按用户时区统计每天的数量
+	countMap := make(map[string]int)
+	for _, createdAt := range createdAtList {
+		day := createdAt.In(loc).Format("2006-01-02")
+		countMap[day]++
 	}
 
 	// 生成日历视图所有日期的数据
 	results := make([]commonModel.Heatmap, totalCalendarDays)
 	for i := 0; i < totalCalendarDays; i++ {
 		date := calendarStartDate.AddDate(0, 0, i).Format("2006-01-02")
-		if item, ok := heatmapMap[date]; ok {
-			results[i] = item
-		} else {
-			results[i] = commonModel.Heatmap{
-				Date:  date,
-				Count: 0,
-			}
+		results[i] = commonModel.Heatmap{
+			Date:  date,
+			Count: countMap[date],
 		}
 	}
 
@@ -475,7 +456,7 @@ func (commonService *CommonService) GenerateRSS(ctx *gin.Context) (string, error
 		Author: &feeds.Author{
 			Name: "Ech0",
 		},
-		Updated: time.Now(),
+		Updated: time.Now().UTC(),
 	}
 
 	for _, msg := range echos {
@@ -764,7 +745,7 @@ func (commonService *CommonService) GetS3PresignURL(
 	result.FileURL = fileURL
 
 	// 保存到临时文件表
-	now := time.Now().Unix()
+	now := time.Now().UTC().Unix()
 	tempFile := commonModel.TempFile{
 		FileName:       result.FileName,
 		Storage:        string(commonModel.S3_FILE),
@@ -875,7 +856,7 @@ func (commonService *CommonService) CleanupTempFiles() error {
 	}
 
 	// 当前时间戳
-	now := time.Now().Unix()
+	now := time.Now().UTC().Unix()
 
 	for _, file := range files {
 		// 如果最后访问时间超过24小时，则删除
@@ -951,7 +932,7 @@ func (commonService *CommonService) RefreshEchoImageURL(echo *echoModel.Echo) {
 func buildObjectKey(userID uint, fileName, prefix string) (string, error) {
 	prefix = strings.Trim(prefix, "/")
 	ext := filepath.Ext(fileName)
-	timestamp := time.Now().Unix()
+	timestamp := time.Now().UTC().Unix()
 	randBytes := make([]byte, 3)
 	if _, err := rand.Read(randBytes); err != nil {
 		return "", err

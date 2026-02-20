@@ -11,6 +11,7 @@ import 'vue-sonner/style.css'
 import BaseDialog from './components/common/BaseDialog.vue'
 
 import { useBaseDialog } from '@/composables/useBaseDialog'
+import { useBfCacheRestore } from '@/composables/useBfCacheRestore'
 
 const { register, title, description, handleConfirm } = useBaseDialog()
 const dialogRef = ref()
@@ -19,9 +20,20 @@ const dialogRef = ref()
 const router = useRouter()
 const route = useRoute()
 const transitionName = ref('fade')
+const { isBfCacheRestore } = useBfCacheRestore({
+  debug: true,
+  onRestore: () => {
+    transitionName.value = 'none'
+  },
+})
 
 // 监听路由变化，根据导航方向选择动画
 router.afterEach((to, from) => {
+  if (isBfCacheRestore.value) {
+    transitionName.value = 'none'
+    return
+  }
+
   // Panel 子页面之间切换不使用动画
   const toName = to.name as string
   const fromName = from.name as string
@@ -34,6 +46,7 @@ router.afterEach((to, from) => {
   const routeDepth: Record<string, number> = {
     home: 0,
     echo: 1,
+    zone: 1,
     panel: 1,
     auth: 1,
     connect: 1,
@@ -281,9 +294,9 @@ onMounted(() => {
 
 <template>
   <!-- 路由视图 - 带切换动画 -->
-  <RouterView v-slot="{ Component, route }">
+  <RouterView v-slot="{ Component }">
     <Transition :name="transitionName" mode="out-in">
-      <component :is="Component" :key="route.path" />
+      <component :is="Component" />
     </Transition>
   </RouterView>
   <!-- 通知组件 -->

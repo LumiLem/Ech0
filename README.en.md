@@ -545,7 +545,7 @@ ssh -p 6278 ssh.vaaat.com
 - Swagger: `swag init -g internal/server/server.go -o internal/swagger`  
 
 ### Frontend Requirements
-- NodeJS v24.10.0+, PNPM v10.20.1+  
+- NodeJS v25.5.0+, PNPM v10.30.0+  
 - Use [fnm](https://github.com/Schniz/fnm) if multiple Node versions needed
 
 ### Start Backend & Frontend
@@ -582,6 +582,7 @@ Thank you to all the friends who have supported this project! Your contributions
 |       🧑‍💻 [@ljxme](https://github.com/ljxme)    | 2025-11-30 | Doing my humble part 😋             |
 |       🧑‍💻 [@he9ab2l](https://github.com/he9ab2l)    | 2025-12-23 | None            |
 |       🧑‍💻 鸿运当头(windfore)    | 2026-1-6 | Thank you for creating ech0           |
+|       🧑‍💻 Anonymous User    | 2026-01-23  | None           |
 
 ---
 

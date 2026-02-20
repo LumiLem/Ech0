@@ -127,6 +127,20 @@
           <LinkTo class="w-4 h-4" />
         </a>
 
+        <!-- 打印 -->
+        <div class="flex items-center justify-end" title="打印">
+          <button
+            @click="handlePrintEcho()"
+            title="打印"
+            :class="[
+              'transform transition-transform duration-150',
+              isPrintAnimating ? 'scale-160' : 'scale-100',
+            ]"
+          >
+            <Print class="w-4 h-4" />
+          </button>
+        </div>
+
         <!-- 点赞 -->
         <div class="flex items-center justify-end" title="点赞">
           <div class="flex items-center gap-1">
@@ -160,6 +174,7 @@ import TheVideoCard from './TheVideoCard.vue'
 import Verified from '../icons/verified.vue'
 import GrayLike from '../icons/graylike.vue'
 import LinkTo from '../icons/linkto.vue'
+import Print from '../icons/print.vue'
 import TheAPlayerCard from './TheAPlayerCard.vue'
 import TheWebsiteCard from './TheWebsiteCard.vue'
 import TheImageGallery from './TheImageGallery.vue'
@@ -168,10 +183,11 @@ import { MdPreview } from 'md-editor-v3'
 import { onMounted, computed, ref } from 'vue'
 import { ExtensionType, ImageLayout } from '@/enums/enums'
 import { formatDate } from '@/utils/other'
-import { useThemeStore } from '@/stores'
+import { useThemeStore, useZoneStore } from '@/stores'
 import { useFetch } from '@vueuse/core'
 import { theToast } from '@/utils/toast'
 import { localStg } from '@/utils/storage'
+import { useRouter } from 'vue-router'
 
 type Echo = App.Api.Hub.Echo
 
@@ -179,6 +195,8 @@ const props = defineProps<{
   echo: Echo
 }>()
 const themeStore = useThemeStore()
+const zoneStore = useZoneStore()
+const router = useRouter()
 
 const theme = computed(() => (themeStore.theme === 'light' ? 'light' : 'dark'))
 const previewOptions = {
@@ -196,6 +214,7 @@ const fav_count = ref<number>(props.echo.fav_count)
 const server_url = props.echo.server_url
 const echo_id = props.echo.id
 const isLikeAnimating = ref(false)
+const isPrintAnimating = ref(false)
 const LIKE_LIST_KEY = server_url + '_liked_echo_ids'
 
 const handleLikeEcho = async () => {
@@ -260,6 +279,29 @@ const displayUsername = computed(() => {
 const handleImageError = (event: Event) => {
   const img = event.target as HTMLImageElement
   img.src = '/favicon.svg'
+}
+
+const handlePrintEcho = () => {
+  isPrintAnimating.value = true
+  setTimeout(() => {
+    isPrintAnimating.value = false
+  }, 250)
+
+  if (!props.echo.content?.trim()) {
+    theToast.info('仅支持带有文本内容的 print')
+    return
+  }
+
+  zoneStore.setPendingPrintEcho({
+    id: props.echo.id,
+    content: props.echo.content,
+    created_at: props.echo.created_at,
+    tags: props.echo.tags,
+    images: props.echo.images,
+    extension: props.echo.extension,
+    extension_type: props.echo.extension_type,
+  })
+  router.push({ name: 'zone' })
 }
 
 onMounted(() => {})

@@ -1,5 +1,5 @@
 <template>
-  <div class="mx-auto px-2 sm:px-4 md:px-6 my-4 sm:my-5 md:my-6">
+  <div class="mx-auto px-2 sm:px-4 md:px-6 mt-1 sm:mt-0 mb-4 sm:mb-5 md:mb-6">
     <!-- Echos - 使用 TransitionGroup 实现入场动画 -->
     <TransitionGroup
       v-if="echoStore.echoList"
@@ -35,7 +35,7 @@
             >继续装填</span
           >
         </BaseButton>
-        <TheBackTop class="xl:hidden w-8 h-8 p-1" />
+        <TheBackTop class="xl:hidden w-8 h-8 p-1" :target="scrollTarget" />
       </div>
     </Transition>
     <!-- 没有更多 -->
@@ -74,6 +74,10 @@ import BaseButton from '@/components/common/BaseButton.vue'
 import { storeToRefs } from 'pinia'
 import TheBackTop from '@/components/advanced/TheBackTop.vue'
 import Flowers from '@/components/icons/flowers.vue'
+
+defineProps<{
+  scrollTarget?: HTMLElement | null
+}>()
 
 const echoStore = useEchoStore()
 const settingStore = useSettingStore()

@@ -287,7 +287,7 @@ func (echoService *EchoService) DeleteEchoById(userid, id uint) error {
 }
 
 // GetTodayEchos 获取今天的Echo列表
-func (echoService *EchoService) GetTodayEchos(userid uint) ([]model.Echo, error) {
+func (echoService *EchoService) GetTodayEchos(userid uint, timezone string) ([]model.Echo, error) {
 	// 管理员登陆则支持查看隐私数据，否则不允许
 	showPrivate := false
 	if userid == authModel.NO_USER_LOGINED {
@@ -305,7 +305,7 @@ func (echoService *EchoService) GetTodayEchos(userid uint) ([]model.Echo, error)
 	}
 
 	// 获取当日发布的Echos
-	todayEchos := echoService.echoRepository.GetTodayEchos(showPrivate)
+	todayEchos := echoService.echoRepository.GetTodayEchos(showPrivate, timezone)
 
 	// 处理todayEchos中的图片URL (暂不处理，防止拖慢列表加载速度)
 	// for i := range todayEchos {

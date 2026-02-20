@@ -134,6 +134,20 @@
           </button>
         </div>
 
+        <!-- 打印 -->
+        <div class="flex items-center justify-end" title="打印">
+          <button
+            @click="handlePrintEcho(props.echo)"
+            title="打印"
+            :class="[
+              'transform transition-transform duration-150',
+              isPrintAnimating ? 'scale-160' : 'scale-100',
+            ]"
+          >
+            <Print class="w-4 h-4" />
+          </button>
+        </div>
+
         <!-- 点赞 -->
         <div class="flex items-center justify-end" title="点赞">
           <div class="flex items-center gap-1">
@@ -166,6 +180,7 @@ import TheGithubCard from './TheGithubCard.vue'
 import TheVideoCard from './TheVideoCard.vue'
 import Verified from '../icons/verified.vue'
 import GrayLike from '../icons/graylike.vue'
+import Print from '../icons/print.vue'
 import Share from '../icons/share.vue'
 import TheAPlayerCard from './TheAPlayerCard.vue'
 import TheWebsiteCard from './TheWebsiteCard.vue'
@@ -182,7 +197,7 @@ import { useUserStore } from '@/stores/user'
 import { getApiUrl } from '@/service/request/shared'
 import { ExtensionType, ImageLayout } from '@/enums/enums'
 import { formatDate, formatDetailedTime } from '@/utils/other'
-const emit = defineEmits(['updateLikeCount'])
+const emit = defineEmits(['updateLikeCount', 'printEcho'])
 
 type Echo = App.Api.Ech0.Echo
 
@@ -206,6 +221,7 @@ const previewOptions = {
 const isLikeAnimating = ref(false)
 const isShareAnimating = ref(false)
 const showDetailedTime = ref(false)
+const isPrintAnimating = ref(false)
 
 const LIKE_LIST_KEY = 'likedEchoIds'
 const likedEchoIds: number[] = localStg.getItem(LIKE_LIST_KEY) || []
@@ -260,6 +276,20 @@ const handleShareEcho = async (echoId: number) => {
       theToast.error('复制失败')
     })
   }
+}
+
+const handlePrintEcho = (echo: Echo) => {
+  isPrintAnimating.value = true
+  setTimeout(() => {
+    isPrintAnimating.value = false
+  }, 250)
+
+  if (!echo.content?.trim()) {
+    theToast.info('仅支持打印带有文本内容的 Echo！')
+    return
+  }
+
+  emit('printEcho', echo)
 }
 
 const settingStore = useSettingStore()

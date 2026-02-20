@@ -46,4 +46,5 @@ RUN chmod +x /app/ech0
 EXPOSE 6277 6278
 
 ENTRYPOINT ["/app/ech0"]
-CMD ["serve"]
+
+CMD ["web"]

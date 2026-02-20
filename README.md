@@ -580,7 +580,7 @@ ssh -p 6278 ssh.vaaat.com
 - 打开浏览器访问`http://localhost:6277/swagger/index.html`查看和使用swagger文档
 
 ### 前端环境要求
-📌  **NodeJS v24.10.0+, PNPM v10.20.1+**
+📌  **NodeJS v25.5.0+, PNPM v10.30.0+**
 > 注：如需要多个nodejs版本共存可使用[fnm](https://github.com/Schniz/fnm)进行管理
 
 ---
@@ -631,6 +631,7 @@ pnpm dev # 启动前端预览
 |       🧑‍💻 [@ljxme](https://github.com/ljxme)    | 2025-11-30 | 略尽绵薄之力😋             |
 |       🧑‍💻 [@he9ab2l](https://github.com/he9ab2l)    | 2025-12-23 | 无            |
 |       🧑‍💻 鸿运当头(windfore)    | 2026-1-6 | 感谢你创造ech0           |
+|       🧑‍💻 匿名用户    | 2026-01-23  | 无           |
 
 
 ---
