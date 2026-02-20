@@ -16,10 +16,12 @@ const props = defineProps<{
 }>()
 
 const scrollToTop = () => {
-  if (props.target) {
+  // 如果传了 target 且 target 确实是滚动容器（scrollTop > 0），则滚动 target
+  if (props.target && props.target.scrollTop > 0) {
     props.target.scrollTo({ top: 0, behavior: 'smooth' })
     return
   }
+  // 否则（移动端情况），滚动 window
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 </script>

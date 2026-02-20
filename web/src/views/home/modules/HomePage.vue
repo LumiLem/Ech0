@@ -43,7 +43,7 @@
       :style="backTopStyle"
       class="hidden xl:block fixed bottom-6 z-50 transition-all duration-500 animate-fade-in"
     >
-      <TheBackTop class="w-8 h-8 p-1" />
+      <TheBackTop class="w-8 h-8 p-1" :target="mainColumn" />
     </div>
   </div>
 </template>
@@ -109,9 +109,11 @@ const showBackTop = ref(true) // PC端回到顶部按钮显示控制
 const TIMELINE_SCROLL_KEY = 'home:timeline:scrollTop'
 let timelineScrollRaf: number | null = null
 
-// 监听窗口滚动事件，判断是否显示回到顶部按钮（PC端）
+// 监听滚动事件，判断是否显示回到顶部按钮
+// PC端滚动发生在 mainColumn 内部，移动端滚动发生在 window 上
 const updateShowBackTop = () => {
-  showBackTop.value = window.scrollY > 300
+  const columnScroll = mainColumn.value?.scrollTop ?? 0
+  showBackTop.value = window.scrollY > 300 || columnScroll > 300
 }
 
 const updatePosition = () => {
@@ -160,6 +162,8 @@ onMounted(async () => {
   window.addEventListener('scroll', updateShowBackTop)
   window.addEventListener('resize', schedulePositionUpdate)
   if (mainColumn.value) {
+    // PC端：监听 mainColumn 滚动来控制回到顶部按钮显示 & 保存滚动位置
+    mainColumn.value.addEventListener('scroll', updateShowBackTop, { passive: true })
     mainColumn.value.addEventListener('scroll', saveTimelineScrollPosition, { passive: true })
   }
   window.requestAnimationFrame(() => {
@@ -171,6 +175,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('scroll', updateShowBackTop)
   window.removeEventListener('resize', schedulePositionUpdate)
   if (mainColumn.value) {
+    mainColumn.value.removeEventListener('scroll', updateShowBackTop)
     mainColumn.value.removeEventListener('scroll', saveTimelineScrollPosition)
   }
   if (timelineScrollRaf !== null) {
