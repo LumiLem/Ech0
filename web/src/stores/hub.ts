@@ -265,6 +265,7 @@ export const useHubStore = defineStore('hubStore', () => {
           createdTs: new Date(normalizedEcho.created_at).getTime(),
           server_name: hubInfoMap.value.get(hubUrl)?.server_name || 'Ech0',
           server_url: hubUrl,
+          virtual_key: `${hubUrl}-${normalizedEcho.id}`,
           // 设置echo.logo为站点Logo（来自/api/connect接口）
           logo:
             hubInfoMap.value.get(hubUrl)?.logo && hubInfoMap.value.get(hubUrl)?.logo !== ''

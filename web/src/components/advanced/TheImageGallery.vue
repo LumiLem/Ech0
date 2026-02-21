@@ -279,7 +279,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { getMediaUrl, getHubMediaUrl, getImageUrl, getHubImageUrl } from '@/utils/other'
 import { ImageLayout } from '@/enums/enums'
 import Prev from '@/components/icons/prev.vue'
@@ -298,19 +298,19 @@ const props = defineProps<{
 // 使用 media 或 images（向后兼容）
 const mediaItems = computed(() => (props.media || props.images || []) as MediaItem[])
 
-const baseUrl = props.baseUrl
+const baseUrl = computed(() => props.baseUrl)
 
 // 布局状态（来自 props.layout）
-const layout = props.layout || ImageLayout.GRID
+const layout = computed(() => props.layout || ImageLayout.GRID)
 
 // 辅助函数：获取媒体URL（兼容新旧格式）
 const getMediaUrlCompat = (item: any) => {
   // 如果有 media_url 字段，说明是新格式（Media）
   if ('media_url' in item) {
-    return baseUrl ? getHubMediaUrl(item, baseUrl) : getMediaUrl(item)
+    return baseUrl.value ? getHubMediaUrl(item, baseUrl.value) : getMediaUrl(item)
   }
   // 否则是旧格式（Image）
-  return baseUrl ? getHubImageUrl(item, baseUrl) : getImageUrl(item)
+  return baseUrl.value ? getHubImageUrl(item, baseUrl.value) : getImageUrl(item)
 }
 
 // 使用通用的媒体 Fancybox composable
@@ -337,6 +337,13 @@ const openFancybox = (startIndex: number) => {
 
 // 轮播索引
 const carouselIndex = ref(0)
+
+watch(
+  () => [props.images, props.layout, props.baseUrl],
+  () => {
+    carouselIndex.value = 0
+  },
+)
 
 // 只显示前 9 张（用于九宫格），第 9 张显示 "+N" 覆盖层
 const displayedImages = computed(() => mediaItems.value.slice(0, 9))
@@ -404,6 +411,7 @@ const prevCarousel = () => {
 const nextCarousel = () => {
   if (carouselIndex.value < visibleMediaItems.value.length - 1) carouselIndex.value++
 }
+
 
 
 </script>

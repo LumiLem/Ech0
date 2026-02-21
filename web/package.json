@@ -41,6 +41,7 @@
     "vue-echarts": "^8.0.1",
     "vue-router": "^4.6.4",
     "vue-sonner": "^2.0.9",
+    "vue-virtual-scroller": "2.0.0-beta.8",
     "workbox-window": "^7.4.0"
   },
   "devDependencies": {
