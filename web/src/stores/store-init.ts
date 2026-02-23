@@ -7,6 +7,7 @@ import { useZoneStore } from './zone'
 import { useEditorStore } from './editor'
 import { useInboxStore } from './inbox'
 import { usePwaStore } from './pwa'
+import { useConnectStore } from './connect'
 
 export async function initStores() {
   const themeStore = useThemeStore()
@@ -18,6 +19,7 @@ export async function initStores() {
   const editorStore = useEditorStore()
   const inboxStore = useInboxStore()
   const pwaStore = usePwaStore()
+  const connectStore = useConnectStore()
 
   themeStore.init()
   await userStore.init()
@@ -28,6 +30,9 @@ export async function initStores() {
   zoneStore.init()
   inboxStore.init()
   pwaStore.init()
+
+  // 全局启动 Hub 更新轮询（确保从任意路由入口进入都能正常工作）
+  connectStore.startPolling()
 
   // PWA: 基于访问次数的自动提示检查（在所有 store 初始化完成后）
   pwaStore.checkAutoPrompt()

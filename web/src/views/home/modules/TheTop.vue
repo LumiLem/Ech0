@@ -104,7 +104,7 @@ import { useTodoStore } from '@/stores/todo'
 import { useConnectStore } from '@/stores/connect'
 import { storeToRefs } from 'pinia'
 import { useWindowFocus } from '@vueuse/core'
-import { ref, onMounted, computed, watch, onBeforeUnmount } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 
 const isFocused = useWindowFocus()
 import Close from '@/components/icons/close.vue'
@@ -118,13 +118,6 @@ const isInAppBrowser = ref(false)
 onMounted(() => {
   const ua = navigator.userAgent.toLowerCase()
   isInAppBrowser.value = ua.includes('qq') || ua.includes('micromessenger') || ua.includes('weibo')
-  
-  // 开始轮询 Hub 更新
-  startPolling()
-})
-
-onBeforeUnmount(() => {
-  stopPolling()
 })
 
 const echoStore = useEchoStore()
@@ -134,7 +127,7 @@ const { refreshForSearch, getEchosByPage } = echoStore
 const { searchingMode, filteredTag, isFilteringMode, filteredDate, filteredYearMonth, isDateFilteringMode } = storeToRefs(echoStore)
 const { todos } = storeToRefs(todoStore)
 const { hubUpdateCount, hubUpdateTooltip } = storeToRefs(connectStore)
-const { startPolling, stopPolling, getConnectInfo } = connectStore
+const { getConnectInfo } = connectStore
 
 // 监听窗口焦点，切回来时尝试刷新（受缓存策略保护）
 watch(isFocused, (focused) => {

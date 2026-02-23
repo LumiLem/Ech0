@@ -177,10 +177,12 @@ export const useConnectStore = defineStore('connectStore', () => {
     hubUpdateCount.value = 0
     hubUpdateSites.value = 0
 
-    // [跨设备同步] 将“已读”后的水位线同步到后端快照
-    // 这样其他设备启动时拉取快照，就能同步红点状态
-    const pwaStore = usePwaStore()
-    pwaStore.pushSnapshotToBackend(undefined, 'read')
+    // [跨设备同步] 只有当 baseline 被实际更新时，才同步到后端快照
+    // 避免冷启动时 connectsInfo 为空导致推送旧的水位线
+    if (Object.keys(currentSiteCounts).length > 0) {
+      const pwaStore = usePwaStore()
+      pwaStore.pushSnapshotToBackend(undefined, 'read')
+    }
   }
 
   /**
