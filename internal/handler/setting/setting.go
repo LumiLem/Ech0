@@ -811,3 +811,66 @@ func (settingHandler *SettingHandler) UpdateAgentSettings() gin.HandlerFunc {
 		}
 	})
 }
+
+// GetImageProcessSettings 获取图片处理设置
+//
+//	@Summary		获取图片处理设置
+//	@Description	获取图片处理相关设置
+//	@Tags			系统设置
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	res.Response{data=model.ImageProcessSetting}	"获取图片处理设置成功"
+//	@Failure		200	{object}	res.Response									"获取图片处理设置失败"
+//	@Router			/image-process/settings [get]
+func (settingHandler *SettingHandler) GetImageProcessSettings() gin.HandlerFunc {
+	return res.Execute(func(ctx *gin.Context) res.Response {
+		var settings model.ImageProcessSetting
+		if err := settingHandler.settingService.GetImageProcessSetting(&settings); err != nil {
+			return res.Response{
+				Msg: "",
+				Err: err,
+			}
+		}
+
+		return res.Response{
+			Data: settings,
+			Msg:  commonModel.GET_SETTINGS_SUCCESS,
+		}
+	})
+}
+
+// UpdateImageProcessSettings 更新图片处理设置
+//
+//	@Summary		更新图片处理设置
+//	@Description	更新图片处理相关设置
+//	@Tags			系统设置
+//	@Accept			json
+//	@Produce		json
+//	@Param			settings	body		model.ImageProcessSettingDto	true	"新的图片处理设置"
+//	@Success		200			{object}	res.Response				"更新图片处理设置成功"
+//	@Failure		200			{object}	res.Response				"更新图片处理设置失败"
+//	@Router			/image-process/settings [put]
+func (settingHandler *SettingHandler) UpdateImageProcessSettings() gin.HandlerFunc {
+	return res.Execute(func(ctx *gin.Context) res.Response {
+		userid := ctx.MustGet("userid").(uint)
+
+		var newSettings model.ImageProcessSettingDto
+		if err := ctx.ShouldBindJSON(&newSettings); err != nil {
+			return res.Response{
+				Msg: commonModel.INVALID_REQUEST_BODY,
+				Err: err,
+			}
+		}
+
+		if err := settingHandler.settingService.UpdateImageProcessSetting(userid, &newSettings); err != nil {
+			return res.Response{
+				Msg: "",
+				Err: err,
+			}
+		}
+
+		return res.Response{
+			Msg: commonModel.UPDATE_SETTINGS_SUCCESS,
+		}
+	})
+}

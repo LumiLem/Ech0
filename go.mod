@@ -81,6 +81,7 @@ require (
 	github.com/bytedance/sonic/loader v0.3.0 // indirect
 	github.com/catppuccin/go v0.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/chai2010/webp v1.4.0 // indirect
 	github.com/charmbracelet/colorprofile v0.4.1 // indirect
 	github.com/charmbracelet/keygen v0.5.3 // indirect
 	github.com/charmbracelet/x/ansi v0.11.6 // indirect

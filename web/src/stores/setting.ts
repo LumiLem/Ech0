@@ -13,6 +13,7 @@ import {
   fetchGetAgentSettings,
   fetchGetAgentInfo,
   fetchHelloEch0,
+  fetchGetImageProcessSettings,
 } from '@/service/api'
 import { localStg } from '@/utils/storage'
 import { theToast } from '@/utils/toast'
@@ -55,6 +56,14 @@ export const useSettingStore = defineStore('settingStore', () => {
     cdn_url: '',
     path_prefix: '',
     public_read: true,
+  })
+  const ImageProcessSetting = ref<App.Api.Setting.ImageProcessSetting>({
+    local_process: '',
+    local_thumb_param: '?w=800&q=85&mode=lfit&fmt=webp',
+    local_full_param: '?q=100&fmt=webp',
+    s3_process: '',
+    s3_thumb_param: '?imageMogr2/thumbnail/800x/format/webp/quality/85/interlace/1/ignore-error/1',
+    s3_full_param: '?imageMogr2/format/webp/quality/100/interlace/1/ignore-error/1',
   })
   const OAuth2Setting = ref<App.Api.Setting.OAuth2Setting>({
     enable: false,
@@ -221,6 +230,13 @@ export const useSettingStore = defineStore('settingStore', () => {
     }
   }
 
+  const getImageProcessSetting = async () => {
+    const res = await fetchGetImageProcessSettings()
+    if (res.code === 1) {
+      ImageProcessSetting.value = res.data
+    }
+  }
+
   const init = async () => {
     if (!isSystemReady.value) {
       await getSystemReady()
@@ -230,6 +246,7 @@ export const useSettingStore = defineStore('settingStore', () => {
     getS3Setting()
     getAgentInfo()
     getHelloEch0()
+    getImageProcessSetting()
   }
 
   return {
@@ -237,6 +254,7 @@ export const useSettingStore = defineStore('settingStore', () => {
     SystemSetting,
     CommentSetting,
     S3Setting,
+    ImageProcessSetting,
     OAuth2Setting,
     Webhooks,
     AccessTokens,
@@ -259,6 +277,7 @@ export const useSettingStore = defineStore('settingStore', () => {
     getBackupSchedule,
     getAgentSetting,
     getAgentInfo,
+    getImageProcessSetting,
     init,
   }
 })

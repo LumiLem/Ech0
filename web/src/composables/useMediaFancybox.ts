@@ -21,6 +21,8 @@ export interface MediaItem {
 export interface UseMediaFancyboxOptions {
   // 获取媒体 URL 的函数
   getMediaUrl: (item: MediaItem) => string
+  // 获取缩略图 URL 的函数（可选，默认使用 getMediaUrl）
+  getThumbUrl?: (item: MediaItem) => string
   // 获取实况照片视频 URL 的函数（可选，如果不提供则使用默认逻辑）
   getLiveVideoUrl?: (item: MediaItem, allItems: MediaItem[]) => string | null
   // 判断是否为实况照片的函数（可选）
@@ -49,6 +51,7 @@ export const getLivePhotoAutoPlay = () => livePhotoAutoPlay.value
 
 export function useMediaFancybox(options: UseMediaFancyboxOptions) {
   const { getMediaUrl } = options
+  const getThumbUrlConfig = options.getThumbUrl || getMediaUrl
 
   // 默认判断是否为视频
   const isVideo = options.isVideo || ((item: MediaItem) => item.media_type === 'video')
@@ -380,6 +383,7 @@ export function useMediaFancybox(options: UseMediaFancyboxOptions) {
 
     const items = visibleItems.map((item) => {
       const mediaUrl = getMediaUrl(item)
+      const thumbUrl = getThumbUrlConfig(item)
 
       if (isLivePhoto(item, mediaItems)) {
         const videoUrl = getLiveVideoUrl(item, mediaItems)
@@ -387,24 +391,24 @@ export function useMediaFancybox(options: UseMediaFancyboxOptions) {
           return {
             html: createLivePhotoHTML(mediaUrl, videoUrl),
             class: 'has-livephoto',
-            thumb: mediaUrl,
+            thumb: thumbUrl,
           }
         }
         return {
           src: mediaUrl,
           type: 'image',
-          thumb: mediaUrl,
+          thumb: thumbUrl,
         }
       } else if (isVideo(item)) {
         return {
           src: mediaUrl,
-          thumb: mediaUrl,
+          thumb: thumbUrl,
         }
       } else {
         return {
           src: mediaUrl,
           type: 'image',
-          thumb: mediaUrl,
+          thumb: thumbUrl,
         }
       }
     })

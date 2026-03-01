@@ -74,4 +74,10 @@ type SettingServiceInterface interface {
 
 	// UpdateAgentSettings 更新 Agent 设置
 	UpdateAgentSettings(userid uint, newSetting *model.AgentSettingDto) error
+
+	// GetImageProcessSetting 获取图片处理设置
+	GetImageProcessSetting(setting *model.ImageProcessSetting) error
+
+	// UpdateImageProcessSetting 更新图片处理设置
+	UpdateImageProcessSetting(userid uint, newSetting *model.ImageProcessSettingDto) error
 }

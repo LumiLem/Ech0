@@ -261,6 +261,15 @@ declare namespace App {
         public_read: boolean
       }
 
+      type ImageProcessSetting = {
+        local_process: string
+        local_thumb_param: string
+        local_full_param: string
+        s3_process: string
+        s3_thumb_param: string
+        s3_full_param: string
+      }
+
       type OAuth2Setting = {
         enable: boolean
         provider: string

@@ -459,6 +459,148 @@ func (webHandler *WebHandler) HandleDynamicIcon(ctx *gin.Context) {
 	_, _ = ctx.Writer.Write(data)
 }
 
+// HandleImageRequest 处理图片请求：无处理参数时直接返回原文件，有处理参数时走图片处理引擎
+// 替换原有的 r.Static("api/images", "./data/images")，在原 URL 后拼接参数即可触发按需处理
+//
+// 简洁参数: /api/images/xxx.jpg?w=400&h=300&q=75&fmt=jpg&mode=lfit
+// 参数说明:
+//   - w:    目标宽度 (像素)
+//   - h:    目标高度 (像素)
+//   - q:    质量 (1-100, 默认75, 仅 JPEG 有效)
+//   - fmt:  输出格式 (jpg/png, 空=保持原格式)
+//   - mode: 缩放模式 (lfit=等比缩小/mfit=等比放大/fill=裁剪填充, 默认 lfit)
+func (webHandler *WebHandler) HandleImageRequest(ctx *gin.Context) {
+	filePath := ctx.Param("filepath") // 如 "/1_17xxx_abc.jpg"
+	if filePath == "" || filePath == "/" {
+		ctx.Status(http.StatusNotFound)
+		return
+	}
+
+	// 安全校验：防止路径遍历
+	cleanPath := filepath.Clean(filePath)
+	if strings.Contains(cleanPath, "..") {
+		ctx.Status(http.StatusForbidden)
+		return
+	}
+
+	fullPath := filepath.Join("data", "images", cleanPath)
+
+	// 检查文件是否存在
+	fileStat, err := os.Stat(fullPath)
+	if err != nil {
+		ctx.Status(http.StatusNotFound)
+		return
+	}
+
+	// 检查是否有图片处理参数
+	wStr := ctx.Query("w")
+	hStr := ctx.Query("h")
+	qStr := ctx.Query("q")
+	fmtStr := ctx.Query("fmt")
+	modeStr := ctx.Query("mode")
+
+	hasProcessParams := wStr != "" || hStr != "" || qStr != "" || fmtStr != ""
+
+	if !hasProcessParams {
+		// 无处理参数 → 直接返回原文件（等同原 r.Static 行为）
+		ctx.File(fullPath)
+		return
+	}
+
+	// ===== 有处理参数，走图片处理引擎 =====
+
+	// 解析参数
+	w, _ := strconv.Atoi(wStr)
+	h, _ := strconv.Atoi(hStr)
+	q, _ := strconv.Atoi(qStr)
+
+	// 安全限制
+	if w < 0 || w > 4096 {
+		w = 0
+	}
+	if h < 0 || h > 4096 {
+		h = 0
+	}
+	if q <= 0 || q > 100 {
+		q = 75
+	}
+	if modeStr == "" {
+		modeStr = "lfit"
+	}
+
+	// 生成指纹 (包含源文件信息 + 所有处理参数)
+	id := fmt.Sprintf("imgproc-%s-%d-%d-%d-%d-%d-%s-%s",
+		fullPath, fileStat.ModTime().Unix(), fileStat.Size(),
+		w, h, q, fmtStr, modeStr)
+	fingerprint := fmt.Sprintf("%x", md5.Sum([]byte(id)))
+	etag := fmt.Sprintf(`W/"%s"`, fingerprint)
+
+	// ETag 协商缓存
+	ctx.Header("ETag", etag)
+	ctx.Header("Cache-Control", "public, max-age=31536000, immutable")
+
+	if ctx.GetHeader("If-None-Match") == etag {
+		ctx.Status(http.StatusNotModified)
+		return
+	}
+
+	// 确定输出格式的扩展名
+	outExt := fmtStr
+	if outExt == "" {
+		outExt = strings.TrimPrefix(filepath.Ext(fullPath), ".")
+	}
+	if outExt == "jpeg" {
+		outExt = "jpg"
+	}
+
+	// 磁盘缓存
+	cacheDir := filepath.Join("data", "cache", "images")
+	_ = os.MkdirAll(cacheDir, 0755)
+	cachePath := filepath.Join(cacheDir, fmt.Sprintf("%s.%s", fingerprint, outExt))
+
+	if _, err := os.Stat(cachePath); err == nil {
+		// 缓存命中
+		ctx.Header("Cache-Control", "public, max-age=31536000, immutable")
+		ctx.File(cachePath)
+		return
+	}
+
+	// 缓存不命中，读取源文件并处理
+	f, err := os.Open(fullPath)
+	if err != nil {
+		ctx.Status(http.StatusInternalServerError)
+		return
+	}
+	defer f.Close()
+
+	srcFormat := strings.TrimPrefix(filepath.Ext(fullPath), ".")
+
+	opts := imgUtil.ImageProcessOptions{
+		Width:   w,
+		Height:  h,
+		Quality: q,
+		Format:  fmtStr,
+		Mode:    modeStr,
+	}
+
+	data, contentType, err := imgUtil.ProcessImage(f, srcFormat, opts)
+	if err != nil {
+		// 处理失败，回退返回原文件
+		ctx.File(fullPath)
+		return
+	}
+
+	// 原子化写入缓存
+	tmpPath := cachePath + ".tmp"
+	if err := os.WriteFile(tmpPath, data, 0644); err == nil {
+		_ = os.Rename(tmpPath, cachePath)
+	}
+
+	ctx.Header("Content-Type", contentType)
+	ctx.Header("Cache-Control", "public, max-age=31536000, immutable")
+	_, _ = ctx.Writer.Write(data)
+}
+
 // handleStaticRequest 处理静态资源
 func (webHandler *WebHandler) handleStaticRequest(ctx *gin.Context, subFS fs.FS, requestPath string) {
 	fileServer := http.FS(subFS)

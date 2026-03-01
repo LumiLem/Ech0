@@ -203,3 +203,20 @@ export function fetchUpdateAgentSettings(agentSetting: App.Api.Setting.AgentSett
     data: agentSetting,
   })
 }
+
+// 获取图片处理设置
+export function fetchGetImageProcessSettings() {
+  return request<App.Api.Setting.ImageProcessSetting>({
+    url: '/image-process/settings',
+    method: 'GET',
+  })
+}
+
+// 更新图片处理设置
+export function fetchUpdateImageProcessSettings(setting: App.Api.Setting.ImageProcessSetting) {
+  return request({
+    url: '/image-process/settings',
+    method: 'PUT',
+    data: setting,
+  })
+}

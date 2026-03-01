@@ -134,6 +134,8 @@ const (
 	BackupScheduleKey = "backup_schedule"
 	// AgentSettingKey 是 Agent 设置的键
 	AgentSettingKey = "agent_setting"
+	// ImageProcessSettingKey 是图片处理设置的键
+	ImageProcessSettingKey = "image_process_setting"
 	// ReleaseVersionKey 是发布版本号的键
 	ReleaseVersionKey = "release_version"
 	// VapidPublicKeyKey PWA Web Push 公钥

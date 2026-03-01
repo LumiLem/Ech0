@@ -17,7 +17,7 @@
           @click="openFancybox(idx)"
         >
           <img
-            :src="getMediaUrlCompat(item)"
+            :src="getThumbUrl(item)"
             :alt="`实况照片${idx + 1}`"
             loading="lazy"
             class="echoimg block max-w-full h-auto"
@@ -36,7 +36,7 @@
           @click="openFancybox(idx)"
         >
           <img
-            :src="getMediaUrlCompat(item)"
+            :src="getThumbUrl(item)"
             :alt="`预览图片${idx + 1}`"
             loading="lazy"
             class="echoimg block max-w-full h-auto"
@@ -78,7 +78,7 @@
             @click="openFancybox(idx)"
           >
             <img
-              :src="getMediaUrlCompat(item)"
+              :src="getThumbUrl(item)"
               :alt="`实况照片${idx + 1}`"
               loading="lazy"
               :class="['echoimg', isSingleItem ? 'w-full h-auto' : 'w-full h-full object-cover']"
@@ -102,7 +102,7 @@
             @click="openFancybox(idx)"
           >
             <img
-              :src="getMediaUrlCompat(item)"
+              :src="getThumbUrl(item)"
               :alt="`预览图片${idx + 1}`"
               loading="lazy"
               :class="['echoimg', isSingleItem ? 'w-full h-auto' : 'w-full h-full object-cover']"
@@ -150,7 +150,7 @@
             @click="openFancybox(carouselIndex)"
           >
             <img
-              :src="getMediaUrlCompat(visibleMediaItems[carouselIndex]!)"
+              :src="getThumbUrl(visibleMediaItems[carouselIndex]!)"
               :alt="`实况照片${carouselIndex + 1}`"
               loading="lazy"
               class="echoimg w-full h-auto"
@@ -168,7 +168,7 @@
             @click="openFancybox(carouselIndex)"
           >
             <img
-              :src="getMediaUrlCompat(visibleMediaItems[carouselIndex]!)"
+              :src="getThumbUrl(visibleMediaItems[carouselIndex]!)"
               :alt="`预览图片${carouselIndex + 1}`"
               loading="lazy"
               class="echoimg w-full h-auto"
@@ -229,7 +229,7 @@
               @click="openFancybox(idx)"
             >
               <img
-                :src="getMediaUrlCompat(item)"
+                :src="getThumbUrl(item)"
                 :alt="`实况照片${idx + 1}`"
                 loading="lazy"
                 class="echoimg h-full w-auto object-contain"
@@ -246,7 +246,7 @@
               @click="openFancybox(idx)"
             >
               <img
-                :src="getMediaUrlCompat(item)"
+                :src="getThumbUrl(item)"
                 :alt="`预览图片${idx + 1}`"
                 loading="lazy"
                 class="echoimg h-full w-auto object-contain"
@@ -303,24 +303,39 @@ const baseUrl = computed(() => props.baseUrl)
 // 布局状态（来自 props.layout）
 const layout = computed(() => props.layout || ImageLayout.GRID)
 
-// 辅助函数：获取媒体URL（兼容新旧格式）
-const getMediaUrlCompat = (item: any) => {
+// 辅助函数：获取媒体 URL（兼容新旧格式，用于 Fancybox 打开大图）
+const getMediaUrlCompat = (item: any, scene?: 'thumb' | 'full') => {
   // 如果有 media_url 字段，说明是新格式（Media）
   if ('media_url' in item) {
-    return baseUrl.value ? getHubMediaUrl(item, baseUrl.value) : getMediaUrl(item)
+    return baseUrl.value ? getHubMediaUrl(item, baseUrl.value) : getMediaUrl(item, scene)
   }
   // 否则是旧格式（Image）
-  return baseUrl.value ? getHubImageUrl(item, baseUrl.value) : getImageUrl(item)
+  return baseUrl.value ? getHubImageUrl(item, baseUrl.value) : getImageUrl(item, scene)
 }
 
-// 使用通用的媒体 Fancybox composable
+// 辅助函数：获取缩略图 URL（列表展示用）
+const getThumbUrl = (item: any) => {
+  // 视频不处理
+  if (item.media_type === 'video') return getMediaUrlCompat(item)
+
+  // Hub 是别人的站点，不做图片处理
+  if (baseUrl.value) return getMediaUrlCompat(item)
+
+  if ('media_url' in item) {
+    return getMediaUrl(item, 'thumb')
+  }
+  return getImageUrl(item, 'thumb')
+}
+
+// 使用通用的媒体 Fancybox composable（使用大图 URL 和 缩略图 URL）
 const {
   openFancybox: openFancyboxBase,
   getVisibleMediaItems,
   isLivePhoto: isLivePhotoBase,
   isVideo: isVideoBase,
 } = useMediaFancybox({
-  getMediaUrl: getMediaUrlCompat,
+  getMediaUrl: (item) => getMediaUrlCompat(item, 'full'),
+  getThumbUrl: (item) => getThumbUrl(item)
 })
 
 // 包装函数，自动传入当前媒体列表

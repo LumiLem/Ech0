@@ -226,8 +226,8 @@ const S3ServiceOptions = ref<{ label: string; value: S3Provider }[]>([
   { label: 'AWS', value: S3Provider.AWS },
   { label: 'MinIO', value: S3Provider.MINIO },
   { label: 'Cloudflare R2', value: S3Provider.R2 },
-  // { label: '阿里OSS', value: S3Provider.ALIYUN },
-  // { label: '腾讯COS', value: S3Provider.TENCENT },
+  { label: '阿里云 OSS', value: S3Provider.ALIYUN },
+  { label: '腾讯云 COS', value: S3Provider.TENCENT },
   { label: 'Other', value: S3Provider.OTHER },
 ])
 

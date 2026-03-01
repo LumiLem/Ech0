@@ -999,3 +999,68 @@ func (settingService *SettingService) UpdateAgentSettings(
 		return nil
 	})
 }
+
+// GetImageProcessSetting 获取图片处理设置
+func (settingService *SettingService) GetImageProcessSetting(setting *model.ImageProcessSetting) error {
+	return settingService.txManager.Run(func(ctx context.Context) error {
+		ipSetting, err := settingService.keyvalueRepository.GetKeyValue(commonModel.ImageProcessSettingKey)
+		if err != nil {
+			// 数据库中不存在数据，手动添加初始数据（默认全部禁用）
+			setting.LocalProcess = ""
+			setting.S3Process = ""
+			setting.LocalThumbParam = "?w=800&q=75&mode=lfit&fmt=webp"
+			setting.LocalFullParam = "?fmt=webp"
+			setting.S3ThumbParam = "?imageMogr2/thumbnail/800x>/quality/75/ignore-error/1/interlace/1/format/webp"
+			setting.S3FullParam = "?imageMogr2/format/webp"
+
+			settingToJSON, err := jsonUtil.JSONMarshal(setting)
+			if err != nil {
+				return err
+			}
+			if err := settingService.keyvalueRepository.AddKeyValue(ctx, commonModel.ImageProcessSettingKey, string(settingToJSON)); err != nil {
+				return err
+			}
+			return nil
+		}
+
+		if err := jsonUtil.JSONUnmarshal([]byte(ipSetting.(string)), setting); err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
+// UpdateImageProcessSetting 更新图片处理设置
+func (settingService *SettingService) UpdateImageProcessSetting(
+	userid uint,
+	newSetting *model.ImageProcessSettingDto,
+) error {
+	user, err := settingService.commonService.CommonGetUserByUserId(userid)
+	if err != nil {
+		return err
+	}
+	if !user.IsAdmin {
+		return errors.New(commonModel.NO_PERMISSION_DENIED)
+	}
+
+	return settingService.txManager.Run(func(ctx context.Context) error {
+		setting := &model.ImageProcessSetting{
+			LocalProcess:    newSetting.LocalProcess,
+			S3Process:       newSetting.S3Process,
+			LocalThumbParam: newSetting.LocalThumbParam,
+			LocalFullParam:  newSetting.LocalFullParam,
+			S3ThumbParam:    newSetting.S3ThumbParam,
+			S3FullParam:     newSetting.S3FullParam,
+		}
+
+		settingToJSON, err := jsonUtil.JSONMarshal(setting)
+		if err != nil {
+			return err
+		}
+
+		if err := settingService.keyvalueRepository.UpdateKeyValue(ctx, commonModel.ImageProcessSettingKey, string(settingToJSON)); err != nil {
+			return err
+		}
+		return nil
+	})
+}

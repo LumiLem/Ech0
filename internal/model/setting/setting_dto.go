@@ -87,3 +87,13 @@ type AgentSettingDto struct {
 	Prompt   string `json:"prompt"`   // Agent 额外使用的提示词
 	BaseURL  string `json:"base_url"` // 自定义 API URL（可选）
 }
+
+// ImageProcessSettingDto 图片处理设置 DTO
+type ImageProcessSettingDto struct {
+	LocalProcess    string `json:"local_process"`
+	LocalThumbParam string `json:"local_thumb_param"`
+	LocalFullParam  string `json:"local_full_param"`
+	S3Process       string `json:"s3_process"`
+	S3ThumbParam    string `json:"s3_thumb_param"`
+	S3FullParam     string `json:"s3_full_param"`
+}

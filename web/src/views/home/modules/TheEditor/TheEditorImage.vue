@@ -40,7 +40,7 @@
             @click="openFancybox(idx)"
           >
             <img
-              :src="getMediaToAddUrl(item)"
+              :src="getMediaToAddUrl(item, 'thumb')"
               alt="实况照片"
               class="w-full h-full object-cover pointer-events-none"
               loading="lazy"
@@ -59,7 +59,7 @@
             @click="openFancybox(idx)"
           >
             <img
-              :src="getMediaToAddUrl(item)"
+              :src="getMediaToAddUrl(item, 'thumb')"
               alt="图片"
               class="w-full h-full object-cover pointer-events-none"
               loading="lazy"
@@ -119,7 +119,8 @@ const {
   isLivePhoto: isLivePhotoBase,
   isLivePhotoVideo: isLivePhotoVideoBase,
 } = useMediaFancybox({
-  getMediaUrl: (item) => getMediaToAddUrl(item as App.Api.Ech0.MediaToAdd),
+  getMediaUrl: (item) => getMediaToAddUrl(item as App.Api.Ech0.MediaToAdd, 'full'),
+  getThumbUrl: (item) => getMediaToAddUrl(item as App.Api.Ech0.MediaToAdd, 'thumb'),
 })
 
 // 包装函数，自动传入当前媒体列表

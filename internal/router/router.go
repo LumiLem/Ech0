@@ -29,7 +29,8 @@ func SetupRouter(r *gin.Engine, h *di.Handlers) {
 	setupTemplateRoutes(r, h)
 
 	// ===     静态资源映射     ===
-	r.Static("api/images", "./data/images")
+	// 图片使用自定义 handler，支持按需图片处理（在 URL 后拼接 ?w=400&fmt=jpg 等参数）
+	r.GET("api/images/*filepath", h.WebHandler.HandleImageRequest)
 	r.Static("api/videos", config.Config.Upload.VideoPath)
 
 	// ===        中间件        ===

@@ -94,3 +94,14 @@ type BackupSchedule struct {
 	Enable         bool   `json:"enable"`          // 是否启用备份计划
 	CronExpression string `json:"cron_expression"` // 备份计划的 Cron 表达式
 }
+
+// ImageProcessSetting 定义图片处理设置实体
+// 本地图片和 S3 图片各自独立配置处理方式
+type ImageProcessSetting struct {
+	LocalProcess    string `json:"local_process"`     // 本地图片处理方式: "" / "local" / "tencent_eo" / "custom"
+	LocalThumbParam string `json:"local_thumb_param"` // 本地缩略图拼参: 例如 "?w=800&q=80"
+	LocalFullParam  string `json:"local_full_param"`  // 本地大图拼参: 例如 "?q=100"
+	S3Process       string `json:"s3_process"`        // S3图片处理方式: "" / "aliyun" / "tencent" / "custom"
+	S3ThumbParam    string `json:"s3_thumb_param"`    // S3缩略图拼参: 例如 "?x-oss-process=..."
+	S3FullParam     string `json:"s3_full_param"`     // S3大图拼参: 例如 "?x-oss-process=..."
+}

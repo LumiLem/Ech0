@@ -56,4 +56,8 @@ func setupSettingRoutes(appRouterGroup *AppRouterGroup, h *di.Handlers) {
 
 	appRouterGroup.AuthRouterGroup.GET("/agent/settings", h.SettingHandler.GetAgentSettings())
 	appRouterGroup.AuthRouterGroup.PUT("/agent/settings", h.SettingHandler.UpdateAgentSettings())
+
+	// 图片处理设置（GET 公开，前端需要读取来决定拼接方式）
+	appRouterGroup.PublicRouterGroup.GET("/image-process/settings", h.SettingHandler.GetImageProcessSettings())
+	appRouterGroup.AuthRouterGroup.PUT("/image-process/settings", h.SettingHandler.UpdateImageProcessSettings())
 }
