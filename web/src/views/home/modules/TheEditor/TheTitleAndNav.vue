@@ -24,14 +24,20 @@
 
     <!-- 已登录状态：显示用户头像和用户名 -->
     <div v-else class="flex flex-row items-center gap-2 justify-between">
-      <div>
+      <button
+        type="button"
+        class="inline-flex rounded-full transition-transform duration-200 hover:scale-105 active:scale-95"
+        :title="isZenMode ? '退出 Zen Mode' : '进入 Zen Mode'"
+        :aria-pressed="isZenMode"
+        @click="handleZenModeToggle"
+      >
         <img
           :src="userAvatar"
           alt="用户头像"
           class="w-6 sm:w-7 h-6 sm:h-7 rounded-full ring-1 ring-gray-200 shadow-sm object-cover"
           @error="handleImageError"
         />
-      </div>
+      </button>
       <h1 class="text-[var(--editor-title-color)] font-bold sm:text-xl">
         {{ user?.username }}
       </h1>
