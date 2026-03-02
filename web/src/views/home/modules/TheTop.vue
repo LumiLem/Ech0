@@ -33,6 +33,15 @@
           <p class="text-nowrap truncate">{{ filterDateLabel }}</p>
           <Close class="inline w-4 h-4 ml-1" />
         </div>
+        <button
+          v-if="isZenMode"
+          type="button"
+          title="退出 Zen Mode"
+          class="h-8 px-2 text-xs text-[var(--text-color-400)] border border-[var(--border-color-300)] rounded-md hover:line-through hover:text-[var(--text-color-500)] hover:border-[var(--text-color-300)] transition-colors duration-200"
+          @click="handleExitZenMode"
+        >
+          Zen
+        </button>
       </div>
 
       <!-- 右侧图标组 -->
@@ -99,7 +108,7 @@ import Panel from '@/components/icons/panel.vue'
 import Rss from '@/components/icons/rss.vue'
 import HubIcon from '@/components/icons/hub.vue'
 import { RouterLink } from 'vue-router'
-import { useEchoStore } from '@/stores'
+import { useEchoStore, useZenStore } from '@/stores'
 import { useTodoStore } from '@/stores/todo'
 import { useConnectStore } from '@/stores/connect'
 import { storeToRefs } from 'pinia'
@@ -123,10 +132,12 @@ onMounted(() => {
 const echoStore = useEchoStore()
 const todoStore = useTodoStore()
 const connectStore = useConnectStore()
+const zenStore = useZenStore()
 const { refreshForSearch, getEchosByPage } = echoStore
 const { searchingMode, filteredTag, isFilteringMode, filteredDate, filteredYearMonth, isDateFilteringMode } = storeToRefs(echoStore)
 const { todos } = storeToRefs(todoStore)
 const { hubUpdateCount, hubUpdateTooltip } = storeToRefs(connectStore)
+const { isZenMode } = storeToRefs(zenStore)
 const { getConnectInfo } = connectStore
 
 // 监听窗口焦点，切回来时尝试刷新（受缓存策略保护）
@@ -197,6 +208,10 @@ const handleCancelFilter = () => {
   echoStore.filteredDate = null
   echoStore.filteredYearMonth = null
   echoStore.refreshEchosForFilter()
+}
+
+const handleExitZenMode = () => {
+  zenStore.setZenMode(false)
 }
 </script>
 
