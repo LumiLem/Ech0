@@ -1,4 +1,5 @@
 <template>
+  <div>
   <PanelCard>
     <div class="w-full">
       <div class="flex flex-row items-center justify-between mb-3">
@@ -19,23 +20,25 @@
 
       <div class="flex flex-col w-full">
         <!-- 本地图片处理 -->
-        <div class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] gap-2 h-10">
+        <div class="flex flex-row flex-wrap items-center justify-start text-[var(--text-color-next-500)] gap-x-2 gap-y-1 min-h-10">
           <h2 class="font-semibold w-30 shrink-0">本地图片:</h2>
-          <BaseSelect
-            v-model="localSetting.local_process"
-            :options="localProcessOptions"
-            :disabled="!editMode"
-            class="w-fit h-8"
-            @change="handleLocalProcessChange"
-          />
-          <template v-if="localSetting.local_process === 'local'">
-            <button @click="showLocalDocModal = true" title="查看本地图片处理参数文档" class="text-xs text-[var(--text-color-400)] hover:text-[var(--primary-color)] transition-colors ml-2 flex items-center gap-1 cursor-pointer">
+          <div class="flex items-center gap-2">
+            <BaseSelect
+              v-model="localSetting.local_process"
+              :options="localProcessOptions"
+              :disabled="!editMode"
+              class="w-fit h-8"
+              @change="handleLocalProcessChange"
+            />
+            <template v-if="localSetting.local_process === 'local'">
+              <button @click="showLocalDocModal = true" title="查看本地图片处理参数文档" class="text-xs text-[var(--text-color-400)] hover:text-[var(--primary-color)] transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap">
+                <Info class="w-3.5 h-3.5" /> <span class="hover:underline">官方指引</span>
+              </button>
+            </template>
+            <a v-else-if="localDocLink" :href="localDocLink" target="_blank" title="查看官方图片处理参数文档" class="text-xs text-[var(--text-color-400)] hover:text-[var(--primary-color)] transition-colors flex items-center gap-1 whitespace-nowrap">
               <Info class="w-3.5 h-3.5" /> <span class="hover:underline">官方指引</span>
-            </button>
-          </template>
-          <a v-else-if="localDocLink" :href="localDocLink" target="_blank" title="查看官方图片处理参数文档" class="text-xs text-[var(--text-color-400)] hover:text-[var(--primary-color)] transition-colors ml-2 flex items-center gap-1">
-            <Info class="w-3.5 h-3.5" /> <span class="hover:underline">官方指引</span>
-          </a>
+            </a>
+          </div>
         </div>
 
         <template v-if="localSetting.local_process">
@@ -90,19 +93,21 @@
         </template>
 
         <!-- S3 图片处理 -->
-        <div class="flex flex-row items-center justify-start text-[var(--text-color-next-500)] gap-2 h-10">
+        <div class="flex flex-row flex-wrap items-center justify-start text-[var(--text-color-next-500)] gap-x-2 gap-y-1 min-h-10">
           <h2 class="font-semibold w-30 shrink-0">S3 图片:</h2>
           <template v-if="s3Available">
-            <BaseSelect
-              v-model="localSetting.s3_process"
-              :options="s3ProcessOptions"
-              :disabled="!editMode"
-              class="w-fit h-8"
-              @change="handleS3ProcessChange"
-            />
-            <a v-if="localSetting.s3_process && s3DocLink" :href="s3DocLink" target="_blank" title="查看官方图片处理参数文档" class="text-xs text-[var(--text-color-400)] hover:text-[var(--primary-color)] transition-colors ml-2 flex items-center gap-1">
-              <Info class="w-3.5 h-3.5" /> <span class="hover:underline">官方指引</span>
-            </a>
+            <div class="flex items-center gap-2">
+              <BaseSelect
+                v-model="localSetting.s3_process"
+                :options="s3ProcessOptions"
+                :disabled="!editMode"
+                class="w-fit h-8"
+                @change="handleS3ProcessChange"
+              />
+              <a v-if="localSetting.s3_process && s3DocLink" :href="s3DocLink" target="_blank" title="查看官方图片处理参数文档" class="text-xs text-[var(--text-color-400)] hover:text-[var(--primary-color)] transition-colors flex items-center gap-1 whitespace-nowrap">
+                <Info class="w-3.5 h-3.5" /> <span class="hover:underline">官方指引</span>
+              </a>
+            </div>
           </template>
           <span v-else class="text-[var(--text-color-400)] text-xs">
             需先在存储设置中启用S3
@@ -219,6 +224,7 @@
       </div>
     </div>
   </BaseModal>
+  </div>
 </template>
 
 <script setup lang="ts">
