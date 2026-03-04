@@ -1,6 +1,6 @@
 <template>
   <div
-    class="max-w-sm sm:max-w-full px-2 pb-4 py-2 mt-4 sm:mt-0 mb-10 sm:mb-0 mx-auto flex flex-col sm:flex-row justify-center items-start sm:items-stretch sm:h-[100dvh] sm:overflow-hidden transition-all duration-500"
+    class="max-w-sm sm:max-w-full px-2 pb-4 py-2 mt-4 sm:mt-0 sm:pt-6 mb-10 sm:mb-0 mx-auto flex flex-col sm:flex-row justify-center items-start sm:items-stretch sm:h-[100dvh] sm:overflow-hidden transition-all duration-500"
     :class="isZenMode ? 'sm:gap-0' : 'sm:gap-8'"
   >
     <div
@@ -17,11 +17,11 @@
     </div>
     <div
       ref="mainColumn"
-      class="[--echo-date-sticky-top:0px] sm:[--echo-date-sticky-top:52px] sm:max-w-lg w-full sm:mt-1 sm:min-h-0 sm:h-full sm:overflow-y-auto sm:[overscroll-behavior:contain]"
+      class="[--echo-date-sticky-top:0px] sm:[--echo-date-sticky-top:52px] sm:max-w-lg w-full sm:mt-0 sm:min-h-0 sm:h-full sm:overflow-y-auto sm:[overscroll-behavior:contain]"
       :class="isZenMode ? 'sm:mx-auto sm:shrink-0' : ''"
     >
       <div
-        class="hidden sm:block sticky top-0 z-20 relative -mx-2 sm:-mx-4 md:-mx-6 px-2 sm:px-4 md:px-6 pt-2 pb-1 bg-[var(--bg-color)]"
+        class="hidden sm:block sticky top-0 z-20 relative -mx-2 sm:-mx-4 md:-mx-6 px-2 sm:px-4 md:px-6 pt-1 pb-2 bg-[var(--bg-color)]"
       >
         <TheTop class="sm:px-4" />
       </div>
