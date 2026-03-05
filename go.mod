@@ -12,7 +12,7 @@ require (
 	github.com/charmbracelet/log v0.4.2
 	github.com/charmbracelet/ssh v0.0.0-20250826160808-ebfa259c7309
 	github.com/charmbracelet/wish v1.4.7
-	github.com/cloudwego/eino v0.7.36
+	github.com/cloudwego/eino v0.7.37
 	github.com/cloudwego/eino-ext/components/model/claude v0.1.15
 	github.com/cloudwego/eino-ext/components/model/deepseek v0.1.2
 	github.com/cloudwego/eino-ext/components/model/gemini v0.1.28
@@ -20,9 +20,9 @@ require (
 	github.com/cloudwego/eino-ext/components/model/openai v0.1.8
 	github.com/cloudwego/eino-ext/components/model/qwen v0.1.5
 	github.com/dgraph-io/ristretto/v2 v2.4.0
-	github.com/gin-gonic/gin v1.11.0
+	github.com/gin-gonic/gin v1.12.0
 	github.com/go-co-op/gocron/v2 v2.19.1
-	github.com/go-webauthn/webauthn v0.15.0
+	github.com/go-webauthn/webauthn v0.16.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/gomarkdown/markdown v0.0.0-20260217112301-37c66b85d6ab
 	github.com/google/go-github/v80 v80.0.0
@@ -33,7 +33,7 @@ require (
 	github.com/muesli/termenv v0.16.0
 	github.com/oklog/ulid/v2 v2.1.1
 	github.com/robfig/cron/v3 v3.0.1
-	github.com/shirou/gopsutil/v4 v4.26.1
+	github.com/shirou/gopsutil/v4 v4.26.2
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 	github.com/swaggo/files v1.0.1
@@ -194,6 +194,7 @@ require (
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	github.com/yargevad/filepathx v1.0.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
+	go.mongodb.org/mongo-driver/v2 v2.5.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.65.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.65.0 // indirect

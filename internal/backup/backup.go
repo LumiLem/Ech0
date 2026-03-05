@@ -3,12 +3,14 @@ package backup
 import (
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/lin-snow/ech0/internal/database"
 	fileUtil "github.com/lin-snow/ech0/internal/util/file"
 	logUtil "github.com/lin-snow/ech0/internal/util/log"
+	"go.uber.org/zap"
 )
 
 const (
@@ -78,6 +80,21 @@ func ExcuteRestoreOnline(filePath string, timeStamp int64) error {
 
 	// 解压备份文件到数据目录 （./temp/snapshot_时间戳）
 	extractPath := fmt.Sprintf("temp/snapshot_%d", timeStamp)
+	defer func() {
+		if err := os.RemoveAll(extractPath); err != nil {
+			logUtil.GetLogger().
+				Warn("Failed to cleanup extracted snapshot temp directory",
+					zap.String("path", extractPath),
+					zap.String("error", err.Error()))
+		}
+		if err := os.Remove(filePath); err != nil && !os.IsNotExist(err) {
+			logUtil.GetLogger().
+				Warn("Failed to cleanup uploaded snapshot zip",
+					zap.String("path", filePath),
+					zap.String("error", err.Error()))
+		}
+	}()
+
 	if err := fileUtil.UnzipFile(filePath, extractPath); err != nil {
 		return err
 	}

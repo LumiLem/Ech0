@@ -443,10 +443,7 @@ const nextCarousel = () => {
 .echoimg {
   border-radius: 8px;
   box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.02),
-    0 2px 4px rgba(0, 0, 0, 0.02),
-    0 4px 8px rgba(0, 0, 0, 0.02),
-    0 8px 16px rgba(0, 0, 0, 0.02);
+    0 1px 2px rgba(0,0,0,.02),0 2px 4px rgba(0,0,0,.02),0 4px 8px rgba(0,0,0,.02),0 8px 16px rgba(0,0,0,.02);
   transition:
     transform 0.3s ease,
     box-shadow 0.3s ease;
@@ -578,13 +575,13 @@ button:has(img.echoimg):hover img.echoimg {
   display: block;
 }
 
-button:hover .echoimg {
+/* button:hover .echoimg {
   transform: scale(1.01);
   box-shadow:
     0 1px 3px rgba(0, 0, 0, 0.03),
     0 2px 6px rgba(0, 0, 0, 0.03),
     0 4px 12px rgba(0, 0, 0, 0.03);
-}
+} */
 
 /* carousel, horizontal, grid styles (copied/adapted from provided template) */
 .carousel-container {

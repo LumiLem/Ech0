@@ -1,5 +1,5 @@
 # =================== 前端构建阶段 ===================
-FROM node:22-alpine AS frontend-builder
+FROM node:25-alpine AS frontend-builder
 
 WORKDIR /web
 
@@ -18,7 +18,7 @@ COPY web/ .
 RUN pnpm run build --mode production
 
 # =================== 后端构建阶段 ===================
-FROM golang:1.25.1-alpine AS backend-builder
+FROM golang:1.26.0-alpine AS backend-builder
 
 # 安装必要的工具
 RUN apk add --no-cache git ca-certificates tzdata gcc musl-dev

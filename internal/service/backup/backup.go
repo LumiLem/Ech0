@@ -158,6 +158,11 @@ func (backupService *BackupService) ImportBackup(
 		return errors.New(commonModel.NO_PERMISSION_DENIED)
 	}
 
+	// 确保临时目录存在，避免容器环境中不存在 ./temp 导致上传失败
+	if err := os.MkdirAll("./temp", 0o755); err != nil {
+		return errors.New(commonModel.SNAPSHOT_UPLOAD_FAILED + ": " + err.Error())
+	}
+
 	// 保存上传的文件到临时位置, (./temp/snapshot_时间戳.zip)
 	timestamp := time.Now().UTC().Unix()
 	tempFilePath := fmt.Sprintf("./temp/snapshot_%d.zip", timestamp)

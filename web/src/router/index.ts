@@ -49,6 +49,11 @@ const router = createRouter({
           component: () => import('../views/panel/modules/TheStorage.vue'),
         },
         {
+          path: 'data-management',
+          name: 'panel-data-management',
+          component: () => import('../views/panel/modules/TheDataManagement.vue'),
+        },
+        {
           path: 'sso',
           name: 'panel-sso',
           component: () => import('../views/panel/modules/TheSSO.vue'),

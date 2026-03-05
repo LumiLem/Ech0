@@ -20,11 +20,11 @@ jobs:
     outputs:
       asset: ${{ steps.upload-frontend.outputs.artifact-id }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
         with:
           version: 10
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 23
           cache: 'pnpm'
@@ -36,7 +36,7 @@ jobs:
         run: tar -czvf frontend.tar.gz -C web/dist .
       - name: Upload frontend artifact
         id: upload-frontend
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: frontend-asset
           path: frontend.tar.gz
@@ -59,10 +59,10 @@ jobs:
           #   goarm: 7
             
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: '1.24.3'
 
@@ -102,7 +102,7 @@ jobs:
           tar -czvf ech0-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz ech0-${{ matrix.goos }}-${{ matrix.goarch }}
 
       - name: Upload backend artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ech0-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.goarch == 'arm' && 'v7' || '' }}-asset
           path: dist/*.tar.gz
@@ -113,16 +113,16 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-frontend, build-backend]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Download frontend artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: frontend-asset
           path: ./
 
       - name: Download backend artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: ech0-*
           path: ./backend-artifacts
@@ -151,35 +151,35 @@ jobs:
     needs: [build-frontend, build-backend] 
     steps:
       - name: 🔄 Checkout source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         
       - name: 📦 Download frontend artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: frontend-asset # 下载前端构建产物得到fontend.tar.gz
           path: ./frontend-asset
 
       - name: 📦 Download backend artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: ech0-* # 下载后端构建产物得到 ech0-*.tar.gz
           path: ./backend-artifacts
 
       - name: 🐳 Login to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PAT }}
           
       - name: 🐳 Login to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           
       - name: 📦 Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         
       - name: 📦 Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

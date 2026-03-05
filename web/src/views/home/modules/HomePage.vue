@@ -17,13 +17,16 @@
     </div>
     <div
       ref="mainColumn"
-      class="[--echo-date-sticky-top:0px] sm:[--echo-date-sticky-top:52px] sm:max-w-lg w-full sm:mt-0 sm:min-h-0 sm:h-full sm:overflow-y-auto sm:[overscroll-behavior:contain]"
+      class="sm:max-w-lg w-full sm:min-h-0 sm:h-full sm:overflow-y-auto sm:[overscroll-behavior:contain]"
+      :style="{ '--echo-date-sticky-top': echoDateStickyTop }"
       :class="isZenMode ? 'sm:mx-auto sm:shrink-0' : ''"
     >
       <div
-        class="hidden sm:block sticky top-0 z-20 relative -mx-2 sm:-mx-4 md:-mx-6 px-2 sm:px-4 md:px-6 pt-1 pb-2 bg-[var(--bg-color)]"
+        ref="topStickyBar"
+        class="hidden sm:block sticky top-0 z-20 relative -mx-2 sm:-mx-4 md:-mx-6 px-2 sm:px-4 md:px-6 pt-2 bg-[var(--bg-color)]"
       >
         <TheTop class="sm:px-4" />
+        <div class="w-full h-2 bg-[var(--bg-color)]"></div>
       </div>
       <TheEchos v-if="!todoMode && !isFilteringMode && !inboxMode" :scroll-target="mainColumn" />
       <TheFilteredEchos
@@ -122,10 +125,21 @@ useHead({
 })
 
 const mainColumn = ref<HTMLElement | null>(null)
+const topStickyBar = ref<HTMLElement | null>(null)
+const echoDateStickyTop = ref('0px')
 const backTopStyle = ref({ right: '100px' }) // 默认 fallback
 const showBackTop = ref(true) // PC端回到顶部按钮显示控制
 const TIMELINE_SCROLL_KEY = 'home:timeline:scrollTop'
 let timelineScrollRaf: number | null = null
+let stickyBarObserver: ResizeObserver | null = null
+
+const updateStickyTop = () => {
+  if (window.innerWidth >= 640 && topStickyBar.value) {
+    echoDateStickyTop.value = `${topStickyBar.value.offsetHeight - 1}px`
+  } else {
+    echoDateStickyTop.value = '0px'
+  }
+}
 
 // 监听滚动事件，判断是否显示回到顶部按钮
 // PC端滚动发生在 mainColumn 内部，移动端滚动发生在 window 上
@@ -135,6 +149,8 @@ const updateShowBackTop = () => {
 }
 
 const updatePosition = () => {
+  updateStickyTop()
+
   if (mainColumn.value) {
     const rect = mainColumn.value.getBoundingClientRect()
     const rightOffset = window.innerWidth - rect.right
@@ -184,6 +200,10 @@ onMounted(async () => {
     mainColumn.value.addEventListener('scroll', updateShowBackTop, { passive: true })
     mainColumn.value.addEventListener('scroll', saveTimelineScrollPosition, { passive: true })
   }
+  if (topStickyBar.value) {
+    stickyBarObserver = new ResizeObserver(updateStickyTop)
+    stickyBarObserver.observe(topStickyBar.value)
+  }
   window.requestAnimationFrame(() => {
     restoreTimelineScrollPosition()
   })
@@ -199,6 +219,10 @@ onBeforeUnmount(() => {
   if (timelineScrollRaf !== null) {
     window.cancelAnimationFrame(timelineScrollRaf)
     timelineScrollRaf = null
+  }
+  if (stickyBarObserver) {
+    stickyBarObserver.disconnect()
+    stickyBarObserver = null
   }
 })
 </script>

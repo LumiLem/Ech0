@@ -16,6 +16,7 @@
       >
         <TheEchoCard
           :echo="echo"
+          :index="index"
           @refresh="handleRefresh"
           @update-like-count="handleUpdateLikeCount"
         />

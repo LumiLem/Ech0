@@ -121,11 +121,21 @@
           用户中心
         </BaseButton>
 
-        <!-- 数据管理 -->
+        <!-- 存储管理 -->
         <BaseButton
           :icon="Storage"
           @click="router.push('/panel/storage')"
           :class="getButtonClasses('panel-storage')"
+          title="存储管理"
+        >
+          存储管理
+        </BaseButton>
+
+        <!-- 数据管理 -->
+        <BaseButton
+          :icon="Data"
+          @click="router.push('/panel/data-management')"
+          :class="getButtonClasses('panel-data-management')"
           title="数据管理"
         >
           数据管理
@@ -241,6 +251,7 @@ import Dashboard from '@/components/icons/dashboard.vue'
 import Others from '@/components/icons/theothers.vue'
 import Setting from '@/components/icons/setting.vue'
 import Storage from '@/components/icons/storage.vue'
+import Data from '@/components/icons/data.vue'
 import Sso from '@/components/icons/sso.vue'
 import Logout from '@/components/icons/logout.vue'
 import Install from '@/components/icons/install.vue'
@@ -286,7 +297,8 @@ const routeOptions = [
   { label: '仪表盘', value: '/panel/dashboard' },
   { label: '偏好设置', value: '/panel/setting' },
   { label: '用户中心', value: '/panel/user' },
-  { label: '数据管理', value: '/panel/storage' },
+  { label: '存储管理', value: '/panel/storage' },
+  { label: '数据管理', value: '/panel/data-management' },
   { label: '单点登录', value: '/panel/sso' },
   { label: '功能扩展', value: '/panel/extension' },
   { label: '外部集成', value: '/panel/advance' },
