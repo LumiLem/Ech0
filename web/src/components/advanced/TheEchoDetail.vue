@@ -120,6 +120,41 @@
 
       <!-- 操作按钮 -->
       <div ref="menuRef" class="relative flex items-center justify-center gap-2 h-auto">
+        <!-- 点赞 -->
+        <div class="flex items-center justify-end" title="点赞">
+          <div class="flex items-center gap-1">
+            <!-- 点赞按钮   -->
+            <button
+              @click="handleLikeEcho(props.echo.id)"
+              title="点赞"
+              :class="[
+                'transform transition-transform duration-150',
+                isLikeAnimating ? 'scale-160' : 'scale-100',
+              ]"
+            >
+              <GrayLike class="w-4 h-4" />
+            </button>
+
+            <!-- 点赞数量   -->
+            <span class="text-sm text-[var(--text-color-400)]">
+              <!-- 如果点赞数不超过99，则显示数字，否则显示99+ -->
+              {{ props.echo.fav_count > 99 ? '99+' : props.echo.fav_count }}
+            </span>
+          </div>
+        </div>
+
+        <!-- 评论数 -->
+        <div v-if="showCommentCount" class="flex items-center justify-end flex-nowrap" title="评论">
+          <div class="flex items-center gap-1 cursor-pointer" @click="scrollToComments">
+            <button class="transform transition-transform duration-150">
+              <CommentIcon class="w-4 h-4" />
+            </button>
+            <span class="text-sm text-[var(--text-color-400)]">
+              {{ commentCount > 99 ? '99+' : commentCount }}
+            </span>
+          </div>
+        </div>
+
         <!-- 分享 -->
         <div class="flex items-center justify-end" title="分享">
           <button
@@ -147,29 +182,6 @@
             <Print class="w-4 h-4" />
           </button>
         </div>
-
-        <!-- 点赞 -->
-        <div class="flex items-center justify-end" title="点赞">
-          <div class="flex items-center gap-1">
-            <!-- 点赞按钮   -->
-            <button
-              @click="handleLikeEcho(props.echo.id)"
-              title="点赞"
-              :class="[
-                'transform transition-transform duration-150',
-                isLikeAnimating ? 'scale-160' : 'scale-100',
-              ]"
-            >
-              <GrayLike class="w-4 h-4" />
-            </button>
-
-            <!-- 点赞数量   -->
-            <span class="text-sm text-[var(--text-color-400)]">
-              <!-- 如果点赞数不超过99，则显示数字，否则显示99+ -->
-              {{ props.echo.fav_count > 99 ? '99+' : props.echo.fav_count }}
-            </span>
-          </div>
-        </div>
       </div>
     </div>
   </div>
@@ -182,12 +194,13 @@ import Verified from '../icons/verified.vue'
 import GrayLike from '../icons/graylike.vue'
 import Print from '../icons/print.vue'
 import Share from '../icons/share.vue'
+import CommentIcon from '../icons/comment.vue'
 import TheAPlayerCard from './TheAPlayerCard.vue'
 import TheWebsiteCard from './TheWebsiteCard.vue'
 import TheImageGallery from './TheImageGallery.vue'
 import 'md-editor-v3/lib/preview.css'
 import { MdPreview } from 'md-editor-v3'
-import { onMounted, computed, ref } from 'vue'
+import { onMounted, computed, ref, watch } from 'vue'
 import { fetchLikeEcho } from '@/service/api'
 import { theToast } from '@/utils/toast'
 import { localStg } from '@/utils/storage'
@@ -197,6 +210,7 @@ import { useUserStore } from '@/stores/user'
 import { getApiUrl } from '@/service/request/shared'
 import { ExtensionType, ImageLayout } from '@/enums/enums'
 import { formatDate, formatDetailedTime } from '@/utils/other'
+import { useTwikooCount } from '@/composables/useTwikooCount'
 const emit = defineEmits(['updateLikeCount', 'printEcho'])
 
 type Echo = App.Api.Ech0.Echo
@@ -295,8 +309,24 @@ const handlePrintEcho = (echo: Echo) => {
 const settingStore = useSettingStore()
 const userStore = useUserStore()
 
-const { SystemSetting } = storeToRefs(settingStore)
+const { CommentSetting, SystemSetting } = storeToRefs(settingStore)
 const { user } = storeToRefs(userStore)
+const { commentCaches, fetchCountsForUrls } = useTwikooCount()
+
+const commentCount = computed(() => {
+  return commentCaches.value[`/echo/${props.echo.id}`] || 0
+})
+
+const showCommentCount = computed(() => {
+  return CommentSetting.value?.enable_comment
+})
+
+const scrollToComments = () => {
+  const el = document.getElementById('comments')
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth' })
+  }
+}
 
 const apiUrl = getApiUrl()
 
@@ -352,7 +382,19 @@ const displayTime = computed(() => {
 onMounted(() => {
   // 获取系统设置
   settingStore.getSystemSetting()
+  if (showCommentCount.value) {
+    fetchCountsForUrls([`/echo/${props.echo.id}`])
+  }
 })
+
+watch(
+  () => showCommentCount.value,
+  (newVal) => {
+    if (newVal) {
+      fetchCountsForUrls([`/echo/${props.echo.id}`])
+    }
+  }
+)
 </script>
 
 <style scoped lang="css">

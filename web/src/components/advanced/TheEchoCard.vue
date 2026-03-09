@@ -71,16 +71,12 @@
 
           <!-- 展开内容 -->
           <button
+            v-if="!showCommentCount"
             @click="handleExpandEcho(echo.id)"
             title="展开Echo"
             class="transform transition-transform duration-200 hover:scale-120"
           >
             <Expand />
-          </button>
-
-          <!-- 分享按钮 -->
-          <button @click="handleShareEcho" title="分享" class="transform transition-transform duration-200 hover:scale-120">
-            <Share class="w-4 h-4" />
           </button>
 
           <!-- 点赞 -->
@@ -105,6 +101,25 @@
               </span>
             </div>
           </div>
+
+          <!-- 评论数 -->
+          <div v-if="showCommentCount" class="flex items-center justify-end flex-nowrap" title="评论">
+            <div class="flex items-center gap-1 cursor-pointer" @click="handleExpandEcho(echo.id)">
+              <button
+                class="transform transition-transform duration-200 hover:scale-120 hover:text-sky-500"
+              >
+                <CommentIcon class="w-4 h-4" />
+              </button>
+              <span class="text-sm text-[var(--text-color-400)]">
+                {{ commentCount > 99 ? '99+' : commentCount }}
+              </span>
+            </div>
+          </div>
+
+          <!-- 分享按钮 -->
+          <button @click="handleShareEcho" title="分享" class="transform transition-transform duration-200 hover:scale-120">
+            <Share class="w-4 h-4" />
+          </button>
         </div>
       </div>
     </div>
@@ -184,7 +199,7 @@
 
 <script setup lang="ts">
 import { MdPreview } from 'md-editor-v3'
-import { onMounted, ref, onBeforeUnmount, computed } from 'vue'
+import { onMounted, ref, onBeforeUnmount, computed, watch } from 'vue'
 import { fetchDeleteEcho, fetchLikeEcho, fetchGetEchoById } from '@/service/api'
 import { theToast } from '@/utils/toast'
 import { useUserStore, useEchoStore, useEditorStore, useThemeStore, useSettingStore } from '@/stores'
@@ -199,6 +214,7 @@ import Expand from '../icons/expand.vue'
 import GrayLike from '../icons/graylike.vue'
 import Share from '../icons/share.vue'
 import EditEcho from '../icons/editecho.vue'
+import CommentIcon from '../icons/comment.vue'
 import TheAPlayerCard from './TheAPlayerCard.vue'
 import TheWebsiteCard from './TheWebsiteCard.vue'
 import { localStg } from '@/utils/storage'
@@ -206,6 +222,8 @@ import { useRouter } from 'vue-router'
 import { ExtensionType, ImageLayout } from '@/enums/enums'
 import { formatDate } from '@/utils/other'
 import { useBaseDialog } from '@/composables/useBaseDialog'
+import { useTwikooCount } from '@/composables/useTwikooCount'
+import { storeToRefs } from 'pinia'
 const { openConfirm } = useBaseDialog()
 
 const emit = defineEmits(['refresh', 'updateLikeCount'])
@@ -222,6 +240,17 @@ const isLikeAnimating = ref(false)
 const userStore = useUserStore()
 const themeStore = useThemeStore()
 const settingStore = useSettingStore()
+
+const { CommentSetting } = storeToRefs(settingStore)
+const { commentCaches, fetchCountsForUrls } = useTwikooCount()
+
+const commentCount = computed(() => {
+  return commentCaches.value[`/echo/${props.echo.id}`] || 0
+})
+
+const showCommentCount = computed(() => {
+  return CommentSetting.value?.enable_comment
+})
 
 const theme = computed(() => (themeStore.theme === 'light' ? 'light' : 'dark'))
 const previewOptions = {
@@ -359,7 +388,19 @@ const handleFilterByTag = () => {
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
+  if (showCommentCount.value) {
+    fetchCountsForUrls([`/echo/${props.echo.id}`])
+  }
 })
+
+watch(
+  () => showCommentCount.value,
+  (newVal) => {
+    if (newVal) {
+      fetchCountsForUrls([`/echo/${props.echo.id}`])
+    }
+  }
+)
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside)

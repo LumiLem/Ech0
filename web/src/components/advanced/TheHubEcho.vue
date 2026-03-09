@@ -110,8 +110,11 @@
     <!-- 日期时间 && 操作按钮 -->
     <div class="flex items-center justify-between gap-2">
       <div class="min-w-0 flex flex-1 items-center overflow-hidden">
-        <div class="min-w-0 truncate whitespace-nowrap text-sm text-slate-500">
-          {{ formatDate(props.echo.created_at) }}
+        <div 
+          class="min-w-0 truncate whitespace-nowrap text-sm text-slate-500 cursor-pointer"
+          @click="toggleTimeDisplay"
+        >
+          {{ displayTime }}
         </div>
         <div
           v-if="props.echo.tags?.[0]?.name"
@@ -123,25 +126,6 @@
 
       <!-- 操作按钮 -->
       <div ref="menuRef" class="relative flex h-auto flex-none items-center justify-center gap-2">
-        <!-- 跳转 -->
-        <a :href="`${server_url}/echo/${echo_id}`" target="_blank" title="跳转至该 Echo">
-          <LinkTo class="w-4 h-4" />
-        </a>
-
-        <!-- 打印 -->
-        <div class="flex items-center justify-end" title="打印">
-          <button
-            @click="handlePrintEcho()"
-            title="打印"
-            :class="[
-              'transform transition-transform duration-150',
-              isPrintAnimating ? 'scale-160' : 'scale-100',
-            ]"
-          >
-            <Print class="w-4 h-4" />
-          </button>
-        </div>
-
         <!-- 点赞 -->
         <div class="flex items-center justify-end" title="点赞">
           <div class="flex items-center gap-1">
@@ -164,6 +148,25 @@
             </span>
           </div>
         </div>
+
+        <!-- 跳转 -->
+        <a :href="`${server_url}/echo/${echo_id}`" target="_blank" title="跳转至该 Echo">
+          <LinkTo class="w-4 h-4" />
+        </a>
+
+        <!-- 打印 -->
+        <div class="flex items-center justify-end" title="打印">
+          <button
+            @click="handlePrintEcho()"
+            title="打印"
+            :class="[
+              'transform transition-transform duration-150',
+              isPrintAnimating ? 'scale-160' : 'scale-100',
+            ]"
+          >
+            <Print class="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -183,7 +186,7 @@ import 'md-editor-v3/lib/preview.css'
 import { MdPreview } from 'md-editor-v3'
 import { computed, ref, watch } from 'vue'
 import { ExtensionType, ImageLayout } from '@/enums/enums'
-import { formatDate } from '@/utils/other'
+import { formatDate, formatDetailedTime } from '@/utils/other'
 import { useThemeStore, useZoneStore } from '@/stores'
 import { useFetch } from '@vueuse/core'
 import { theToast } from '@/utils/toast'
@@ -216,7 +219,18 @@ const server_url = computed(() => props.echo.server_url)
 const echo_id = computed(() => props.echo.id)
 const isLikeAnimating = ref(false)
 const isPrintAnimating = ref(false)
+const showDetailedTime = ref(false)
 const LIKE_LIST_KEY = computed(() => `${server_url.value}_liked_echo_ids`)
+
+const toggleTimeDisplay = () => {
+  showDetailedTime.value = !showDetailedTime.value
+}
+
+const displayTime = computed(() => {
+  return showDetailedTime.value
+    ? formatDetailedTime(props.echo.created_at)
+    : formatDate(props.echo.created_at)
+})
 
 watch(
   () => props.echo.fav_count,
