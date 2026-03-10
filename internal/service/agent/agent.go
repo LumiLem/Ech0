@@ -999,3 +999,150 @@ func extractLayoutFromOutput(output string) string {
 
 	return ""
 }
+
+// AIWrite 使用 AI 对文本进行写作辅助（创作、摘要、纠错、扩写、润色）
+func (agentService *AgentService) AIWrite(ctx context.Context, req AIWriteRequest) (*AIWriteResponse, error) {
+	if req.Action != "generate" && strings.TrimSpace(req.OriginalContent) == "" {
+		return nil, errors.New("内容不能为空")
+	}
+
+	// 获取 Agent 设置
+	var setting model.AgentSetting
+	if err := agentService.settingService.GetAgentInfo(&setting); err != nil {
+		return nil, errors.New(commonModel.AGENT_SETTING_NOT_FOUND)
+	}
+
+	if !setting.Enable {
+		return nil, errors.New(commonModel.AGENT_NOT_ENABLED)
+	}
+
+	var systemPrompt string
+	var userMessage string
+
+	switch req.Action {
+	case "summarize":
+		systemPrompt = `你是一位专业的文字提炼专家。你的任务是对用户提供的文本进行摘要提取。
+要求：
+1. 提取出最核心的思想和要点
+2. 语言简练，重点突出
+3. 如果原文较长，请考虑使用列表形式呈现要点
+4. 保持客观，不随意添加原文没有的信息
+`
+		userMessage = fmt.Sprintf("请对以下文本进行摘要提取：\n\n%s", req.OriginalContent)
+
+	case "correct":
+		systemPrompt = `你是一位专业的文字校对专家。你的任务是对用户提供的文本进行错别字和语法纠错。
+要求：
+1. **只修改**错别字、病句和严重的标点符号错误，不要过度修改原本通顺的句子
+2. **保持原有排版格式和 Markdown 标签**不受影响
+3. 让语句显得自然地道
+`
+		userMessage = fmt.Sprintf("请对以下文本进行纠错：\n\n%s", req.OriginalContent)
+
+	case "expand":
+		systemPrompt = `你是一位富有创造力的作家。你的任务是对用户提供的简短文本进行合理、生动的扩写。
+要求：
+1. 扩充细节，补充上下文情境，让内容更加丰富饱满、具有吸引力
+2. 保持与原文一致的基调和情感倾向
+3. 语段过渡自然，**保持原有的 Markdown 格式排版风格**
+`
+		userMessage = fmt.Sprintf("请合理扩写丰富以下文本：\n\n%s", req.OriginalContent)
+
+	case "generate":
+		systemPrompt = `你是一位全能的创意写作助手。请根据用户的需求，创作出高质量的文本内容。
+要求：
+1. 回答要贴合需求、结构清晰
+2. 在合适的地方使用丰富的 Markdown 格式排版（标题、加粗、列表、代码块引用等）来提升内容呈现质量
+3. 语言自然生动
+`
+		if req.OriginalContent != "" {
+			userMessage = fmt.Sprintf("基于以下背景参考上下文:\n%s\n\n---\n请执行创作指令：\n%s", req.OriginalContent, req.Prompt)
+		} else {
+			userMessage = fmt.Sprintf("请帮我创作：\n%s", req.Prompt)
+		}
+
+	case "polish":
+		// 构建润色风格提示
+		styleHint := ""
+		switch req.Prompt {
+		case "professional":
+			styleHint = "请使用专业、克制且严谨的书面风格进行润色，提升其专业度。"
+		case "friendly":
+			styleHint = "请使用友好、热情且带有亲和力的口吻进行润色，让人感到亲切活泼。"
+		case "concise":
+			styleHint = "请尽可能精简干练，重点清晰，删除多余废话和定语，保留核心信息。"
+		case "general":
+			styleHint = "请使用通用流畅的日常文案风格进行润色，力求通顺自然即可。"
+		default:
+			styleHint = "请根据原文本的内容风格和调性，自动判断最合适的提升和优化方向。"
+		}
+		systemPrompt = fmt.Sprintf(`你是一位资深的文字编辑和文章润色专家。你的任务是对用户提供的文本进行深度润色优化。
+
+## 润色要求
+1. **保持原意**：绝对不改变原文的核心含义和表达意图
+2. **保留格式**：保持原有的 Markdown 格式语法（标题、列表、代码块、引用等）
+3. **优化表达**：修正语法错误、优化措辞、提升阅读节奏感
+4. **自然流畅**：润色后的文字应自然通顺，不显刻板或机器味
+
+## 风格偏好要求
+%s
+`, styleHint)
+		userMessage = fmt.Sprintf("请润色以下文本：\n\n%s", req.OriginalContent)
+
+	default:
+		return nil, errors.New("不支持的操作类型")
+	}
+
+	// 统一要求格式
+	systemPrompt += `
+## 返回格式要求
+请你严格按以下格式输出结果，必须使用 ===SUMMARY=== 这一行独立文本，分隔你的生成结果文本和你对本次处理的简短摘要说明：
+
+[生成或修改的最终完整文本]
+===SUMMARY===
+[请用一句简短的话概括你做了哪些处理和优化，例如：已修复多处标点并精简冗余表述，不超过30个汉字]`
+
+	in := []*schema.Message{
+		{
+			Role:    schema.System,
+			Content: systemPrompt,
+		},
+		{
+			Role:    schema.User,
+			Content: userMessage,
+		},
+	}
+
+	output, err := agent.Generate(ctx, setting, in, false, 0.7)
+	if err != nil {
+		logUtil.GetLogger().Error("[AI Write] AI 调用失败", zap.Error(err))
+		return nil, fmt.Errorf("AI 操作失败: %w", err)
+	}
+
+	content, summary := parseAIWriteOutput(output)
+
+	logUtil.GetLogger().Info("[AI Write] 工作完成",
+		zap.String("action", req.Action),
+		zap.Int("original_len", len(req.OriginalContent)),
+		zap.Int("result_len", len(content)))
+
+	return &AIWriteResponse{
+		Content: content,
+		Summary: summary,
+	}, nil
+}
+
+// parseAIWriteOutput 解析输出，分离主要文本和修改摘要
+func parseAIWriteOutput(output string) (string, string) {
+	output = strings.TrimSpace(output)
+
+	separator := "===SUMMARY==="
+	if strings.Contains(output, separator) {
+		parts := strings.SplitN(output, separator, 2)
+		content := strings.TrimSpace(parts[0])
+		summary := strings.TrimSpace(parts[1])
+		return content, summary
+	}
+
+	return output, "已执行指定创作/修改操作"
+}

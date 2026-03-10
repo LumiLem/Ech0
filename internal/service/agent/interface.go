@@ -40,9 +40,24 @@ type LayoutRecommendResponse struct {
 	Reason string `json:"reason"` // 推荐理由
 }
 
+// AIWriteRequest AI写作请求
+type AIWriteRequest struct {
+	OriginalContent string `json:"original_content"` // 原文本内容
+	Action          string `json:"action"`           // 操作类型：generate/summarize/correct/expand/polish
+	Prompt          string `json:"prompt"`           // 附加输入要求或提示（创作时为输入的需求，润色时为具体风格）
+}
+
+// AIWriteResponse AI写作响应
+type AIWriteResponse struct {
+	Content string `json:"content"` // 生成或操作后的文本
+	Summary string `json:"summary"` // 修改摘要
+}
+
 type AgentServiceInterface interface {
 	// 定义 Agent 服务接口方法
 	GetRecent(ctx context.Context) (string, error)
 	// 推荐媒体布局
 	RecommendLayout(ctx context.Context, req LayoutRecommendRequest) (*LayoutRecommendResponse, error)
+	// AI写作（创作、摘要、纠错、扩写、润色）
+	AIWrite(ctx context.Context, req AIWriteRequest) (*AIWriteResponse, error)
 }

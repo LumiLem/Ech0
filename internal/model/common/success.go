@@ -121,4 +121,5 @@ const (
 // Agent 成功相关常量
 const (
 	AGENT_GET_RECENT_SUCCESS = "获取近期活动总结成功"
+	AGENT_AI_WRITE_SUCCESS   = "AI 操作成功"
 )

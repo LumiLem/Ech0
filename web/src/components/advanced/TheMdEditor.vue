@@ -22,6 +22,23 @@
     :footers="initEditor.footers"
     :no-upload-img="initEditor.noUploadImg"
   >
+    <template #defToolbars>
+      <normal-toolbar
+        title="AI 写作"
+        @click="handleAIWrite"
+        v-if="AgentSetting.enable"
+      >
+        <template #trigger>
+          <svg class="md-editor-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>
+            <path d="M20 3v4"/>
+            <path d="M22 5h-4"/>
+            <path d="M4 17v2"/>
+            <path d="M5 18H3"/>
+          </svg>
+        </template>
+      </normal-toolbar>
+    </template>
     <template #defFooters>
       <div class="md-editor-footer-item pointer-events-none select-none">
         <Transition name="status-fade" mode="out-in">
@@ -74,19 +91,28 @@
       </div>
     </template>
   </MdEditor>
+  
+  <!-- AI Write Modal -->
+  <TheAIWriteModal ref="writeModalRef" @apply="handleApplyWrite" />
 </template>
 
 <script setup lang="ts">
-import { reactive, computed } from 'vue'
-import { MdEditor, config } from 'md-editor-v3'
+import { reactive, computed, ref } from 'vue'
+import { MdEditor, NormalToolbar, config } from 'md-editor-v3'
 import type { ToolbarNames } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
-import { useEditorStore, useThemeStore } from '@/stores'
+import { useEditorStore, useThemeStore, useSettingStore } from '@/stores'
 import { storeToRefs } from 'pinia'
+import TheAIWriteModal from '@/views/home/modules/TheEditor/TheAIWriteModal.vue'
+import { theToast } from '@/utils/toast'
 
 const editorStore = useEditorStore()
 const { isSaving, lastSavedTime } = storeToRefs(editorStore)
 const themeStore = useThemeStore()
+const settingStore = useSettingStore()
+const { AgentSetting } = storeToRefs(settingStore)
+
+const writeModalRef = ref<any>(null)
 
 const content = computed<string>({
   get: () => editorStore.echoToAdd.content,
@@ -119,9 +145,10 @@ const initEditor = reactive({
     'quote',
     '-',
     '=',
+    0,
     'previewOnly',
     'pageFullscreen',
-  ] as ToolbarNames[],
+  ] as any[],
   noPrettier: false,
   tabWidth: 2,
   placeholder: '一吐为快~',
@@ -218,6 +245,15 @@ config({
     },
   },
 })
+
+const handleAIWrite = () => {
+  writeModalRef.value?.open(content.value || '')
+}
+
+const handleApplyWrite = (resultText: string) => {
+  content.value = resultText
+  theToast.success('内容已替换为 AI 生成结果')
+}
 </script>
 
 <style scoped lang="css">

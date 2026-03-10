@@ -60,3 +60,29 @@ func (agentHandler *AgentHandler) RecommendLayout() gin.HandlerFunc {
 		}
 	})
 }
+
+// AIWrite AI 辅助写作
+func (agentHandler *AgentHandler) AIWrite() gin.HandlerFunc {
+	return res.Execute(func(ctx *gin.Context) res.Response {
+		var req service.AIWriteRequest
+		if err := ctx.ShouldBindJSON(&req); err != nil {
+			return res.Response{
+				Msg: "参数错误",
+				Err: err,
+			}
+		}
+
+		result, err := agentHandler.agentService.AIWrite(ctx, req)
+		if err != nil {
+			return res.Response{
+				Msg: "AI 操作失败",
+				Err: err,
+			}
+		}
+
+		return res.Response{
+			Data: result,
+			Msg:  commonModel.AGENT_AI_WRITE_SUCCESS,
+		}
+	})
+}

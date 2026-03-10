@@ -47,3 +47,25 @@ export function fetchRecommendLayout(data: LayoutRecommendRequest) {
     data,
   })
 }
+
+// AI写作请求
+export interface AIWriteRequest {
+  original_content: string // 待处理的原始文本内容
+  action: 'generate' | 'summarize' | 'correct' | 'expand' | 'polish'
+  prompt: string // 风格或创作需求提示
+}
+
+// AI写作响应
+export interface AIWriteResponse {
+  content: string // 修改后的文本
+  summary: string // 修改摘要
+}
+
+// AI 辅助写作
+export function fetchAIWrite(data: AIWriteRequest) {
+  return request<AIWriteResponse>({
+    url: '/agent/write',
+    method: 'POST',
+    data,
+  })
+}
