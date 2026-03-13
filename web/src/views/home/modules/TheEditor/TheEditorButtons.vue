@@ -80,7 +80,8 @@
         "
       >
         <BaseButton
-          :icon="Publish"
+          :icon="isSubmitting ? Spinner : Publish"
+          :disabled="isSubmitting"
           @click="handleAddorUpdate"
           class="w-8 h-8 sm:w-9 sm:h-9 rounded-md"
           title="发布Echo / Todo"
@@ -113,7 +114,8 @@
         "
       >
         <BaseButton
-          :icon="Update"
+          :icon="isSubmitting ? Spinner : Update"
+          :disabled="isSubmitting"
           @click="handleAddorUpdate"
           class="w-8 h-8 sm:w-9 sm:h-9 rounded-md"
           title="更新Echo"
@@ -131,6 +133,7 @@ import Public from '@/components/icons/public.vue'
 import Private from '@/components/icons/private.vue'
 import Publish from '@/components/icons/publish.vue'
 import Update from '@/components/icons/update.vue'
+import Spinner from '@/components/icons/spinner.vue'
 import ExitUpdate from '@/components/icons/exitupdate.vue'
 import Back from '@/components/icons/back.vue'
 import Info from '@/components/icons/info.vue'
@@ -159,6 +162,7 @@ const {
   hasImage,
   hasExtension,
   extensionToAdd,
+  isSubmitting,
 } = storeToRefs(editorStore)
 const echoStore = useEchoStore()
 const { tagOptions } = storeToRefs(echoStore)
