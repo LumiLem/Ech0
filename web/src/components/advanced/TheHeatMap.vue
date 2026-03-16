@@ -421,6 +421,18 @@ watch([currentYear, currentMonth], () => {
   }
 })
 
+// 监听内容更新信号
+watch(
+  () => echoStore.updateSignal,
+  () => {
+    if (isCalendarMode.value) {
+      loadCalendarHeatMapData()
+    } else {
+      loadOriginalHeatMapData()
+    }
+  }
+)
+
 // 加载近30天数据
 const loadOriginalHeatMapData = async () => {
   try {

@@ -14,6 +14,7 @@ export const useEchoStore = defineStore('echoStore', () => {
   const page = ref<number>(0) // 当前页码，从0开始计数
   const current = ref<number>(1) // 当前页码，从1开始计数
   const searchValue = ref<string>('') // 搜索关键词
+  const updateSignal = ref<number>(0) // 用于通知其他组件刷新数据的信号变量
   const hasMore = computed(() => {
     return total.value > echoList.value.length
   }) // 是否还有更多数据可加载
@@ -119,6 +120,7 @@ export const useEchoStore = defineStore('echoStore', () => {
     page.value = 0
     echoList.value = []
     echoIndexMap.value.clear()
+    updateSignal.value++ // 增加信号值通知相关组件刷新
     getEchosByPage()
   }
 
@@ -143,7 +145,7 @@ export const useEchoStore = defineStore('echoStore', () => {
     if (idx !== undefined) {
       echoList.value[idx] = echo // 更新
     }
-    
+
     // 更新过滤列表（如果存在）
     const filteredIdx = filteredEchoIndexMap.value.get(echo.id)
     if (filteredIdx !== undefined) {
@@ -188,27 +190,27 @@ export const useEchoStore = defineStore('echoStore', () => {
         pageSize: filteredPageSize.value,
         search: filteredSearchValue.value || '',
       })
-      .then((res) => {
-        if (res.code === 1) {
-          filteredTotal.value = res.data.total
+        .then((res) => {
+          if (res.code === 1) {
+            filteredTotal.value = res.data.total
 
-          // 同步更新 echoMap
-          res.data.items.forEach((item: App.Api.Ech0.Echo) => {
-            const idx = filteredEchoIndexMap.value.get(item.id)
-            if (idx !== undefined) {
-              filteredEchoList.value[idx] = item // 更新已有数据
-            } else {
-              filteredEchoList.value.push(item) // 添加新数据
-              filteredEchoIndexMap.value.set(item.id, filteredEchoList.value.length - 1)
-            }
-          })
+            // 同步更新 echoMap
+            res.data.items.forEach((item: App.Api.Ech0.Echo) => {
+              const idx = filteredEchoIndexMap.value.get(item.id)
+              if (idx !== undefined) {
+                filteredEchoList.value[idx] = item // 更新已有数据
+              } else {
+                filteredEchoList.value.push(item) // 添加新数据
+                filteredEchoIndexMap.value.set(item.id, filteredEchoList.value.length - 1)
+              }
+            })
 
-          filteredPage.value += 1
-        }
-      })
-      .finally(() => {
-        isLoading.value = false
-      })
+            filteredPage.value += 1
+          }
+        })
+        .finally(() => {
+          isLoading.value = false
+        })
       return
     }
 
@@ -301,5 +303,6 @@ export const useEchoStore = defineStore('echoStore', () => {
     updateLikeCount,
     getTags,
     init,
+    updateSignal,
   }
 })
