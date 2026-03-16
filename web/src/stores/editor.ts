@@ -40,7 +40,7 @@ export const useEditorStore = defineStore('editorStore', () => {
     content: '', // 文字板块
     media: [], // 媒体板块（图片和视频）
     private: false, // 是否私密
-    layout: ImageLayout.AUTO, // 媒体布局方式，默认为自动推荐
+    layout: localStg.getItem<ImageLayout>('image_layout') ?? ImageLayout.AUTO, // 媒体布局方式，默认为记忆的选项或自动推荐
     extension: null, // 拓展内容（对于扩展类型所需的数据）
     extension_type: null, // 拓展内容类型（音乐/视频/链接/GITHUB项目）
   })
@@ -343,12 +343,15 @@ export const useEditorStore = defineStore('editorStore', () => {
     const rememberedImageSource = ref<ImageSource>(
       localStg.getItem<ImageSource>('image_source') ?? ImageSource.LOCAL,
     )
+    const rememberedImageLayout = ref<ImageLayout>(
+      localStg.getItem<ImageLayout>('image_layout') ?? ImageLayout.AUTO,
+    )
 
     echoToAdd.value = {
       content: '',
       media: [],
       private: false,
-      layout: ImageLayout.AUTO,
+      layout: rememberedImageLayout.value,
       extension: null,
       extension_type: null,
       tags: [],

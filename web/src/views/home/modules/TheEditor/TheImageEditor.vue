@@ -43,6 +43,7 @@
       <span class="text-[var(--text-color-500)]">选择布局方式：</span>
       <BaseSelect
         v-model="echoToAdd.layout"
+        @change="handleSetLayout"
         :options="layoutOptions"
         class="w-32 h-7"
         placeholder="请选择布局方式"
@@ -137,6 +138,11 @@ const handleSetMediaSource = (source: ImageSource) => {
 
   // 记忆上传方式
   localStg.setItem('image_source', source)
+}
+
+const handleSetLayout = (layout: any) => {
+  // 记忆布局方式
+  localStg.setItem('image_layout', layout as ImageLayout)
 }
 
 // AI 智能推荐布局（手动点击按钮）
